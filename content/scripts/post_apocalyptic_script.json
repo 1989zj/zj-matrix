@@ -1,0 +1,30 @@
+[
+  {
+    "scene_id": 1,
+    "visual_prompt": "Cinematic lighting, 8k resolution, tracking shot. A rugged survivor in a tattered trench coat walks through a ruined city overgrown with glowing blue alien flora. Dust motes in the air, desolate atmosphere.",
+    "camera_movement": "tracking shot, slow pan to reveal environment",
+    "dialogue": "这是世界毁灭的第五年。他们说，废土上只剩下绝望。",
+    "emotion": "somber, reflective"
+  },
+  {
+    "scene_id": 2,
+    "visual_prompt": "Close-up, high contrast, macro photography. The survivor's grimy hand picks up a glowing blue spore. The spore pulses with energy, illuminating his hardened face.",
+    "camera_movement": "macro close-up, rack focus from background to the spore",
+    "dialogue": "直到我发现了这些外星孢子。其他人避之不及，称其为诅咒。",
+    "emotion": "mysterious, intriguing"
+  },
+  {
+    "scene_id": 3,
+    "visual_prompt": "Medium shot, dynamic lighting, action scene. The survivor is surrounded by mutated beast creatures (shadowy, sharp teeth). He crushes the blue spore in his fist. His veins start glowing neon blue.",
+    "camera_movement": "fast zoom in on the fist crushing the spore, shaky cam",
+    "dialogue": "但当我走投无路，选择吞噬它的那一刻……",
+    "emotion": "tense, escalating"
+  },
+  {
+    "scene_id": 4,
+    "visual_prompt": "Wide shot, epic scale, high frame rate slow motion. The survivor unleashes a massive shockwave of blue energy, disintegrating the charging mutant beasts. Eyes glowing bright blue.",
+    "camera_movement": "slow motion, push in",
+    "dialogue": "我听到了进化的声音。原来，这是地球给我们的最后一次机会。",
+    "emotion": "powerful, triumphant"
+  }
+]
