@@ -1,0 +1,250 @@
+# Hermes Agent 命令详解与企业级使用场景
+
+> 开源 AI Agent 框架的完整命令行体系与生产环境部署指南
+
+Hermes Agent 是 Nous Research 开源的一款全功能 AI Agent 框架，它通过终端、消息平台和 IDE 与用户交互，并内置了一套完备的命令系统和可扩展的插件体系。
+
+## 一、整体架构
+
+Hermes Agent 的运行方式与其构建模式一致：agent 运行在当前流程中——终端会话、网关后台服务或子调度任务。主进程（AIAgent）运行一个推理-工具调用-观察的循环，直到完成用户的任务。
+
+核心组件分层如下：
+
+交互层: CLI (hermes) | Gateway (Telegram/微信等) | IDE (ACP) | API Server
+核心引擎: 对话循环 (run_conversation) | 工具发现和分发 | 上下文管理（压缩/记忆）
+工具层: Terminal | File | Web | Browser | Memory | Cron | MCP | Delegation
+扩展层: 技能 (Skills) | 插件 (Plugins) | 配置
+存储层: SQLite 会话 | 记忆文件 | 配置 YAML | Git
+
+每一个层之间通过严格分隔的接口进行交互。工具通过注册中心（registry）在启动时发现，技能按需加载，插件拦截关键生命周期事件。
+
+## 二、命令体系全解
+
+Hermes Agent 的命令体系分为三层：二进制 CLI 命令、内部 Slash 命令、子命令体系。
+
+### 第一层：hermes CLI 顶层命令
+
+hermes [global flags] [command]
+
+全局标志：
+-p, --profile NAME     选择配置隔离环境，多用户/多项目场景
+-s, --skills SKILL     预加载技能（可重复指定），固定工作流的自动化
+-w, --worktree         自动创建隔离的 git worktree，代码修改实验的并行跑
+-r, --resume SESSION   按会话 ID 恢复会话，跨日对话延续
+-c, --continue         恢复最近会话
+--yolo                 跳过危险命令确认，沙箱环境/CI 流水线
+
+### 第二层：配置与管理子命令
+
+初始化和诊断：
+  hermes setup          安装向导（首次启动或重新配置）
+  hermes doctor         诊断配置、依赖完整性
+  hermes status         显示各组件运行状态
+  hermes dump           一键导出诊断报告（粘贴到 GitHub Issue）
+
+模型和 Provider 管理：
+  hermes model          交互式选择模型和 Provider
+  hermes auth           管理同一 Provider 下的多 API Key 轮换池
+  hermes fallback       设置 Provider 故障切换链
+
+会话和产出管理：
+  hermes sessions list/browse/rename/delete/prune
+  hermes backup         全量配置备份（zip，含 SQLite 快照备份）
+  hermes export/import  会话导出、导入
+
+网关和消息平台：
+  hermes gateway run/start/stop/install/status   网关生命周期
+  hermes pairing list/approve/revoke             用户授权管理
+
+技能系统：
+  hermes skills browse/search/install/list/update/publish
+  hermes curator run/status/pin/archive           技能自动维护守护进程
+
+### 第三层：Slash 命令（在交互式会话中输入）
+
+会话控制：/new /retry /undo /rollback /compress /background
+配置查询：/model /config /provider /reasoning /voice
+工具和技能：/tools /skills /cron /plugins
+诊断：/usage /insights /profile
+
+这些 slash 命令在 CLI、Telegram、Discord、Slack 等平台的交互体验是一致的。
+
+## 三、企业级部署模式
+
+### 3.1 多用户隔离（Profiles）
+
+profiles 是企业部署的核心基础设施。每个 profile 是完全隔离的 Hermes 实例，拥有独立的：
+
+- 配置文件 (config.yaml)
+- 环境变量 (.env)
+- 会话历史 (SQLite DB)
+- 技能目录
+- 记忆文件 (MEMORY.md, USER.md)
+
+典型场景：为团队中不同角色创建专用 Agent。
+
+创建工作流：
+  hermes profile create dev-team
+  hermes profile create ops-bot
+
+设置各自的网关端口（写入各 profile 的 .env）：
+  API_SERVER_ENABLED=true
+  API_SERVER_PORT=8643
+  API_SERVER_KEY=dev-secret
+
+分别启动：
+  hermes -p dev-team gateway start
+  hermes -p ops-bot gateway start
+
+每个 profile 的 API server 自动以 profile 名作为模型 ID 注册到 Open WebUI。
+
+### 3.2 Docker 容器化部署
+
+模式 A：Agent 运行在容器内（推荐生产隔离）
+  mkdir -p ~/.hermes
+  docker run -it --rm -v ~/.hermes:/opt/data nousresearch/hermes-agent setup
+  配置写入宿主机的 ~/.hermes/.env，容器无状态，升级不丢失配置。
+
+模式 B：Docker 作为 Terminal Backend（终端沙箱化）
+  config.yaml:
+    terminal:
+      backend: docker
+      docker_image: python:3.11-slim
+  一次 pip install，后续所有命令（包括子 Agent）都能访问。
+
+### 3.3 多 Agent 并行（Git Worktrees）
+
+自动模式：
+  cd /repo
+  hermes -w -q "实现用户认证模块"
+  自动创建 .worktrees/hermes-<hash>/，两个 Agent 互不干扰。
+
+手动模式：
+  git worktree add ../experiment-a feature/hermes-a
+  git worktree add ../experiment-b feature/hermes-b
+  然后在各自目录运行 hermes。
+
+### 3.4 生产部署检查清单
+
+1. 显式配置用户允许列表，绝不用 GATEWAY_ALLOW_ALL_USERS=true
+2. 设置容器终端后端隔离命令执行
+3. 限制资源上限（CPU、内存、磁盘）
+4. 配置 DM Pairing 授权机制而不是硬编码用户 ID
+5. 设置 MESSAGING_CWD，不让 Agent 从敏感目录启动
+6. 以非 root 用户运行网关
+7. 监控 ~/.hermes/logs/ 日志审查未授权访问
+8. 定期 hermes update 安全更新
+
+API Key 安全：
+  chmod 600 ~/.hermes/.env
+  .env 文件永远不提交到版本控制
+
+## 四、安全模型
+
+### 4.1 安全扫描
+
+Tirith 安全策略引擎在执行终端命令前扫描命令内容：
+  security:
+    tirith_enabled: true      启用扫描
+    tirith_timeout: 5         扫描超时时间
+    tirith_fail_open: false   扫描失败时阻止命令执行（生产推荐）
+    redact_secrets: true      自动脱敏 API Key 输出
+
+### 4.2 审批模式
+
+manual（默认）：每条疑似危险命令都确认，个人开发
+smart：辅助 LLM 评估风险，低风险自动放行，团队协作减少审批疲劳
+off：跳过所有检查，CI/CD 流水线、沙箱环境
+
+Smart 模式通过另一个轻量模型在后台对命令做风险分类。
+
+### 4.3 网站黑名单
+
+  security:
+    website_blocklist:
+      enabled: true
+      domains:
+        - "*.internal.company.com"
+        - "*.local"
+        - "secrets.example.com"
+
+规则支持精确匹配、通配符子域名和 TLD 模式。配置变更 30 秒内生效。
+
+### 4.4 检查点与回滚
+
+在每次写文件或破坏性命令执行前自动创建 git 快照。
+  config.yaml:
+    checkpoints:
+      enabled: true
+      max_snapshots: 20
+
+在会话中通过 /rollback 列出/恢复/预览快照。
+命令行通过 hermes checkpoints status/prune/clear 管理存储。
+
+检查点存储在共享的裸 git 仓库 ~/.hermes/checkpoints/store/，跨项目去重。
+
+## 五、多租户与团队协作
+
+### 5.1 Kanban Boards
+
+每个 board 是一个独立的 SQLite DB，不同的 dispatcher 作用域。
+
+  hermes kanban boards create release-v2 --name "Release v2" --icon rocket
+  hermes kanban create "数据库迁移脚本" --assignee dev-team --tenant project-a
+  hermes kanban link T-001 T-002   任务链依赖
+  hermes kanban dispatch            执行一次 dispatcher 遍历
+
+Agent 工作线程通过专用的 kanban_* 工具集与 board 交互。
+
+### 5.2 多用户 Web 界面
+
+通过 Open WebUI 整合多个 profile：
+1. 为每个团队成员创建独立 profile
+2. 每个 profile 启动独立的 API Server（绑定不同端口）
+3. 在 Open WebUI 中添加多个连接
+4. 用户从下拉菜单选择不同的 Agent
+
+## 六、运维与可观测性
+
+### 6.1 使用分析
+  hermes insights --days 30
+  hermes insights --days 7 --source telegram
+  返回各模型的 token 消耗、成本估算、能力标签。
+
+### 6.2 备份恢复
+  hermes backup -o /backup/hermes-$(date +%Y%m%d).zip
+  hermes backup --quick --label "pre-upgrade-v2.5"
+  hermes import /backup/hermes-20260510.zip
+  使用 SQLite backup() API，即使 Agent 正在运行也能安全拷贝。
+
+### 6.3 定时任务
+  hermes cron create --schedule "0 9 * * 1" --prompt "生成上周的开发周报" --skills "docs-to-deepdive-article" --deliver telegram
+
+### 6.4 Webhook 事件驱动
+  hermes webhook subscribe github-pr-review --prompt "审查来自 {actor} 的 PR #{number}: {title}" --events "pull_request" --skills "github-code-review" --deliver telegram
+
+## 七、成本控制
+
+### 7.1 辅助模型路由
+
+主模型用高级推理，辅助任务用便宜模型：
+  auxiliary:
+    title_gen: "google/gemini-3-flash-preview"
+    compression: "gpt-4o-mini"
+    vision: "google/gemini-2.5-flash"
+    approval: "gpt-4o-mini"
+    web_extract: "gpt-4o-mini"
+
+### 7.2 Credential Pools
+  hermes auth add openrouter --api-key sk-or-v1-key1
+  hermes auth add openrouter --api-key sk-or-v1-key2
+  自动轮换，所有 Key 耗尽时触发 fallback chain。
+
+### 7.3 Fallback Provider
+  hermes fallback add  选择备用 Provider + Model，依次尝试。
+
+### 7.4 子 Agent 委派
+  delegation:
+    model: "google/gemini-3-flash-preview"   子 Agent 默认模型
+    max_concurrent_children: 3                默认并行数
+    max_spawn_depth: 1                        树深度，1 = 扁平委派
