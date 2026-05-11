@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}{{ chapter.title }} - {{ meta.title }}{% endblock %}
+{% block content %}
+<div class="page-content" style="max-width:740px;margin:0 auto;padding:32px 24px;">
+
+    <!-- Chapter Header -->
+    <div class="reading-header">
+        <div class="reading-title-row">
+            {% if prev %}
+            <a href="/novel/{{ slug }}/chapter/{{ prev.num }}/" class="nav-btn">‹ 上一章</a>
+            {% else %}
+            <span class="nav-btn disabled">‹ 上一章</span>
+            {% endif %}
+            <h1>{{ chapter.title }}</h1>
+            {% if next %}
+            <a href="/novel/{{ slug }}/chapter/{{ next.num }}/" class="nav-btn">下一章 ›</a>
+            {% else %}
+            <span class="nav-btn disabled">下一章 ›</span>
+            {% endif %}
+        </div>
+        <div class="meta">
+            <span>第{{ chapter.num }}章</span>
+            <span>·</span>
+            <span>{{ '{:,}'.format(chapter.words) }} 字</span>
+            <span>·</span>
+            <span class="version-badge">{{ chapter.version }}</span>
+        </div>
+        <button class="copy-btn" onclick="copyContent()">📋 复制正文</button>
+    </div>
+
+    <!-- Chapter Content -->
+    <div class="reading-content" id="chapter-content">
+        {% for line in chapter.content.split('\n') %}
+            {% if line.startswith('# ') or line.startswith('## ') or line.startswith('### ') %}
+                {# skip headings already shown in the header #}
+            {% elif line.startswith('【') and line.endswith('】') %}
+                <p class="scene-break">{{ line }}</p>
+            {% elif line.startswith('**') and line.endswith('**') and line.strip() != '' %}
+                <p class="scene-break" style="font-weight:500;">{{ line.strip('*') }}</p>
+            {% elif line.startswith('——') %}
+                <p style="text-indent:0;color:var(--text-primary);">{{ line }}</p>
+            {% elif line.startswith('---') %}
+                <hr style="border:none;border-top:1px solid var(--border);margin:24px 0;">
+            {% elif line.strip() == '' %}
+                <br>
+            {% else %}
+                <p>{{ line }}</p>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- Navigation -->
+    <div class="reading-footer">
+        {% if prev %}
+        <a href="/novel/{{ slug }}/chapter/{{ prev.num }}/">← 上一章</a>
+        {% else %}
+        <span class="disabled"></span>
+        {% endif %}
+        {% if next %}
+        <a href="/novel/{{ slug }}/chapter/{{ next.num }}/">下一章 →</a>
+        {% else %}
+        <span class="disabled"></span>
+        {% endif %}
+    </div>
+</div>
+
+{% if chapter.chapterEndNotes %}
+<div class="end-notes">
+    <div class="end-notes-title">📝 章尾说明</div>
+    <div class="end-notes-content">
+        {% for line in chapter.chapterEndNotes.split('\n') %}
+            {% if line.startswith('**') and '**：' in line %}
+                <p class="note-item"><strong>{{ line.split('**：')[0] | trim('*') }}</strong>：{{ line.split('**：')[1] | trim }}</p>
+            {% elif line.startswith('**') and '**：' not in line and line.strip() != '' %}
+                <p class="note-heading">{{ line.strip('*') }}</p>
+            {% elif line.startswith('---') %}
+                <hr style="border:none;border-top:1px dashed var(--border);margin:12px 0;">
+            {% elif line.strip() == '' %}
+                <br>
+            {% else %}
+                <p class="note-item">{{ line }}</p>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% block scripts %}
+<script>
+function copyContent() {
+    const contentDiv = document.getElementById('chapter-content');
+    const paragraphs = contentDiv.querySelectorAll('p');
+    let textParts = [];
+    for (const p of paragraphs) {
+        const t = p.textContent.trim();
+        if (t.startsWith('【')) continue;
+        if (t.startsWith('——')) continue;
+        if (t.length === 0) continue;
+        textParts.push(t);
+    }
+    let text = textParts.join('\n\n');
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(text).then(showCopied).catch(() => { fallbackCopy(text); });
+    } else {
+        fallbackCopy(text);
+    }
+}
+function fallbackCopy(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(textarea);
+    showCopied();
+}
+function showCopied() {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✅ 已复制';
+    btn.classList.add('copied');
+    setTimeout(() => {
+        btn.textContent = '📋 复制正文';
+        btn.classList.remove('copied');
+    }, 2000);
+}
+</script>
+{% endblock %}
+{% endblock %}

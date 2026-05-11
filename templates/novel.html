@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ meta.title }} - NovelStudio{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>{{ meta.title }}</h1>
+    <div class="page-meta">
+        <span class="tag">{{ meta.genre }}</span>
+        {% if meta.target %}<span class="tag">{{ meta.target }}</span>{% endif %}
+        <span class="tag">{{ meta.stats.status }}</span>
+        <span style="color:var(--text-muted);font-size:12px;margin-left:8px;">slug: {{ slug }}</span>
+    </div>
+</div>
+<div class="page-content">
+    <!-- Stats Row -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value">{{ meta.stats.chapters }}</div>
+            <div class="stat-label">章节数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ '{:,}'.format(meta.stats.words) }}</div>
+            <div class="stat-label">总字数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ meta.characters|length if meta.characters else '?' }}</div>
+            <div class="stat-label">角色数</div>
+        </div>
+        <div class="stat-card">
+            {% set avg = (meta.stats.words / meta.stats.chapters)|round|int if meta.stats.chapters > 0 else 0 %}
+            <div class="stat-value">{{ '{:,}'.format(avg) }}</div>
+            <div class="stat-label">平均每章字数</div>
+        </div>
+    </div>
+
+    <!-- Synopsis -->
+    <div class="card" style="margin-bottom:20px;">
+        <div class="card-title">简介</div>
+        <div class="card-desc">{{ meta.synopsis }}</div>
+        {% if meta.stats.chapters > 0 %}
+        {% set total_chs = meta.total_chapters or 120 %}
+        {% set pct = (meta.stats.chapters / total_chs * 100)|round %}
+        <div style="margin-top:16px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
+                <span>创作进度</span>
+                <span>{{ meta.stats.chapters }} / {{ total_chs }} 章 ({{ pct if pct <= 100 else 100 }}%)</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width:{{ pct if pct <= 100 else 100 }}%"></div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Actions Grid -->
+    <div class="card-grid cols-4">
+        <a href="/novel/{{ slug }}/chapters/" class="card" style="display:block;text-align:center;padding:24px 16px;text-decoration:none;">
+            <div style="font-size:32px;margin-bottom:8px;">📄</div>
+            <div style="font-size:14px;color:var(--text-primary);font-weight:500;">阅读章节</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">{{ meta.stats.chapters }} 章</div>
+        </a>
+        <a href="/novel/{{ slug }}/characters/" class="card" style="display:block;text-align:center;padding:24px 16px;text-decoration:none;">
+            <div style="font-size:32px;margin-bottom:8px;">👥</div>
+            <div style="font-size:14px;color:var(--text-primary);font-weight:500;">角色档案</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">{{ meta.characters|length if meta.characters else 0 }} 人</div>
+        </a>
+        <a href="/novel/{{ slug }}/world/" class="card" style="display:block;text-align:center;padding:24px 16px;text-decoration:none;">
+            <div style="font-size:32px;margin-bottom:8px;">🌍</div>
+            <div style="font-size:14px;color:var(--text-primary);font-weight:500;">世界观</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">设定体系</div>
+        </a>
+        <a href="/novel/{{ slug }}/timeline/" class="card" style="display:block;text-align:center;padding:24px 16px;text-decoration:none;">
+            <div style="font-size:32px;margin-bottom:8px;">📅</div>
+            <div style="font-size:14px;color:var(--text-primary);font-weight:500;">时间线</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">关键事件</div>
+        </a>
+    </div>
+</div>
+{% endblock %}

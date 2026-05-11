@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}下载中心 - NovelStudio{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>📥 下载中心</h1>
+    <div class="page-meta">可下载的小说打包文件 (.tar.gz) 和 NotebookLM 材料 (.md)</div>
+</div>
+<div class="page-content">
+    {% if files %}
+    <div style="display:grid;gap:8px;">
+        {% for f in files %}
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;transition:border-color 0.15s;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span style="font-size:20px;">📄</span>
+                <div>
+                    <div style="font-size:14px;font-weight:500;color:var(--text-primary);">{{ f.name }}</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">{{ (f.size / 1024)|round(1) }} KB</div>
+                </div>
+            </div>
+            <a href="/download/{{ f.name }}" class="btn btn-primary" style="padding:6px 16px;font-size:12px;">下载</a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <div class="empty-text">暂无可下载的文件</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

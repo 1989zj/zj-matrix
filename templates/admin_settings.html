@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}定价设置 - NovelStudio{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>⚙️ 定价设置</h1>
+    <div class="page-meta">配置不同订单类型的单价，修改后立即生效</div>
+</div>
+<div class="page-content">
+
+    <div class="card" style="max-width: 600px;">
+        <div class="card-title" style="font-size:16px;">💰 订单类型单价</div>
+        <div class="card-desc" style="margin-bottom:20px;">以下价格为 <strong>每章</strong> 费用，订单总价 = 单价 × 章节数</div>
+
+        <div id="priceList" style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+            {% for type_key, default_price in order_types.items() %}
+            <div style="display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:14px;font-weight:500;color:var(--text-primary);">{{ type_key }}</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">元/章</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:14px;color:var(--text-muted);">¥</span>
+                    <input type="number" class="price-input" data-type="{{ type_key }}"
+                           value="{{ prices.get(type_key, default_price) }}"
+                           min="1" max="999"
+                           style="width:80px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);font-size:16px;font-weight:600;font-family:inherit;text-align:center;">
+                    <span style="font-size:12px;color:var(--text-muted);">/章</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;">
+            <button id="saveBtn" class="btn btn-primary">💾 保存定价</button>
+            <span id="saveResult" style="display:none;font-size:13px;padding:6px 14px;border-radius:var(--radius-sm);"></span>
+        </div>
+    </div>
+
+    <!-- ── 预览 ── -->
+    <div class="card" style="max-width: 600px;margin-top:20px;">
+        <div class="card-title" style="font-size:14px;">🔍 费用预览</div>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:2;">
+            <div>60章 <strong>全本新小说</strong>：<span class="cost-preview" data-type="全本新小说" data-chapters="60" style="color:var(--accent);font-weight:600;">¥900</span></div>
+            <div>60章 <strong>小说续写</strong>：<span class="cost-preview" data-type="小说续写" data-chapters="60" style="color:var(--accent);font-weight:600;">¥720</span></div>
+            <div>60章 <strong>小说改写</strong>：<span class="cost-preview" data-type="小说改写" data-chapters="60" style="color:var(--accent);font-weight:600;">¥480</span></div>
+            <div>60章 <strong>小说优化</strong>：<span class="cost-preview" data-type="小说优化" data-chapters="60" style="color:var(--accent);font-weight:600;">¥300</span></div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 实时更新预览
+document.querySelectorAll('.price-input').forEach(input => {
+    input.addEventListener('input', function() {
+        const type = this.dataset.type;
+        const price = parseInt(this.value) || 0;
+        document.querySelectorAll('.cost-preview[data-type="' + type + '"]').forEach(el => {
+            const ch = parseInt(el.dataset.chapters) || 0;
+            el.textContent = '¥' + (price * ch);
+        });
+    });
+});
+
+// 保存
+document.getElementById('saveBtn').addEventListener('click', async function() {
+    const btn = this;
+    btn.textContent = '⏳ 保存中...';
+    btn.disabled = true;
+
+    const prices = {};
+    document.querySelectorAll('.price-input').forEach(input => {
+        prices[input.dataset.type] = parseInt(input.value) || 0;
+    });
+
+    try {
+        const res = await fetch('/api/settings/prices', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({prices})
+        });
+        const result = await res.json();
+        const el = document.getElementById('saveResult');
+        el.style.display = 'inline-block';
+        if (result.success) {
+            el.style.background = 'var(--success-soft)';
+            el.style.border = '1px solid var(--success)';
+            el.textContent = '✅ 定价已保存，立即生效';
+        } else {
+            el.style.background = 'var(--danger-soft)';
+            el.style.border = '1px solid var(--danger)';
+            el.textContent = '❌ 保存失败：' + (result.error || '未知错误');
+        }
+    } catch(err) {
+        const el = document.getElementById('saveResult');
+        el.style.display = 'inline-block';
+        el.style.background = 'var(--danger-soft)';
+        el.style.border = '1px solid var(--danger)';
+        el.textContent = '❌ 网络错误：' + err.message;
+    } finally {
+        btn.textContent = '💾 保存定价';
+        btn.disabled = false;
+    }
+});
+</script>
+{% endblock %}

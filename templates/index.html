@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}NovelStudio - 小说库{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>📚 小说库</h1>
+    <div class="page-meta">NovelStudio 创作管理平台</div>
+</div>
+<div class="page-content">
+    {% if novels %}
+    <div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;">
+        {% for novel in novels %}
+        <a href="/novel/{{ novel.slug }}/" class="card" style="display:block;">
+            <div class="card-title">{{ novel.meta.title }}</div>
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <span class="tag">{{ novel.meta.genre }}</span>
+                {% if novel.meta.target %}<span class="tag">{{ novel.meta.target }}</span>{% endif %}
+                <span class="tag">{{ novel.meta.stats.status }}</span>
+            </div>
+            <div class="card-desc">{{ novel.meta.synopsis[:150] }}{% if novel.meta.synopsis|length > 150 %}...{% endif %}</div>
+            <div class="card-stats">
+                <span>📄 {{ novel.meta.stats.chapters }} 章</span>
+                <span>📝 {{ '{:,}'.format(novel.meta.stats.words) }} 字</span>
+            </div>
+            {% if novel.meta.stats.chapters > 0 %}
+            {% set total_chs = novel.meta.total_chapters or 100 %}
+            {% set pct = (novel.meta.stats.chapters / total_chs * 100)|round %}
+            <div class="progress-bar" style="margin-top:10px;">
+                <div class="progress-fill" style="width:{{ pct if pct <= 100 else 100 }}%"></div>
+            </div>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <div class="empty-text">暂无可显示的小说</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

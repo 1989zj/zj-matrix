@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}世界观 - {{ meta.title }} - NovelStudio{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>🌍 世界观设定</h1>
+    <div class="page-meta">
+        {{ meta.title }} ·
+        {% if slug == 'wo-de-wu-ran-deng-ji' %}污染末世体系
+        {% elif slug == 'gui-yi-you-xi' %}规则世界观体系
+        {% else %}世界观体系{% endif %}
+    </div>
+</div>
+<div class="page-content">
+    {% if meta.world %}
+    <!-- Power System -->
+    <div class="world-section">
+        <h2>⚡ {{ meta.world.power_system.name }}</h2>
+        {% if slug == 'gui-yi-you-xi' %}
+        <p><strong>三种形态：</strong>{{ meta.world.power_system.levels }}</p>
+        {% else %}
+        <p>{{ meta.world.power_system.levels }}</p>
+        {% endif %}
+        <p style="margin-top:8px;"><strong>来源：</strong>{{ meta.world.power_system.source }}</p>
+        <p style="margin-top:8px;padding:8px 12px;background:var(--accent-soft);border-left:2px solid var(--accent);border-radius:4px;font-size:13px;color:var(--text-secondary);">💡 {{ meta.world.power_system.note }}</p>
+    </div>
+
+    <!-- Factions -->
+    <div class="world-section">
+        <h2>🏛️ 势力格局</h2>
+        <ul>
+            {% for name, desc in meta.world.factions.items() %}
+            <li><strong>{{ name }}：</strong>{{ desc }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Threats -->
+    <div class="world-section">
+        <h2>⚠️ 当前威胁</h2>
+        <ul>
+            {% for threat in meta.world.threats %}
+            <li>{{ threat }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🌍</div>
+        <div class="empty-text">暂无世界观数据</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

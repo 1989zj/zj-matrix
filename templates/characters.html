@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}角色档案 - {{ meta.title }} - NovelStudio{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>👥 角色档案</h1>
+    <div class="page-meta">{{ meta.title }} · {{ meta.characters|length if meta.characters else 0 }} 个主要角色</div>
+</div>
+<div class="page-content">
+    {% if meta.characters %}
+    <div class="char-grid">
+        {% for char in meta.characters %}
+        <div class="char-card">
+            <div class="char-name">{{ char.name }}</div>
+            <div class="char-title">{{ char.title }}</div>
+            {% if char.ability and char.ability != '无异能' %}
+            <div class="char-ability">⚡ {{ char.ability }}</div>
+            {% endif %}
+            <div class="char-desc">{{ char.desc }}</div>
+            {% if char.traits %}
+            <div class="char-traits">
+                {% for trait in char.traits %}
+                <span class="char-trait">{{ trait }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">👤</div>
+        <div class="empty-text">暂无角色数据</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}时间线 - {{ meta.title }} - NovelStudio{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>📅 故事时间线</h1>
+    <div class="page-meta">{{ meta.title }}</div>
+</div>
+<div class="page-content">
+    {% if meta.world and meta.world.timeline %}
+    <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;">
+        <div class="timeline">
+            {% set ns = namespace(last_group='') %}
+            {% for key, desc in meta.world.timeline.items() %}
+            {% set group = key.split('·')[0] if '·' in key else '' %}
+            {% if group and group != ns.last_group %}
+            {% set ns.last_group = group %}
+            <div class="section-group" style="margin-top:{{ '16px' if loop.index0 > 0 else '0' }};">
+                {% if group == '历史' %}📜 历史时间线（灾变前）
+                {% elif group == '灾变' %}💥 大灾变时间线
+                {% elif group == 'B7' %}🏗️ B-7设施内（卷一）
+                {% elif group == '北上' %}🚶 北上旅途（卷二）
+                {% elif group == '烬城' %}🏰 烬城阶段
+                {% elif group == '锚点' %}📍 重要时间锚点
+                {% else %}{{ group }}{% endif %}
+            </div>
+            {% endif %}
+            <div class="tl-item">
+                <div class="tl-label">
+                    {% if key.startswith('D-') %}灾前第{{ key[2:] }}天
+                    {% elif key.startswith('D+') %}灾后第{{ key[2:] }}天
+                    {% elif key == 'D-0_0427' %}D-Day · 04:27
+                    {% elif '·' in key %}{{ key.split('·')[1].replace('_', ' ') }}
+                    {% else %}D-Day{% endif %}
+                </div>
+                <div class="tl-desc">{{ desc }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📅</div>
+        <div class="empty-text">暂无时间线数据</div>
+    </div>
+    {% endif %}
+
+    <!-- Novel-specific notes -->
+    {% if slug == 'wo-de-wu-ran-deng-ji' %}
+    <div style="margin-top:20px;padding:14px 18px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);">
+        <p style="font-size:13px;color:var(--text-muted);">📌 全书已完结（60章），最终时间点：D+24，陆川从青海湖TS-01走出，核心耗尽回归普通人。</p>
+    </div>
+    {% elif slug == 'gui-yi-you-xi' %}
+    <div style="margin-top:20px;padding:14px 18px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);">
+        <p style="font-size:13px;color:var(--text-muted);">📌 当前进度：第二卷第46-95章连载中。当前时间点约2016年5月10日，林远团队在烬城井底发现蓝白色光源。</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

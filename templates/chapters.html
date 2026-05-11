@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}章节列表 - {{ meta.title }} - NovelStudio{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>📄 章节列表</h1>
+    <div class="page-meta">{{ meta.title }} · 共 {{ chapters|length }} 章 · 约 {{ '{:,}'.format(meta.stats.words) }} 字</div>
+</div>
+<div class="page-content">
+    <!-- Progress bar -->
+    {% set total_chs = meta.total_chapters or 120 %}
+    {% set pct = (chapters|length / total_chs * 100)|round %}
+    <div class="ch-progress-wrap">
+        <div class="ch-progress-text">创作进度</div>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width:{{ pct if pct <= 100 else 100 }}%"></div>
+        </div>
+        <div class="ch-progress-text" style="font-weight:500;color:var(--accent);">{{ chapters|length }} / {{ total_chs }}</div>
+    </div>
+
+    <!-- Chapter list -->
+    <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;">
+        <ul class="chapter-list">
+            {% for ch in chapters %}
+            <li>
+                <a href="/novel/{{ slug }}/chapter/{{ ch.num }}/" class="chapter-item">
+                    <div class="chapter-num">{{ ch.num }}</div>
+                    <div class="chapter-info">
+                        <div class="chapter-title">{{ ch.title or '第' + ch.num|string + '章' }}</div>
+                        <div class="chapter-words">{{ '{:,}'.format(ch.words) }} 字</div>
+                    </div>
+                    <div class="chapter-arrow">→</div>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    {% if not chapters %}
+    <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <div class="empty-text">暂无章节</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

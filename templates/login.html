@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - NovelStudio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            height: 100%;
+            font-family: 'Inter', -apple-system, 'PingFang SC', 'Noto Sans SC', sans-serif;
+            font-feature-settings: 'cv01', 'ss03';
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        body {
+            background: #08090a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #f7f8f8;
+        }
+        /* ── Animated background ── */
+        .bg-grid {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 48px 48px;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .bg-glow {
+            position: fixed;
+            top: -30%; left: 50%;
+            width: 600px; height: 600px;
+            transform: translateX(-50%);
+            background: radial-gradient(circle, rgba(94,106,210,0.08) 0%, transparent 70%);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .login-wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+        }
+        /* ── Brand ── */
+        .brand {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .brand-icon {
+            width: 44px; height: 44px;
+            background: linear-gradient(135deg, #5e6ad2, #7170ff);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 14px;
+            font-size: 20px;
+            box-shadow: 0 8px 24px rgba(94,106,210,0.25);
+        }
+        .brand h1 {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            color: #f7f8f8;
+            margin-bottom: 4px;
+        }
+        .brand p {
+            font-size: 13px;
+            color: #8a8f98;
+            font-weight: 400;
+        }
+        /* ── Card ── */
+        .card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 32px;
+            backdrop-filter: blur(12px);
+        }
+        /* ── Tabs ── */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            padding: 3px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: transparent;
+            color: #8a8f98;
+        }
+        .tab-btn.active {
+            background: rgba(255,255,255,0.08);
+            color: #f7f8f8;
+        }
+        .tab-btn:hover:not(.active) {
+            color: #d0d6e0;
+        }
+        /* ── Error ── */
+        .error-msg {
+            display: none;
+            padding: 10px 14px;
+            background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 6px;
+            font-size: 13px;
+            color: #f87171;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .error-msg.visible {
+            display: block;
+        }
+        /* ── Form ── */
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: #d0d6e0;
+            margin-bottom: 6px;
+            letter-spacing: 0.2px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            color: #f7f8f8;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input::placeholder {
+            color: #62666d;
+        }
+        .form-group input:focus {
+            border-color: #5e6ad2;
+            box-shadow: 0 0 0 3px rgba(94,106,210,0.15);
+        }
+        .admin-field {
+            display: none;
+            animation: slideDown 0.25s ease;
+        }
+        .admin-field.visible {
+            display: block;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* ── Submit ── */
+        .btn-submit {
+            width: 100%;
+            padding: 11px 20px;
+            background: #5e6ad2;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            letter-spacing: 0.2px;
+        }
+        .btn-submit:hover {
+            background: #7170ff;
+        }
+        .btn-submit:active {
+            transform: scale(0.98);
+        }
+        /* ── Footer ── */
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #62666d;
+            line-height: 1.6;
+        }
+        /* ── Version ── */
+        .version {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 11px;
+            color: #3e3e44;
+            letter-spacing: 0.3px;
+        }
+        /* ── Responsive ── */
+        @media (max-width: 480px) {
+            .login-wrapper { padding: 12px; }
+            .card { padding: 24px; border-radius: 10px; }
+            .brand-icon { width: 38px; height: 38px; font-size: 17px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="login-wrapper">
+        <div class="brand">
+            <div class="brand-icon">✍️</div>
+            <h1>NovelStudio</h1>
+            <p>AI 小说创作平台</p>
+        </div>
+
+        <div class="card">
+            <div class="tabs" id="loginTabs">
+                <button type="button" class="tab-btn active" data-role="customer" onclick="switchTab('customer')">客户登录</button>
+                <button type="button" class="tab-btn" data-role="admin" onclick="switchTab('admin')">管理员</button>
+            </div>
+
+            <div class="error-msg {% if error %}visible{% endif %}" id="errorMsg">{{ error if error else '' }}</div>
+
+            <form method="post">
+                <input type="hidden" name="next" value="{{ next }}">
+
+                <div class="form-group">
+                    <label for="name">姓名 / 昵称</label>
+                    <input type="text" id="name" name="name" placeholder="输入您的姓名" required autofocus>
+                </div>
+
+                <div class="form-group admin-field" id="adminPasswordField">
+                    <label for="admin_password">管理员密码</label>
+                    <input type="password" id="admin_password" name="admin_password" placeholder="输入管理员密码">
+                </div>
+
+                <input type="hidden" name="role" id="roleInput" value="customer">
+
+                <button type="submit" class="btn-submit" id="submitBtn">登 录</button>
+            </form>
+
+            <div class="footer">
+                首次使用？输入姓名即可登录。<br>
+                登录状态将在 7 天内保持有效。
+            </div>
+        </div>
+
+        <div class="version">NovelStudio v2.0</div>
+    </div>
+
+    <script>
+        function switchTab(role) {
+            document.querySelectorAll('.tab-btn').forEach(function(t) {
+                t.classList.toggle('active', t.getAttribute('data-role') === role);
+            });
+            document.getElementById('roleInput').value = role;
+            var pwField = document.getElementById('adminPasswordField');
+            pwField.classList.toggle('visible', role === 'admin');
+            document.getElementById('admin_password').required = role === 'admin';
+            document.getElementById('errorMsg').classList.remove('visible');
+            document.getElementById('errorMsg').textContent = '';
+            if (role === 'admin') {
+                document.getElementById('admin_password').focus();
+            } else {
+                document.getElementById('name').focus();
+            }
+        }
+        // Submit loading state
+        document.querySelector('form').addEventListener('submit', function() {
+            var btn = document.getElementById('submitBtn');
+            btn.textContent = '登录中…';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+        });
+    </script>
+</body>
+</html>
