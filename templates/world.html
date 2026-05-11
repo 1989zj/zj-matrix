@@ -1,53 +1,44 @@
 {% extends "base.html" %}
 {% block title %}世界观 - {{ meta.title }} - NovelStudio{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('novel.index') }}">小说库</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('novel.novel_detail', slug=slug) }}">{{ meta.title }}</a></li>
+<li class="breadcrumb-item active">世界观</li>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-    <h1>🌍 世界观设定</h1>
-    <div class="page-meta">
-        {{ meta.title }} ·
-        {% if slug == 'wo-de-wu-ran-deng-ji' %}污染末世体系
-        {% elif slug == 'gui-yi-you-xi' %}规则世界观体系
-        {% else %}世界观体系{% endif %}
-    </div>
+<div class="mb-4">
+    <h1 class="h3 mb-1">🌍 世界观设定</h1>
+    <p class="text-secondary">{{ meta.title }} · 逻辑内核、地理、力量体系</p>
 </div>
-<div class="page-content">
-    {% if meta.world %}
-    <!-- Power System -->
-    <div class="world-section">
-        <h2>⚡ {{ meta.world.power_system.name }}</h2>
-        {% if slug == 'gui-yi-you-xi' %}
-        <p><strong>三种形态：</strong>{{ meta.world.power_system.levels }}</p>
-        {% else %}
-        <p>{{ meta.world.power_system.levels }}</p>
-        {% endif %}
-        <p style="margin-top:8px;"><strong>来源：</strong>{{ meta.world.power_system.source }}</p>
-        <p style="margin-top:8px;padding:8px 12px;background:var(--accent-soft);border-left:2px solid var(--accent);border-radius:4px;font-size:13px;color:var(--text-secondary);">💡 {{ meta.world.power_system.note }}</p>
-    </div>
 
-    <!-- Factions -->
-    <div class="world-section">
-        <h2>🏛️ 势力格局</h2>
-        <ul>
-            {% for name, desc in meta.world.factions.items() %}
-            <li><strong>{{ name }}：</strong>{{ desc }}</li>
-            {% endfor %}
-        </ul>
-    </div>
-
-    <!-- Threats -->
-    <div class="world-section">
-        <h2>⚠️ 当前威胁</h2>
-        <ul>
-            {% for threat in meta.world.threats %}
-            <li>{{ threat }}</li>
-            {% endfor %}
-        </ul>
+<div class="row g-4">
+    {% for section in meta.world_settings %}
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent py-3 border-0">
+                <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-bookmark-fill me-2"></i> {{ section.title }}</h5>
+            </div>
+            <div class="card-body pt-0">
+                <div class="text-secondary" style="line-height: 1.8;">
+                    {% if section.content is string %}
+                        {{ section.content|safe }}
+                    {% else %}
+                        <ul class="list-group list-group-flush small">
+                            {% for item in section.content %}
+                            <li class="list-group-item bg-transparent px-0 border-light-subtle">{{ item|safe }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
     {% else %}
-    <div class="empty-state">
-        <div class="empty-icon">🌍</div>
-        <div class="empty-text">暂无世界观数据</div>
+    <div class="col-12 text-center py-5">
+        <div class="display-1 text-muted opacity-25 mb-4"><i class="bi bi-globe"></i></div>
+        <p class="text-secondary">暂未录入世界观信息</p>
     </div>
-    {% endif %}
+    {% endfor %}
 </div>
 {% endblock %}

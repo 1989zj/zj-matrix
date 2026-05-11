@@ -1,45 +1,67 @@
 {% extends "base.html" %}
 {% block title %}章节列表 - {{ meta.title }} - NovelStudio{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('novel.index') }}">小说库</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('novel.novel_detail', slug=slug) }}">{{ meta.title }}</a></li>
+<li class="breadcrumb-item active">章节列表</li>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-    <h1>📄 章节列表</h1>
-    <div class="page-meta">{{ meta.title }} · 共 {{ chapters|length }} 章 · 约 {{ '{:,}'.format(meta.stats.words) }} 字</div>
-</div>
-<div class="page-content">
-    <!-- Progress bar -->
-    {% set total_chs = meta.total_chapters or 120 %}
-    {% set pct = (chapters|length / total_chs * 100)|round %}
-    <div class="ch-progress-wrap">
-        <div class="ch-progress-text">创作进度</div>
-        <div class="progress-bar">
-            <div class="progress-fill" style="width:{{ pct if pct <= 100 else 100 }}%"></div>
-        </div>
-        <div class="ch-progress-text" style="font-weight:500;color:var(--accent);">{{ chapters|length }} / {{ total_chs }}</div>
+<div class="d-flex justify-content-between align-items-end mb-4">
+    <div>
+        <h1 class="h3 mb-1">📄 章节列表</h1>
+        <p class="text-secondary mb-0">{{ meta.title }} · 共 {{ chapters|length }} 章</p>
     </div>
-
-    <!-- Chapter list -->
-    <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;">
-        <ul class="chapter-list">
-            {% for ch in chapters %}
-            <li>
-                <a href="/novel/{{ slug }}/chapter/{{ ch.num }}/" class="chapter-item">
-                    <div class="chapter-num">{{ ch.num }}</div>
-                    <div class="chapter-info">
-                        <div class="chapter-title">{{ ch.title or '第' + ch.num|string + '章' }}</div>
-                        <div class="chapter-words">{{ '{:,}'.format(ch.words) }} 字</div>
-                    </div>
-                    <div class="chapter-arrow">→</div>
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
-    </div>
-
-    {% if not chapters %}
-    <div class="empty-state">
-        <div class="empty-icon">📭</div>
-        <div class="empty-text">暂无章节</div>
+    {% if current_role == 'admin' %}
+    <div class="btn-group">
+        <button class="btn btn-outline-primary"><i class="bi bi-upload me-1"></i> 批量上传</button>
+        <button class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> 新增章节</button>
     </div>
     {% endif %}
 </div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+            {% for ch in chapters %}
+            <a href="{{ url_for('novel.chapter_read', slug=slug, num=ch.num) }}" 
+               class="list-group-item list-group-item-action py-3 px-4 d-flex align-items-center">
+                <div class="flex-shrink-0 me-3">
+                    <div class="bg-light rounded text-center d-flex align-items-center justify-content-center fw-bold text-secondary" style="width: 45px; height: 45px; font-family: monospace;">
+                        {{ "%03d"|format(ch.num) }}
+                    </div>
+                </div>
+                <div class="flex-grow-1 min-width-0">
+                    <h6 class="mb-1 text-truncate fw-bold">{{ ch.title }}</h6>
+                    <div class="d-flex gap-3 x-small text-secondary">
+                        <span><i class="bi bi-pencil me-1"></i> {{ '{:,}'.format(ch.words) }} 字</span>
+                        {% if ch.version %}
+                        <span><i class="bi bi-tag me-1"></i> {{ ch.version }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if current_role == 'admin' %}
+                <div class="flex-shrink-0 ms-3">
+                    <a href="{{ url_for('novel.chapter_edit', slug=slug, num=ch.num) }}" class="btn btn-outline-secondary btn-sm" onclick="event.stopPropagation();">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                </div>
+                {% endif %}
+                <div class="flex-shrink-0 ms-3 text-secondary opacity-50">
+                    <i class="bi bi-chevron-right"></i>
+                </div>
+            </a>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="display-4 text-muted mb-3"><i class="bi bi-file-earmark-x"></i></div>
+                <p class="text-secondary">该小说暂无章节内容</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .x-small { font-size: 0.75rem; }
+</style>
 {% endblock %}

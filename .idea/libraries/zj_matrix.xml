@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="zj-matrix">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/auto-drama-api-pipeline-skill.zip!/" />
+      <root url="jar://$PROJECT_DIR$/drama-skills.zip!/" />
+      <root url="jar://$PROJECT_DIR$/image-compressor.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

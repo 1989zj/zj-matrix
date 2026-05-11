@@ -1,31 +1,62 @@
 {% extends "base.html" %}
 {% block title %}下载中心 - NovelStudio{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">下载中心</li>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-    <h1>📥 下载中心</h1>
-    <div class="page-meta">可下载的小说打包文件 (.tar.gz) 和 NotebookLM 材料 (.md)</div>
+<div class="mb-4">
+    <h1 class="h3 mb-0">📥 下载中心</h1>
+    <p class="text-secondary">获取您的作品导出文件与资源包</p>
 </div>
-<div class="page-content">
-    {% if files %}
-    <div style="display:grid;gap:8px;">
-        {% for f in files %}
-        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;transition:border-color 0.15s;">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <span style="font-size:20px;">📄</span>
-                <div>
-                    <div style="font-size:14px;font-weight:500;color:var(--text-primary);">{{ f.name }}</div>
-                    <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">{{ (f.size / 1024)|round(1) }} KB</div>
-                </div>
-            </div>
-            <a href="/download/{{ f.name }}" class="btn btn-primary" style="padding:6px 16px;font-size:12px;">下载</a>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">文件名</th>
+                        <th>大小</th>
+                        <th class="pe-4 text-end">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center">
+                                <i class="bi {{ 'bi-file-earmark-zip' if file.name.endswith('.gz') else 'bi-file-earmark-text' }} fs-4 text-primary me-3"></i>
+                                <div>
+                                    <div class="fw-bold">{{ file.name }}</div>
+                                    <div class="x-small text-secondary">资源文件</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ (file.size / 1024)|round(1) }} KB</span>
+                        </td>
+                        <td class="pe-4 text-end">
+                            <a href="{{ url_for('novel.download_file', filename=file.name) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-download me-1"></i> 下载
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center py-5">
+                            <div class="display-1 text-muted opacity-25 mb-4"><i class="bi bi-folder-x"></i></div>
+                            <p class="text-secondary">暂无可供下载的文件</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <div class="empty-state">
-        <div class="empty-icon">📭</div>
-        <div class="empty-text">暂无可下载的文件</div>
-    </div>
-    {% endif %}
 </div>
+
+<style>
+    .x-small { font-size: 0.75rem; }
+</style>
 {% endblock %}

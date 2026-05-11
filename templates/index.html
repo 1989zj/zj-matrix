@@ -1,41 +1,92 @@
 {% extends "base.html" %}
-{% block title %}NovelStudio - 小说库{% endblock %}
+{% block title %}小说库 - NovelStudio{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">小说库</li>
+{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1>📚 小说库</h1>
-    <div class="page-meta">NovelStudio 创作管理平台</div>
-</div>
-<div class="page-content">
-    {% if novels %}
-    <div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;">
-        {% for novel in novels %}
-        <a href="/novel/{{ novel.slug }}/" class="card" style="display:block;">
-            <div class="card-title">{{ novel.meta.title }}</div>
-            <div style="display:flex;gap:8px;margin-bottom:8px;">
-                <span class="tag">{{ novel.meta.genre }}</span>
-                {% if novel.meta.target %}<span class="tag">{{ novel.meta.target }}</span>{% endif %}
-                <span class="tag">{{ novel.meta.stats.status }}</span>
-            </div>
-            <div class="card-desc">{{ novel.meta.synopsis[:150] }}{% if novel.meta.synopsis|length > 150 %}...{% endif %}</div>
-            <div class="card-stats">
-                <span>📄 {{ novel.meta.stats.chapters }} 章</span>
-                <span>📝 {{ '{:,}'.format(novel.meta.stats.words) }} 字</span>
-            </div>
-            {% if novel.meta.stats.chapters > 0 %}
-            {% set total_chs = novel.meta.total_chapters or 100 %}
-            {% set pct = (novel.meta.stats.chapters / total_chs * 100)|round %}
-            <div class="progress-bar" style="margin-top:10px;">
-                <div class="progress-fill" style="width:{{ pct if pct <= 100 else 100 }}%"></div>
-            </div>
-            {% endif %}
-        </a>
-        {% endfor %}
+<div class="d-flex justify-content-between align-items-end mb-4">
+    <div>
+        <h1 class="h3 mb-0">📚 小说库</h1>
+        <p class="text-secondary mb-0">管理您的创作项目</p>
     </div>
-    {% else %}
-    <div class="empty-state">
-        <div class="empty-icon">📭</div>
-        <div class="empty-text">暂无可显示的小说</div>
-    </div>
+    {% if current_role == 'admin' %}
+    <button class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> 新建小说
+    </button>
     {% endif %}
 </div>
+
+{% if novels %}
+<div class="row g-4">
+    {% for novel in novels %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title mb-0">
+                        <a href="{{ url_for('novel.novel_detail', slug=novel.slug) }}" class="text-decoration-none text-reset stretched-link">
+                            {{ novel.meta.title }}
+                        </a>
+                    </h5>
+                    <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill">
+                        {{ novel.meta.stats.status }}
+                    </span>
+                </div>
+                
+                <div class="mb-3">
+                    <span class="badge bg-secondary-subtle text-secondary-emphasis me-1">{{ novel.meta.genre }}</span>
+                    {% if novel.meta.target %}
+                    <span class="badge bg-info-subtle text-info-emphasis me-1">{{ novel.meta.target }}</span>
+                    {% endif %}
+                </div>
+
+                <p class="card-text text-secondary small mb-4">
+                    {{ novel.meta.synopsis[:120] }}{% if novel.meta.synopsis|length > 120 %}...{% endif %}
+                </p>
+
+                <div class="d-flex gap-3 small text-secondary mb-3">
+                    <span><i class="bi bi-file-earmark-text me-1"></i> {{ novel.meta.stats.chapters }} 章</span>
+                    <span><i class="bi bi-pencil-square me-1"></i> {{ '{:,}'.format(novel.meta.stats.words) }} 字</span>
+                </div>
+
+                {% if novel.meta.stats.chapters > 0 %}
+                {% set total_chs = novel.meta.total_chapters or 100 %}
+                {% set pct = (novel.meta.stats.chapters / total_chs * 100)|round %}
+                <div class="progress" style="height: 6px;">
+                    <div class="progress-bar" role="progressbar" style="width: {{ pct if pct <= 100 else 100 }}%" 
+                         aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="d-flex justify-content-between mt-1">
+                    <span class="x-small text-secondary">进度</span>
+                    <span class="x-small text-secondary">{{ pct }}%</span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent border-0 pt-0 pb-3">
+                <div class="d-grid">
+                    <a href="{{ url_for('novel.novel_detail', slug=novel.slug) }}" class="btn btn-outline-primary btn-sm">
+                        管理详情 <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5">
+        <div class="display-1 text-muted mb-4">
+            <i class="bi bi-journal-x"></i>
+        </div>
+        <h3>暂无可显示的小说</h3>
+        <p class="text-secondary">开始您的第一个创作吧！</p>
+        <button class="btn btn-primary mt-3">立即创建</button>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    .x-small { font-size: 0.75rem; }
+</style>
 {% endblock %}

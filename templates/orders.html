@@ -1,213 +1,187 @@
 {% extends "base.html" %}
-{% block title %}下单 - NovelStudio{% endblock %}
+{% block title %}我要下单 - NovelStudio{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">我要下单</li>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-    <h1>📝 下单</h1>
-    <div class="page-meta">提交小说代写需求，获得高质量定制内容</div>
-</div>
-<div class="page-content">
-
-    <!-- ── 下单表单 ── -->
-    <div class="card" style="max-width: 680px; margin-bottom: 32px;">
-        <div class="card-title" style="font-size:16px;">提交新订单</div>
-        <div class="card-desc" style="margin-bottom:20px;">填写项目信息，确认后开始创作</div>
-
-        <form id="orderForm" style="display:flex;flex-direction:column;gap:14px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <div>
-                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">订单类型</label>
-                    <select id="orderType" onchange="updateCost()"
-                            style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:14px;font-family:inherit;">
-                        <option value="全本新小说">全本新小说</option>
-                        <option value="小说续写">小说续写</option>
-                        <option value="小说改写">小说改写</option>
-                        <option value="小说优化">小说优化</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">作品标题 *</label>
-                    <input type="text" id="projectName" required
-                           placeholder="小说标题/作品名称"
-                           style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:14px;font-family:inherit;">
-                </div>
-                <div>
-                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">联系方式 *</label>
-                    <input type="text" id="contact" required placeholder="微信 / 手机 / 邮箱"
-                           style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:14px;font-family:inherit;">
-                </div>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
-                <div>
-                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">类型</label>
-                    <select id="genre"
-                            style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:14px;font-family:inherit;">
-                        <option>玄幻</option><option>仙侠</option><option>科幻</option><option>都市</option>
-                        <option>悬疑</option><option>恐怖</option><option>历史</option><option>言情</option>
-                        <option>游戏</option><option>轻小说</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">目标总字数</label>
-                    <input type="number" id="targetWords" value="100000" min="10000"
-                           style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:14px;font-family:inherit;">
-                </div>
-                <div>
-                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">章节数</label>
-                    <input type="number" id="chapters" value="60" min="5"
-                           oninput="updateCost()"
-                           style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:14px;font-family:inherit;">
-                </div>
-            </div>
-
-            <!-- ── 费用估算 ── -->
-            <div id="costDisplay" style="padding:12px 16px;background:var(--accent-soft);border:1px solid rgba(94,106,210,0.2);border-radius:var(--radius-md);display:flex;align-items:baseline;gap:12px;">
-                <span style="font-size:13px;color:var(--text-muted);font-weight:500;">💰 费用估算</span>
-                <span id="costAmount" style="font-size:22px;font-weight:700;color:var(--accent);letter-spacing:-0.5px;">¥900</span>
-                <span id="costDetail" style="font-size:12px;color:var(--text-muted);">60章 × ¥15/章</span>
-            </div>
-
-            <div>
-                <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">风格/要求</label>
-                <textarea id="style" rows="2" placeholder="比如：轻松搞笑 / 暗黑压抑 / 热血爽文 / 慢热细腻"
-                          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:14px;font-family:inherit;resize:vertical;"></textarea>
-            </div>
-
-            <div>
-                <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">详细需求</label>
-                <textarea id="detail" rows="4" placeholder="世界观设定、主要角色、核心冲突、金手指设定等"
-                          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:14px;font-family:inherit;resize:vertical;"></textarea>
-            </div>
-
-            <div>
-                <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">参考作品</label>
-                <input type="text" id="reference" placeholder="参考哪部小说/作品的特点"
-                       style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:14px;font-family:inherit;">
-            </div>
-
-            <button type="submit" class="btn btn-primary" style="align-self:flex-start;margin-top:4px;">
-                🚀 提交订单
-            </button>
-        </form>
-
-        <div id="orderResult" style="display:none;margin-top:16px;padding:12px 16px;border-radius:var(--radius-sm);background:var(--success-soft);border:1px solid var(--success);font-size:13px;color:var(--text-primary);"></div>
+<div class="d-flex justify-content-between align-items-end mb-4">
+    <div>
+        <h1 class="h3 mb-0">📝 我的订单</h1>
+        <p class="text-secondary mb-0">提交您的创作需求，开启专业写作旅程</p>
     </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createOrderModal">
+        <i class="bi bi-plus-lg me-1"></i> 提交新需求
+    </button>
+</div>
 
-    <!-- ── 已有订单 ── -->
-    <div style="margin-top:32px;">
-        <div class="card-title" style="font-size:16px;margin-bottom:12px;">📋 我的订单</div>
-        {% if orders %}
-        {% for o in orders %}
-        <div style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--border);">
-            <div style="flex:1;min-width:0;">
-                <div style="font-size:14px;font-weight:500;color:var(--text-primary);">{{ o.projectName }}</div>
-                <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
-                    {{ o.genre }} · 目标 {{ o.targetWords }} 字 / {{ o.chapters }} 章
-                    · 联系方式 {{ o.contact }}
-                    · {{ o.createdAt.strftime('%m-%d %H:%M') if o.createdAt else '' }}
-                </div>
-            </div>
-            <div style="text-align:right;flex-shrink:0;min-width:90px;">
-                {% if o.cost %}
-                <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:2px;">¥{{ o.cost }}</div>
-                {% endif %}
-                <span style="font-size:12px;padding:3px 10px;border-radius:10px;
-                    {% if o.status == 'completed' %}background:var(--success-soft);color:var(--success);border:1px solid rgba(34,197,94,0.2);
-                    {% elif o.status == 'cancelled' %}background:var(--danger-soft);color:var(--danger);border:1px solid rgba(239,68,68,0.2);
-                    {% elif o.status in ('writing','confirmed') %}background:var(--accent-soft);color:var(--accent);border:1px solid rgba(99,102,241,0.2);
-                    {% else %}background:var(--warning-soft);color:var(--warning);border:1px solid rgba(234,179,8,0.2);{% endif %}">
+<!-- Orders Grid -->
+<div class="row g-4">
+    {% for o in orders %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+                <span class="badge rounded-pill 
+                    {% if o.status == 'completed' %}bg-success
+                    {% elif o.status in ('writing', 'confirmed') %}bg-info
+                    {% elif o.status == 'pending' %}bg-warning
+                    {% else %}bg-secondary{% endif %}">
                     {{ o.statusLabel }}
                 </span>
+                <span class="x-small text-secondary">#{{ o._id[-6:] }}</span>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title mb-1 text-truncate">{{ o.projectName }}</h5>
+                <div class="mb-3">
+                    <span class="badge bg-secondary-subtle text-secondary-emphasis me-1">{{ o.orderType }}</span>
+                    <span class="badge bg-light text-dark border">{{ o.genre }}</span>
+                </div>
+                
+                <div class="row g-2 mb-4">
+                    <div class="col-6">
+                        <div class="text-secondary x-small">目标字数</div>
+                        <div class="fw-bold">{{ '{:,}'.format(o.targetWords) }}</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <div class="text-secondary x-small">预算费用</div>
+                        <div class="fw-bold text-primary">¥{{ '{:,}'.format(o.cost) }}</div>
+                    </div>
+                </div>
+
+                <div class="progress mb-2" style="height: 6px;">
+                    <div class="progress-bar" role="progressbar" style="width: {{ o.progress }}%"></div>
+                </div>
+                <div class="d-flex justify-content-between x-small text-secondary">
+                    <span>进度</span>
+                    <span>{{ o.progress }}%</span>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0 pt-0 pb-3">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-light btn-sm flex-grow-1" onclick="showOrderDetail('{{ o._id }}')">
+                        <i class="bi bi-info-circle"></i> 详情
+                    </button>
+                    {% if o.deliverable %}
+                    <a href="{{ o.deliverable }}" class="btn btn-outline-success btn-sm flex-grow-1">
+                        <i class="bi bi-download"></i> 交付物
+                    </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
-        {% endfor %}
-        {% else %}
-        <div class="empty-state">
-            <div class="empty-icon">📭</div>
-            <div class="empty-text">还没有订单，提交第一个吧</div>
-        </div>
-        {% endif %}
     </div>
-
+    {% else %}
+    <div class="col-12 text-center py-5">
+        <div class="display-1 text-muted opacity-25 mb-4">
+            <i class="bi bi-inbox"></i>
+        </div>
+        <h4>暂无订单记录</h4>
+        <p class="text-secondary">点击右上角“提交新需求”开启您的第一个项目</p>
+    </div>
+    {% endfor %}
 </div>
+
+<!-- Create Order Modal -->
+<div class="modal fade" id="createOrderModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">提交写作需求</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="orderForm">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">项目名称</label>
+                            <input type="text" class="form-control" name="projectName" required placeholder="例如：我的玄幻小说新书">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">订单类型</label>
+                            <select class="form-select" name="orderType">
+                                <option value="全本新小说">全本新小说</option>
+                                <option value="小说续写">小说续写</option>
+                                <option value="小说改写">小说改写</option>
+                                <option value="小说优化">小说优化</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">联系方式</label>
+                            <input type="text" class="form-control" name="contact" required placeholder="手机号、微信号或QQ">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">目标字数</label>
+                            <input type="number" class="form-control" name="targetWords" value="100000">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">预计章节</label>
+                            <input type="number" class="form-control" name="chapters" value="60">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">题材类型</label>
+                            <input type="text" class="form-control" name="genre" placeholder="玄幻, 都市, 言情...">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">创作参考 (URL/书名)</label>
+                            <input type="text" class="form-control" name="reference" placeholder="如有参考书籍请填写">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">详细需求 / 剧情梗概</label>
+                            <textarea class="form-control" name="detail" rows="4" placeholder="请详细描述您的创作要求..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">文风要求</label>
+                            <input type="text" class="form-control" name="style" placeholder="如：快节奏、幽默、热血...">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary px-4" id="submitOrderBtn">立即提交</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .x-small { font-size: 0.75rem; }
+</style>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// 订单类型定价（后端同步，前端备用默认值）
-const ORDER_PRICING = {
-    '全本新小说': 15,
-    '小说续写': 12,
-    '小说改写': 8,
-    '小说优化': 5,
-};
-
-// 从后端加载最新定价
-fetch('/api/settings/prices').then(r => r.json()).then(data => {
-    if (data.prices) Object.assign(ORDER_PRICING, data.prices);
-    updateCost();
-}).catch(() => {});
-
-// 实时费用计算
-function updateCost() {
-    const chapters = parseInt(document.getElementById('chapters').value) || 0;
-    const type = document.getElementById('orderType').value;
-    const price = ORDER_PRICING[type] || 15;
-    const cost = chapters * price;
-    document.getElementById('costAmount').textContent = '¥' + cost.toLocaleString();
-    document.getElementById('costDetail').textContent = chapters + '章 × ¥' + price + '/章 (' + type + ')';
-}
-document.getElementById('chapters').addEventListener('input', updateCost);
-document.getElementById('orderType').addEventListener('change', updateCost);
-
-// 提交表单
-document.getElementById('orderForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const btn = this.querySelector('button[type="submit"]');
-    btn.textContent = '⏳ 提交中...';
-    btn.disabled = true;
-
-    const data = {
-        projectName: document.getElementById('projectName').value,
-        contact: document.getElementById('contact').value,
-        orderType: document.getElementById('orderType').value,
-        genre: document.getElementById('genre').value,
-        detail: document.getElementById('detail').value,
-        targetWords: parseInt(document.getElementById('targetWords').value),
-        chapters: parseInt(document.getElementById('chapters').value),
-        style: document.getElementById('style').value,
-        reference: document.getElementById('reference').value
-    };
+document.getElementById('submitOrderBtn').addEventListener('click', async () => {
+    const form = document.getElementById('orderForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Simple validation
+    if (!data.projectName || !data.contact) {
+        alert('请填写必填项');
+        return;
+    }
 
     try {
-        const res = await fetch('/api/orders', {
+        const resp = await fetch('/api/orders', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         });
-        const result = await res.json();
-        const el = document.getElementById('orderResult');
-        el.style.display = 'block';
+        const result = await resp.json();
         if (result.success) {
-            el.style.background = 'var(--success-soft)';
-            el.style.borderColor = 'var(--success)';
-            el.textContent = '✅ 订单已提交！ID: ' + result.id + '，页面即将刷新...';
-            setTimeout(() => location.reload(), 1500);
+            location.reload();
         } else {
-            el.style.background = 'var(--danger-soft)';
-            el.style.borderColor = 'var(--danger)';
-            el.textContent = '❌ 提交失败：' + (result.error || '未知错误');
+            alert(result.error || '提交失败');
         }
-    } catch(err) {
-        const el = document.getElementById('orderResult');
-        el.style.display = 'block';
-        el.style.background = 'var(--danger-soft)';
-        el.style.borderColor = 'var(--danger)';
-        el.textContent = '❌ 网络错误：' + err.message;
-    } finally {
-        btn.textContent = '🚀 提交订单';
-        btn.disabled = false;
+    } catch (e) {
+        alert('网络错误');
     }
 });
+
+function showOrderDetail(oid) {
+    // Implement detail view if needed, or just redirect
+    alert('详情功能开发中，订单ID: ' + oid);
+}
 </script>
 {% endblock %}

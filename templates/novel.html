@@ -1,78 +1,115 @@
 {% extends "base.html" %}
 {% block title %}{{ meta.title }} - NovelStudio{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('novel.index') }}">小说库</a></li>
+<li class="breadcrumb-item active">{{ meta.title }}</li>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-    <h1>{{ meta.title }}</h1>
-    <div class="page-meta">
-        <span class="tag">{{ meta.genre }}</span>
-        {% if meta.target %}<span class="tag">{{ meta.target }}</span>{% endif %}
-        <span class="tag">{{ meta.stats.status }}</span>
-        <span style="color:var(--text-muted);font-size:12px;margin-left:8px;">slug: {{ slug }}</span>
-    </div>
-</div>
-<div class="page-content">
-    <!-- Stats Row -->
-    <div class="stats-row">
-        <div class="stat-card">
-            <div class="stat-value">{{ meta.stats.chapters }}</div>
-            <div class="stat-label">章节数</div>
+<div class="row g-4">
+    <!-- Left: Novel Meta -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h1 class="h2 fw-bold mb-1">{{ meta.title }}</h1>
+                        <div class="mb-3">
+                            <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill me-2">{{ meta.genre }}</span>
+                            <span class="badge bg-info-subtle text-info-emphasis rounded-pill me-2">{{ meta.target }}</span>
+                            <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill">{{ meta.stats.status }}</span>
+                        </div>
+                    </div>
+                    {% if current_role == 'admin' %}
+                    <button class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-pencil me-1"></i> 编辑元数据
+                    </button>
+                    {% endif %}
+                </div>
+                
+                <h6 class="fw-bold mb-2">作品简介</h6>
+                <p class="text-secondary mb-4" style="line-height: 1.8;">
+                    {{ meta.synopsis }}
+                </p>
+
+                <div class="row g-3">
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 bg-light rounded text-center">
+                            <div class="text-secondary small">已创作章节</div>
+                            <div class="h4 fw-bold mb-0">{{ meta.stats.chapters }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 bg-light rounded text-center">
+                            <div class="text-secondary small">总计字数</div>
+                            <div class="h4 fw-bold mb-0">{{ '{:,}'.format(meta.stats.words) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 bg-light rounded text-center">
+                            <div class="text-secondary small">目标字数</div>
+                            <div class="h4 fw-bold mb-0">{{ '{:,}'.format(meta.target_words or 0) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 bg-light rounded text-center">
+                            <div class="text-secondary small">最后更新</div>
+                            <div class="fw-bold mb-0">{{ meta.last_updated or '-' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value">{{ '{:,}'.format(meta.stats.words) }}</div>
-            <div class="stat-label">总字数</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">{{ meta.characters|length if meta.characters else '?' }}</div>
-            <div class="stat-label">角色数</div>
-        </div>
-        <div class="stat-card">
-            {% set avg = (meta.stats.words / meta.stats.chapters)|round|int if meta.stats.chapters > 0 else 0 %}
-            <div class="stat-value">{{ '{:,}'.format(avg) }}</div>
-            <div class="stat-label">平均每章字数</div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">作品标签</h5>
+            </div>
+            <div class="card-body">
+                {% for tag in meta.tags %}
+                <span class="badge bg-light text-secondary border me-1 mb-1">{{ tag }}</span>
+                {% else %}
+                <p class="text-muted small mb-0">暂无标签</p>
+                {% endfor %}
+            </div>
         </div>
     </div>
 
-    <!-- Synopsis -->
-    <div class="card" style="margin-bottom:20px;">
-        <div class="card-title">简介</div>
-        <div class="card-desc">{{ meta.synopsis }}</div>
-        {% if meta.stats.chapters > 0 %}
-        {% set total_chs = meta.total_chapters or 120 %}
-        {% set pct = (meta.stats.chapters / total_chs * 100)|round %}
-        <div style="margin-top:16px;">
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
-                <span>创作进度</span>
-                <span>{{ meta.stats.chapters }} / {{ total_chs }} 章 ({{ pct if pct <= 100 else 100 }}%)</span>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width:{{ pct if pct <= 100 else 100 }}%"></div>
+    <!-- Right: Quick Actions / Stats -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body d-grid gap-2">
+                <a href="{{ url_for('novel.chapter_list', slug=slug) }}" class="btn btn-primary py-2">
+                    <i class="bi bi-book-half me-2"></i> 开始阅读 / 章节管理
+                </a>
+                <a href="{{ url_for('novel.characters', slug=slug) }}" class="btn btn-outline-secondary py-2 text-start">
+                    <i class="bi bi-people me-2"></i> 角色档案
+                </a>
+                <a href="{{ url_for('novel.world_settings', slug=slug) }}" class="btn btn-outline-secondary py-2 text-start">
+                    <i class="bi bi-globe me-2"></i> 世界观设定
+                </a>
+                <a href="{{ url_for('novel.timeline', slug=slug) }}" class="btn btn-outline-secondary py-2 text-start">
+                    <i class="bi bi-calendar3 me-2"></i> 故事时间线
+                </a>
             </div>
         </div>
-        {% endif %}
-    </div>
 
-    <!-- Quick Actions Grid -->
-    <div class="card-grid cols-4">
-        <a href="/novel/{{ slug }}/chapters/" class="card" style="display:block;text-align:center;padding:24px 16px;text-decoration:none;">
-            <div style="font-size:32px;margin-bottom:8px;">📄</div>
-            <div style="font-size:14px;color:var(--text-primary);font-weight:500;">阅读章节</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">{{ meta.stats.chapters }} 章</div>
-        </a>
-        <a href="/novel/{{ slug }}/characters/" class="card" style="display:block;text-align:center;padding:24px 16px;text-decoration:none;">
-            <div style="font-size:32px;margin-bottom:8px;">👥</div>
-            <div style="font-size:14px;color:var(--text-primary);font-weight:500;">角色档案</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">{{ meta.characters|length if meta.characters else 0 }} 人</div>
-        </a>
-        <a href="/novel/{{ slug }}/world/" class="card" style="display:block;text-align:center;padding:24px 16px;text-decoration:none;">
-            <div style="font-size:32px;margin-bottom:8px;">🌍</div>
-            <div style="font-size:14px;color:var(--text-primary);font-weight:500;">世界观</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">设定体系</div>
-        </a>
-        <a href="/novel/{{ slug }}/timeline/" class="card" style="display:block;text-align:center;padding:24px 16px;text-decoration:none;">
-            <div style="font-size:32px;margin-bottom:8px;">📅</div>
-            <div style="font-size:14px;color:var(--text-primary);font-weight:500;">时间线</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">关键事件</div>
-        </a>
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent py-3">
+                <h6 class="mb-0 fw-bold">创作进度</h6>
+            </div>
+            <div class="card-body">
+                {% set total = meta.target_words or 200000 %}
+                {% set pct = (meta.stats.words / total * 100)|round %}
+                <div class="progress mb-2" style="height: 12px;">
+                    <div class="progress-bar progress-bar-striped bg-success" role="progressbar" style="width: {{ pct if pct <= 100 else 100 }}%"></div>
+                </div>
+                <div class="d-flex justify-content-between small">
+                    <span class="text-secondary">字数完成度</span>
+                    <span class="fw-bold">{{ pct }}%</span>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}个人资料 - NovelStudio{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">个人资料</li>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="h3 mb-0">👤 个人资料</h1>
+    <p class="text-secondary">管理您的账户信息与偏好设置</p>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                {% if success %}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i> {{ success }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endif %}
+
+                <form method="POST">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">用户名</label>
+                            <input type="text" class="form-control bg-light" value="{{ user.username }}" readonly>
+                            <div class="form-text">用户名不可更改</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">账户角色</label>
+                            <div>
+                                <span class="badge {{ 'bg-primary' if user.role == 'admin' else 'bg-secondary' }} rounded-pill px-3 py-2">
+                                    {{ '管理员' if user.role == 'admin' else '普通客户' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="email" class="form-label fw-semibold">电子邮箱</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ user.email or '' }}" placeholder="yourname@example.com">
+                        </div>
+                        <div class="col-12 mt-4">
+                            <button type="submit" class="btn btn-primary px-4">保存更改</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent py-3">
+                <h6 class="mb-0 fw-bold">账户安全</h6>
+            </div>
+            <div class="card-body">
+                <p class="small text-secondary mb-3">定期更改密码可以提高您的账户安全性。</p>
+                <button class="btn btn-outline-primary btn-sm w-100">修改登录密码</button>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm border-start border-danger border-4">
+            <div class="card-body">
+                <h6 class="fw-bold text-danger">注销账号</h6>
+                <p class="x-small text-secondary mb-3">账号注销后，所有订单数据将无法恢复。</p>
+                <button class="btn btn-link text-danger p-0 x-small text-decoration-none">申请注销账号...</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .x-small { font-size: 0.75rem; }
+</style>
+{% endblock %}

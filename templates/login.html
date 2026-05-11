@@ -1,289 +1,139 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - NovelStudio</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body {
-            height: 100%;
-            font-family: 'Inter', -apple-system, 'PingFang SC', 'Noto Sans SC', sans-serif;
-            font-feature-settings: 'cv01', 'ss03';
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
         body {
-            background: #08090a;
+            background-color: var(--bs-tertiary-bg);
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            color: #f7f8f8;
         }
-        /* ── Animated background ── */
-        .bg-grid {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-image:
-                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 48px 48px;
-            z-index: 0;
-            pointer-events: none;
-        }
-        .bg-glow {
-            position: fixed;
-            top: -30%; left: 50%;
-            width: 600px; height: 600px;
-            transform: translateX(-50%);
-            background: radial-gradient(circle, rgba(94,106,210,0.08) 0%, transparent 70%);
-            z-index: 0;
-            pointer-events: none;
-        }
-        .login-wrapper {
-            position: relative;
-            z-index: 1;
+        .login-card {
             width: 100%;
             max-width: 400px;
-            padding: 20px;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            background-color: var(--bs-body-bg);
         }
-        /* ── Brand ── */
-        .brand {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        .brand-icon {
-            width: 44px; height: 44px;
-            background: linear-gradient(135deg, #5e6ad2, #7170ff);
-            border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 14px;
-            font-size: 20px;
-            box-shadow: 0 8px 24px rgba(94,106,210,0.25);
-        }
-        .brand h1 {
-            font-size: 20px;
-            font-weight: 600;
-            letter-spacing: -0.3px;
-            color: #f7f8f8;
-            margin-bottom: 4px;
-        }
-        .brand p {
-            font-size: 13px;
-            color: #8a8f98;
-            font-weight: 400;
-        }
-        /* ── Card ── */
-        .card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px;
-            padding: 32px;
-            backdrop-filter: blur(12px);
-        }
-        /* ── Tabs ── */
-        .tabs {
+        .brand-logo {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--bs-primary);
+            text-decoration: none;
             display: flex;
-            gap: 4px;
-            margin-bottom: 24px;
-            background: rgba(255,255,255,0.04);
-            border-radius: 8px;
-            padding: 3px;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
         }
-        .tab-btn {
-            flex: 1;
-            padding: 8px 12px;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            background: transparent;
-            color: #8a8f98;
-        }
-        .tab-btn.active {
-            background: rgba(255,255,255,0.08);
-            color: #f7f8f8;
-        }
-        .tab-btn:hover:not(.active) {
-            color: #d0d6e0;
-        }
-        /* ── Error ── */
-        .error-msg {
-            display: none;
-            padding: 10px 14px;
-            background: rgba(239,68,68,0.08);
-            border: 1px solid rgba(239,68,68,0.2);
-            border-radius: 6px;
-            font-size: 13px;
-            color: #f87171;
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-        .error-msg.visible {
-            display: block;
-        }
-        /* ── Form ── */
-        .form-group {
-            margin-bottom: 18px;
-        }
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            font-weight: 500;
-            color: #d0d6e0;
-            margin-bottom: 6px;
-            letter-spacing: 0.2px;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 10px 14px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: inherit;
-            color: #f7f8f8;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .form-group input::placeholder {
-            color: #62666d;
-        }
-        .form-group input:focus {
-            border-color: #5e6ad2;
-            box-shadow: 0 0 0 3px rgba(94,106,210,0.15);
-        }
-        .admin-field {
-            display: none;
-            animation: slideDown 0.25s ease;
-        }
-        .admin-field.visible {
-            display: block;
-        }
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        /* ── Submit ── */
-        .btn-submit {
-            width: 100%;
-            padding: 11px 20px;
-            background: #5e6ad2;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            font-family: inherit;
-            color: #fff;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-            letter-spacing: 0.2px;
-        }
-        .btn-submit:hover {
-            background: #7170ff;
-        }
-        .btn-submit:active {
-            transform: scale(0.98);
-        }
-        /* ── Footer ── */
-        .footer {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 12px;
-            color: #62666d;
-            line-height: 1.6;
-        }
-        /* ── Version ── */
-        .version {
-            text-align: center;
-            margin-top: 24px;
-            font-size: 11px;
-            color: #3e3e44;
-            letter-spacing: 0.3px;
-        }
-        /* ── Responsive ── */
-        @media (max-width: 480px) {
-            .login-wrapper { padding: 12px; }
-            .card { padding: 24px; border-radius: 10px; }
-            .brand-icon { width: 38px; height: 38px; font-size: 17px; }
+        .btn-send-code {
+            min-width: 110px;
         }
     </style>
 </head>
 <body>
-    <div class="bg-grid"></div>
-    <div class="bg-glow"></div>
 
-    <div class="login-wrapper">
-        <div class="brand">
-            <div class="brand-icon">✍️</div>
-            <h1>NovelStudio</h1>
-            <p>AI 小说创作平台</p>
-        </div>
+<div class="login-card">
+    <a href="/" class="brand-logo">
+        <i class="bi bi-pen-fill"></i>
+        <span>NovelStudio</span>
+    </a>
 
-        <div class="card">
-            <div class="tabs" id="loginTabs">
-                <button type="button" class="tab-btn active" data-role="customer" onclick="switchTab('customer')">客户登录</button>
-                <button type="button" class="tab-btn" data-role="admin" onclick="switchTab('admin')">管理员</button>
-            </div>
+    <h4 class="text-center mb-4 fw-bold">手机快捷登录</h4>
+    <p class="text-center text-secondary small mb-4">验证后自动注册/登录</p>
 
-            <div class="error-msg {% if error %}visible{% endif %}" id="errorMsg">{{ error if error else '' }}</div>
-
-            <form method="post">
-                <input type="hidden" name="next" value="{{ next }}">
-
-                <div class="form-group">
-                    <label for="name">姓名 / 昵称</label>
-                    <input type="text" id="name" name="name" placeholder="输入您的姓名" required autofocus>
-                </div>
-
-                <div class="form-group admin-field" id="adminPasswordField">
-                    <label for="admin_password">管理员密码</label>
-                    <input type="password" id="admin_password" name="admin_password" placeholder="输入管理员密码">
-                </div>
-
-                <input type="hidden" name="role" id="roleInput" value="customer">
-
-                <button type="submit" class="btn-submit" id="submitBtn">登 录</button>
-            </form>
-
-            <div class="footer">
-                首次使用？输入姓名即可登录。<br>
-                登录状态将在 7 天内保持有效。
-            </div>
-        </div>
-
-        <div class="version">NovelStudio v2.0</div>
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
+    {% endif %}
 
-    <script>
-        function switchTab(role) {
-            document.querySelectorAll('.tab-btn').forEach(function(t) {
-                t.classList.toggle('active', t.getAttribute('data-role') === role);
-            });
-            document.getElementById('roleInput').value = role;
-            var pwField = document.getElementById('adminPasswordField');
-            pwField.classList.toggle('visible', role === 'admin');
-            document.getElementById('admin_password').required = role === 'admin';
-            document.getElementById('errorMsg').classList.remove('visible');
-            document.getElementById('errorMsg').textContent = '';
-            if (role === 'admin') {
-                document.getElementById('admin_password').focus();
-            } else {
-                document.getElementById('name').focus();
-            }
-        }
-        // Submit loading state
-        document.querySelector('form').addEventListener('submit', function() {
-            var btn = document.getElementById('submitBtn');
-            btn.textContent = '登录中…';
-            btn.disabled = true;
-            btn.style.opacity = '0.7';
+    <form method="POST">
+        <input type="hidden" name="next" value="{{ next }}">
+        
+        <div class="mb-3">
+            <label for="phone" class="form-label small fw-semibold">手机号</label>
+            <div class="input-group">
+                <span class="input-group-text bg-transparent border-end-0 text-secondary">
+                    <i class="bi bi-phone"></i>
+                </span>
+                <input type="text" class="form-control border-start-0" id="phone" name="phone" required placeholder="请输入11位手机号" autofocus>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label for="code" class="form-label small fw-semibold">验证码</label>
+            <div class="input-group">
+                <span class="input-group-text bg-transparent border-end-0 text-secondary">
+                    <i class="bi bi-shield-lock"></i>
+                </span>
+                <input type="text" class="form-control border-start-0 border-end-0" id="code" name="code" required placeholder="6位验证码">
+                <button class="btn btn-outline-primary btn-send-code" type="button" id="btnSendCode">获取验证码</button>
+            </div>
+        </div>
+
+        <div class="d-grid mb-4">
+            <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm">进入 NovelStudio</button>
+        </div>
+
+        <div class="text-center">
+            <p class="x-small text-muted mb-0">登录即代表您同意 <a href="#" class="text-decoration-none">用户协议</a> 和 <a href="#" class="text-decoration-none">隐私政策</a></p>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.getElementById('btnSendCode').addEventListener('click', async function() {
+    const phoneInput = document.getElementById('phone');
+    const phone = phoneInput.value.trim();
+    
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+        alert('请输入有效的手机号');
+        return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    
+    try {
+        const resp = await fetch('/api/auth/send-code', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({phone: phone})
         });
-    </script>
+        const result = await resp.json();
+        
+        if (result.success) {
+            let countdown = 60;
+            const timer = setInterval(() => {
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    btn.innerText = '获取验证码';
+                    btn.disabled = false;
+                } else {
+                    btn.innerText = `${countdown}s`;
+                    countdown--;
+                }
+            }, 1000);
+            console.log('Mock SMS: ', result.message);
+        } else {
+            alert(result.error || '验证码发送失败');
+            btn.disabled = false;
+        }
+    } catch (e) {
+        alert('网络错误');
+        btn.disabled = false;
+    }
+});
+</script>
 </body>
 </html>

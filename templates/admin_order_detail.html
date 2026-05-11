@@ -1,170 +1,179 @@
 {% extends "base.html" %}
-{% block title %}{{ order.projectName }} - 订单详情{% endblock %}
+{% block title %}订单详情 - Admin - NovelStudio{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">管理后台</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.admin_orders') }}">订单管理</a></li>
+<li class="breadcrumb-item active">详情</li>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-    <div style="display:flex;align-items:center;gap:12px;">
-        <a href="/admin/orders/" style="font-size:18px;text-decoration:none;">←</a>
-        <div>
-            <h1 style="display:flex;align-items:center;gap:10px;">
-                {{ order.projectName }}
-                <span style="font-size:12px;padding:3px 10px;border-radius:10px;font-weight:400;
-                    {% if order.status == 'completed' %}background:var(--success-soft);color:var(--success);border:1px solid rgba(34,197,94,0.2);
-                    {% elif order.status == 'cancelled' %}background:var(--danger-soft);color:var(--danger);border:1px solid rgba(239,68,68,0.2);
-                    {% elif order.status in ('writing','confirmed') %}background:var(--accent-soft);color:var(--accent);border:1px solid rgba(99,102,241,0.2);
-                    {% elif order.status == 'pending' %}background:var(--warning-soft);color:var(--warning);border:1px solid rgba(234,179,8,0.2);
-                    {% else %}background:var(--bg-elevated);color:var(--text-muted);border:1px solid var(--border);{% endif %}">
-                    {{ order.statusLabel }}
-                </span>
-            </h1>
-            <div class="page-meta">
-                创建于 {{ order.createdAt.strftime('%Y-%m-%d %H:%M') if order.createdAt else '--' }}
-                · 最后更新 {{ order.updatedAt.strftime('%Y-%m-%d %H:%M') if order.updatedAt else '--' }}
-            </div>
-        </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">订单 #{{ order._id[-6:] }}</h1>
+        <p class="text-secondary mb-0">项目：{{ order.projectName }}</p>
     </div>
+    <a href="{{ url_for('admin.admin_orders') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> 返回列表
+    </a>
 </div>
-<div class="page-content">
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:900px;">
-
-        <!-- ── 基本信息 ── -->
-        <div class="card">
-            <div class="card-title">📋 基本信息</div>
-            <div style="font-size:13px;color:var(--text-secondary);line-height:2;">
-                <div><strong style="color:var(--text-muted);">订单类型：</strong>{{ order.get('orderType','全本新小说') }}</div>
-                <div><strong style="color:var(--text-muted);">类型：</strong>{{ order.genre }}</div>
-                <div><strong style="color:var(--text-muted);">目标字数：</strong>{{ order.targetWords }} 字</div>
-                <div><strong style="color:var(--text-muted);">目标章节：</strong>{{ order.chapters }} 章</div>
-                <div><strong style="color:var(--text-muted);">费用：</strong><span style="color:var(--accent);font-weight:600;">¥{{ order.cost }}</span> ({{ order.chapters }}章，{{ order.get('orderType','全本新小说') }})</div>
-                <div><strong style="color:var(--text-muted);">联系方式：</strong>{{ order.contact or '未填写' }}</div>
-                <div><strong style="color:var(--text-muted);">参考作品：</strong>{{ order.reference or '无' }}</div>
+<div class="row g-4">
+    <!-- Left: Order Details -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent py-3">
+                <h5 class="mb-0 fw-bold">基础信息</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="text-secondary small">客户姓名</label>
+                        <div class="fw-bold">{{ order.customerName }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-secondary small">联系方式</label>
+                        <div class="fw-bold">{{ order.contact }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-secondary small">题材类型</label>
+                        <div class="fw-bold">{{ order.genre }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-secondary small">订单类型</label>
+                        <div class="fw-bold text-primary">{{ order.orderType }}</div>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="text-secondary small">详细需求</label>
+                        <div class="bg-light p-3 rounded mt-1" style="white-space: pre-wrap;">{{ order.detail or '无' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-secondary small">文风要求</label>
+                        <div>{{ order.style or '无' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-secondary small">创作参考</label>
+                        <div>{{ order.reference or '无' }}</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- ── 进度控制 ── -->
-        <div class="card">
-            <div class="card-title">📊 进度控制</div>
-            <div style="margin:12px 0;">
-                <div class="progress-bar" style="margin-bottom:4px;">
-                    <div class="progress-fill" style="width:{{ order.progress }}%;"></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
-                    <span>进度 {{ order.progress }}%</span>
-                    <span>{{ order.deliveredChapters }}/{{ order.chapters }} 章 · {{ order.deliveredWords }} 字</span>
-                </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent py-3">
+                <h5 class="mb-0 fw-bold">项目管理</h5>
             </div>
-
-            <form id="updateForm" style="display:flex;flex-direction:column;gap:10px;">
-                <input type="hidden" id="oid" value="{{ order._id }}">
-
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                    <div>
-                        <label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:3px;">状态</label>
-                        <select id="status" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:13px;font-family:inherit;">
-                            {% for key, label in ORDER_STATUSES.items() %}
-                            <option value="{{ key }}" {% if order.status == key %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
+            <div class="card-body">
+                <form id="adminUpdateForm">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">当前状态</label>
+                            <select class="form-select" name="status">
+                                {% for key, label in ORDER_STATUSES.items() %}
+                                <option value="{{ key }}" {% if order.status == key %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">整体进度 (%)</label>
+                            <input type="number" class="form-control" name="progress" value="{{ order.progress }}" min="0" max="100">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">已交付章节</label>
+                            <input type="number" class="form-control" name="deliveredChapters" value="{{ order.deliveredChapters }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">已交付字数</label>
+                            <input type="number" class="form-control" name="deliveredWords" value="{{ order.deliveredWords }}">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">交付链接 (Markdown/网盘/网速)</label>
+                            <input type="text" class="form-control" name="deliverable" value="{{ order.deliverable }}" placeholder="https://...">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">管理员备注 (内部)</label>
+                            <textarea class="form-control" name="notes" rows="3">{{ order.notes }}</textarea>
+                        </div>
                     </div>
-                    <div>
-                        <label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:3px;">进度 %</label>
-                        <input type="number" id="progress" value="{{ order.progress }}" min="0" max="100"
-                               style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:13px;font-family:inherit;">
-                    </div>
-                </div>
-
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                    <div>
-                        <label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:3px;">已交付章节</label>
-                        <input type="number" id="deliveredChapters" value="{{ order.deliveredChapters }}" min="0"
-                               style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:13px;font-family:inherit;">
-                    </div>
-                    <div>
-                        <label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:3px;">已交付字数</label>
-                        <input type="number" id="deliveredWords" value="{{ order.deliveredWords }}" min="0"
-                               style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:13px;font-family:inherit;">
-                    </div>
-                </div>
-
-                <div>
-                    <label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:3px;">交付链接/附件</label>
-                    <input type="text" id="deliverable" value="{{ order.deliverable }}" placeholder="GitHub URL / 下载链接"
-                           style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:13px;font-family:inherit;">
-                </div>
-
-                <div>
-                    <label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:3px;">备注</label>
-                    <textarea id="notes" rows="3" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-surface);color:var(--text-primary);font-size:13px;font-family:inherit;resize:vertical;">{{ order.notes }}</textarea>
-                </div>
-
-                <button type="submit" class="btn btn-primary" style="align-self:flex-start;">💾 保存更新</button>
-            </form>
-
-            <div id="updateResult" style="display:none;margin-top:10px;padding:8px 14px;border-radius:var(--radius-sm);font-size:13px;"></div>
+                </form>
+            </div>
+            <div class="card-footer bg-transparent border-0 pb-4">
+                <button type="button" class="btn btn-primary px-5" id="saveOrderBtn">
+                    <i class="bi bi-check2-circle me-1"></i> 保存并更新
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- ── 详细需求 ── -->
-    <div class="card" style="max-width:900px;margin-top:16px;">
-        <div class="card-title">📝 详细需求</div>
-        <div style="font-size:13px;color:var(--text-secondary);line-height:1.8;white-space:pre-wrap;">{{ order.detail or '无详细需求' }}</div>
-    </div>
+    <!-- Right: Sidebar Info -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-secondary small">总费用</span>
+                    <span class="h4 mb-0 fw-bold text-primary">¥{{ '{:,}'.format(order.cost) }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-secondary small">目标字数</span>
+                    <span class="fw-bold">{{ '{:,}'.format(order.targetWords) }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-4">
+                    <span class="text-secondary small">目标章节</span>
+                    <span class="fw-bold">{{ order.chapters }}</span>
+                </div>
+                <div class="progress mb-2" style="height: 10px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ order.progress }}%"></div>
+                </div>
+                <div class="text-center text-secondary small mb-3">当前进度: {{ order.progress }}%</div>
+            </div>
+        </div>
 
-    {% if order.style %}
-    <div class="card" style="max-width:900px;margin-top:12px;">
-        <div class="card-title">🎨 风格要求</div>
-        <div style="font-size:13px;color:var(--text-secondary);">{{ order.style }}</div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent py-3">
+                <h6 class="mb-0 fw-bold">操作日志</h6>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item py-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold">订单创建</span>
+                            <span class="text-muted">{{ order.createdAt.strftime('%Y-%m-%d %H:%M') if order.createdAt else '-' }}</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item py-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold">最后更新</span>
+                            <span class="text-muted">{{ order.updatedAt.strftime('%Y-%m-%d %H:%M') if order.updatedAt else '-' }}</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
     </div>
-    {% endif %}
-
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.getElementById('updateForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const btn = this.querySelector('button[type="submit"]');
-    btn.textContent = '⏳ 保存中...';
-    btn.disabled = true;
-
-    const data = {
-        status: document.getElementById('status').value,
-        progress: parseInt(document.getElementById('progress').value),
-        deliveredChapters: parseInt(document.getElementById('deliveredChapters').value),
-        deliveredWords: parseInt(document.getElementById('deliveredWords').value),
-        deliverable: document.getElementById('deliverable').value,
-        notes: document.getElementById('notes').value
-    };
-
+document.getElementById('saveOrderBtn').addEventListener('click', async () => {
+    const form = document.getElementById('adminUpdateForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
     try {
-        const res = await fetch('/api/orders/' + document.getElementById('oid').value, {
+        const resp = await fetch(`/api/orders/{{ order._id }}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         });
-        const result = await res.json();
-        const el = document.getElementById('updateResult');
-        el.style.display = 'block';
+        const result = await resp.json();
         if (result.success) {
-            el.style.background = 'var(--success-soft)';
-            el.style.border = '1px solid var(--success)';
-            el.textContent = '✅ 已更新！页面将刷新...';
-            setTimeout(() => location.reload(), 800);
+            alert('更新成功');
+            location.reload();
         } else {
-            el.style.background = 'var(--danger-soft)';
-            el.style.border = '1px solid var(--danger)';
-            el.textContent = '❌ 更新失败：' + (result.error || '未知错误');
+            alert('更新失败: ' + (result.error || '未知错误'));
         }
-    } catch(err) {
-        const el = document.getElementById('updateResult');
-        el.style.display = 'block';
-        el.style.background = 'var(--danger-soft)';
-        el.style.border = '1px solid var(--danger)';
-        el.textContent = '❌ 网络错误：' + err.message;
-    } finally {
-        btn.textContent = '💾 保存更新';
-        btn.disabled = false;
+    } catch (e) {
+        alert('网络错误');
     }
 });
 </script>

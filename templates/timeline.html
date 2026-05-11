@@ -1,58 +1,41 @@
 {% extends "base.html" %}
 {% block title %}时间线 - {{ meta.title }} - NovelStudio{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('novel.index') }}">小说库</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('novel.novel_detail', slug=slug) }}">{{ meta.title }}</a></li>
+<li class="breadcrumb-item active">时间线</li>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-    <h1>📅 故事时间线</h1>
-    <div class="page-meta">{{ meta.title }}</div>
+<div class="mb-4">
+    <h1 class="h3 mb-1">📅 故事时间线</h1>
+    <p class="text-secondary">{{ meta.title }} · 大事记与情节脉络</p>
 </div>
-<div class="page-content">
-    {% if meta.world and meta.world.timeline %}
-    <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;">
-        <div class="timeline">
-            {% set ns = namespace(last_group='') %}
-            {% for key, desc in meta.world.timeline.items() %}
-            {% set group = key.split('·')[0] if '·' in key else '' %}
-            {% if group and group != ns.last_group %}
-            {% set ns.last_group = group %}
-            <div class="section-group" style="margin-top:{{ '16px' if loop.index0 > 0 else '0' }};">
-                {% if group == '历史' %}📜 历史时间线（灾变前）
-                {% elif group == '灾变' %}💥 大灾变时间线
-                {% elif group == 'B7' %}🏗️ B-7设施内（卷一）
-                {% elif group == '北上' %}🚶 北上旅途（卷二）
-                {% elif group == '烬城' %}🏰 烬城阶段
-                {% elif group == '锚点' %}📍 重要时间锚点
-                {% else %}{{ group }}{% endif %}
-            </div>
-            {% endif %}
-            <div class="tl-item">
-                <div class="tl-label">
-                    {% if key.startswith('D-') %}灾前第{{ key[2:] }}天
-                    {% elif key.startswith('D+') %}灾后第{{ key[2:] }}天
-                    {% elif key == 'D-0_0427' %}D-Day · 04:27
-                    {% elif '·' in key %}{{ key.split('·')[1].replace('_', ' ') }}
-                    {% else %}D-Day{% endif %}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+        <div class="timeline-v2">
+            {% for item in meta.timeline %}
+            <div class="timeline-item pb-4 border-start border-primary-subtle position-relative ps-4 ms-2">
+                <div class="timeline-dot bg-primary position-absolute rounded-circle" style="width: 12px; height: 12px; left: -7px; top: 0;"></div>
+                <div class="mb-1 text-primary fw-bold small">{{ item.label }}</div>
+                <div class="bg-light p-3 rounded">
+                    <p class="mb-0 text-secondary small">{{ item.desc }}</p>
                 </div>
-                <div class="tl-desc">{{ desc }}</div>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="display-1 text-muted opacity-25 mb-4"><i class="bi bi-calendar3"></i></div>
+                <p class="text-secondary">暂未录入时间线信息</p>
             </div>
             {% endfor %}
         </div>
     </div>
-    {% else %}
-    <div class="empty-state">
-        <div class="empty-icon">📅</div>
-        <div class="empty-text">暂无时间线数据</div>
-    </div>
-    {% endif %}
-
-    <!-- Novel-specific notes -->
-    {% if slug == 'wo-de-wu-ran-deng-ji' %}
-    <div style="margin-top:20px;padding:14px 18px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);">
-        <p style="font-size:13px;color:var(--text-muted);">📌 全书已完结（60章），最终时间点：D+24，陆川从青海湖TS-01走出，核心耗尽回归普通人。</p>
-    </div>
-    {% elif slug == 'gui-yi-you-xi' %}
-    <div style="margin-top:20px;padding:14px 18px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);">
-        <p style="font-size:13px;color:var(--text-muted);">📌 当前进度：第二卷第46-95章连载中。当前时间点约2016年5月10日，林远团队在烬城井底发现蓝白色光源。</p>
-    </div>
-    {% endif %}
 </div>
+
+<style>
+    .timeline-v2 .timeline-item:last-child {
+        border-start: 0 !important;
+    }
+</style>
 {% endblock %}

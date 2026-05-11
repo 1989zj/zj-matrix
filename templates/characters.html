@@ -1,36 +1,64 @@
 {% extends "base.html" %}
 {% block title %}角色档案 - {{ meta.title }} - NovelStudio{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('novel.index') }}">小说库</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('novel.novel_detail', slug=slug) }}">{{ meta.title }}</a></li>
+<li class="breadcrumb-item active">角色档案</li>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-    <h1>👥 角色档案</h1>
-    <div class="page-meta">{{ meta.title }} · {{ meta.characters|length if meta.characters else 0 }} 个主要角色</div>
+<div class="d-flex justify-content-between align-items-end mb-4">
+    <div>
+        <h1 class="h3 mb-1">👥 角色档案</h1>
+        <p class="text-secondary mb-0">{{ meta.title }} · 核心人物关系与属性</p>
+    </div>
+    {% if current_role == 'admin' %}
+    <button class="btn btn-primary"><i class="bi bi-person-plus me-1"></i> 添加角色</button>
+    {% endif %}
 </div>
-<div class="page-content">
-    {% if meta.characters %}
-    <div class="char-grid">
-        {% for char in meta.characters %}
-        <div class="char-card">
-            <div class="char-name">{{ char.name }}</div>
-            <div class="char-title">{{ char.title }}</div>
-            {% if char.ability and char.ability != '无异能' %}
-            <div class="char-ability">⚡ {{ char.ability }}</div>
-            {% endif %}
-            <div class="char-desc">{{ char.desc }}</div>
-            {% if char.traits %}
-            <div class="char-traits">
-                {% for trait in char.traits %}
-                <span class="char-trait">{{ trait }}</span>
-                {% endfor %}
+
+<div class="row g-4">
+    {% for char in meta.characters %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="flex-shrink-0">
+                        <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 50px; height: 50px; font-size: 1.25rem;">
+                            {{ char.name[0] }}
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h5 class="mb-0 fw-bold">{{ char.name }}</h5>
+                        <div class="text-primary small fw-semibold">{{ char.title or '主要角色' }}</div>
+                    </div>
+                </div>
+
+                {% if char.ability %}
+                <div class="mb-3">
+                    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle px-3 py-2">
+                        <i class="bi bi-lightning-fill me-1"></i> {{ char.ability }}
+                    </span>
+                </div>
+                {% endif %}
+
+                <p class="text-secondary small mb-3" style="line-height: 1.6;">
+                    {{ char.desc }}
+                </p>
+
+                <div class="d-flex flex-wrap gap-2">
+                    {% for trait in char.traits %}
+                    <span class="badge bg-light text-secondary border rounded-pill">{{ trait }}</span>
+                    {% endfor %}
+                </div>
             </div>
-            {% endif %}
         </div>
-        {% endfor %}
     </div>
     {% else %}
-    <div class="empty-state">
-        <div class="empty-icon">👤</div>
-        <div class="empty-text">暂无角色数据</div>
+    <div class="col-12 text-center py-5">
+        <div class="display-1 text-muted opacity-25 mb-4"><i class="bi bi-people"></i></div>
+        <p class="text-secondary">暂未录入角色信息</p>
     </div>
-    {% endif %}
+    {% endfor %}
 </div>
 {% endblock %}

@@ -1,886 +1,309 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}NovelStudio{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* ═══════════════════ Design System ═══════════════════ */
         :root {
-            --bg-base: #f2f3f5;
-            --bg-surface: #ffffff;
-            --bg-elevated: #ecedf0;
-            --bg-hover: #e4e5e9;
-            --border: #d4d5db;
-            --border-light: #c4c5cc;
-            --text-primary: #17181c;
-            --text-secondary: #56575e;
-            --text-muted: #92939a;
-            --accent: #5e6ad2;
-            --accent-hover: #7170ff;
-            --accent-soft: rgba(94,106,210,0.08);
-            --accent-glow: rgba(94,106,210,0.12);
-            --success: #22c55e;
-            --success-soft: rgba(34,197,94,0.08);
-            --warning: #eab308;
-            --warning-soft: rgba(234,179,8,0.08);
-            --danger: #ef4444;
-            --danger-soft: rgba(239,68,68,0.08);
-            --sidebar-width: 220px;
-            --radius-sm: 6px;
-            --radius-md: 10px;
-            --radius-lg: 14px;
-            --font-sans: 'Inter', -apple-system, 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
-            --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-            --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
+            --sidebar-width: 260px;
+            --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
         }
-        /* ── Dark Theme ── */
-        [data-theme="dark"] {
-            --bg-base: #08090a;
-            --bg-surface: #0f1011;
-            --bg-elevated: #191a1b;
-            --bg-hover: #222325;
-            --border: #23252a;
-            --border-light: #2a2c31;
-            --text-primary: #f7f8f8;
-            --text-secondary: #d0d6e0;
-            --text-muted: #8a8f98;
-            --accent-soft: rgba(94,106,210,0.15);
-            --accent-glow: rgba(94,106,210,0.25);
-            --success-soft: rgba(34,197,94,0.12);
-            --warning-soft: rgba(234,179,8,0.12);
-            --danger-soft: rgba(239,68,68,0.12);
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
-            --shadow-md: 0 2px 8px rgba(0,0,0,0.3);
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: var(--font-sans);
-            font-feature-settings: 'cv01', 'ss03';
-            -webkit-font-smoothing: antialiased;
-            background: var(--bg-base);
-            color: var(--text-primary);
-            line-height: 1.7;
-            min-height: 100vh;
-            display: flex;
+            background-color: var(--bs-body-bg);
         }
-        a { color: var(--accent); text-decoration: none; transition: color 0.15s; }
-        a:hover { color: var(--accent-hover); }
-
-        /* ═══════════════════ Sidebar ═══════════════════ */
         .sidebar {
-            position: fixed;
-            top: 0; left: 0;
             width: var(--sidebar-width);
             height: 100vh;
-            background: var(--bg-surface);
-            border-right: 1px solid var(--border);
-            padding: 16px 0;
-            display: flex;
-            flex-direction: column;
-            z-index: 50;
-            overflow-y: auto;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            background-color: var(--bs-tertiary-bg);
+            border-right: 1px solid var(--bs-border-color);
+            transition: all 0.3s;
         }
-        .sidebar-brand {
-            padding: 4px 16px 16px;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 8px;
-        }
-        .sidebar-brand a {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-primary);
-            letter-spacing: -0.3px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .sidebar-brand a:hover { color: var(--accent); }
-        .sidebar-brand .brand-icon {
-            width: 28px; height: 28px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-            border-radius: 7px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px;
-            flex-shrink: 0;
-        }
-        .sidebar-section {
-            padding: 0 8px;
-            margin-bottom: 6px;
-        }
-        .sidebar-label {
-            font-size: 10px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            padding: 8px 8px 4px;
-        }
-        .sidebar-nav { display: flex; flex-direction: column; gap: 1px; }
-        .sidebar-nav a, .sidebar-nav .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 7px 10px;
-            border-radius: var(--radius-sm);
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            transition: all 0.15s;
-            text-decoration: none;
-        }
-        .sidebar-nav a:hover, .sidebar-nav .nav-item:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-        }
-        .sidebar-nav a.active, .sidebar-nav .nav-item.active {
-            background: var(--accent-soft);
-            color: var(--accent);
-        }
-        .sidebar-nav a .nav-icon, .sidebar-nav .nav-item .nav-icon {
-            width: 20px; text-align: center; font-size: 14px;
-            flex-shrink: 0;
-        }
-        .sidebar-nav a .nav-badge {
-            margin-left: auto;
-            font-size: 10px;
-            padding: 1px 7px;
-            border-radius: 10px;
-            background: var(--bg-hover);
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-        .sidebar-nav a.active .nav-badge { background: var(--accent); color: #fff; }
-        .sidebar-spacer { flex: 1; }
-        .sidebar-footer {
-            padding: 12px 16px;
-            border-top: 1px solid var(--border);
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-        .sidebar-footer a { color: var(--text-muted); }
-        .sidebar-footer a:hover { color: var(--accent); }
-        .sidebar-user {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 0;
-            margin-bottom: 4px;
-        }
-        .sidebar-user .user-avatar {
-            width: 24px; height: 24px;
-            border-radius: 50%;
-            background: var(--accent-soft);
-            color: var(--accent);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 11px;
-            font-weight: 600;
-            flex-shrink: 0;
-        }
-        .sidebar-user .user-name {
-            flex: 1;
-            font-size: 12px;
-            color: var(--text-secondary);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .sidebar-user .user-role {
-            font-size: 10px;
-            padding: 1px 6px;
-            border-radius: 4px;
-            background: var(--accent-soft);
-            color: var(--accent);
-        }
-        .sidebar-footer-actions {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .sidebar-footer-actions .footer-link {
-            font-size: 11px;
-            color: var(--text-muted);
-            padding: 2px 6px;
-            border-radius: 4px;
-            transition: all 0.15s;
-        }
-        .sidebar-footer-actions .footer-link:hover {
-            background: var(--bg-hover);
-            color: var(--accent);
-        }
-
-        /* ═══════════════════ Main Content ═══════════════════ */
-        .main {
+        .main-content {
             margin-left: var(--sidebar-width);
-            flex: 1;
             min-height: 100vh;
+            padding-top: 56px; /* Height of navbar */
         }
-        .page-header {
-            padding: 28px 40px 12px;
+        .navbar {
+            margin-left: var(--sidebar-width);
+            background-color: var(--bs-body-bg);
+            border-bottom: 1px solid var(--bs-border-color);
         }
-        .page-header h1 {
-            font-size: 20px;
+        .nav-link {
+            border-radius: 0.375rem;
+            margin: 0.125rem 0.5rem;
+            padding: 0.5rem 1rem;
+            color: var(--bs-nav-link-color);
+        }
+        .nav-link:hover {
+            background-color: var(--bs-secondary-bg);
+        }
+        .nav-link.active {
+            background-color: var(--bs-primary-bg-subtle);
+            color: var(--bs-primary-text-emphasis) !important;
             font-weight: 600;
-            letter-spacing: -0.3px;
-            color: var(--text-primary);
         }
-        .page-header .page-meta {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-top: 2px;
+        .sidebar-heading {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+            font-weight: 700;
+            color: var(--bs-secondary-color);
+            padding: 1.5rem 1.5rem 0.5rem;
         }
-        .page-content {
-            padding: 20px 40px 40px;
-        }
-
-        /* ═══════════════════ Stats Cards ═══════════════════ */
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .stat-card {
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            padding: 16px 20px;
-            text-align: center;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .stat-card:hover {
-            border-color: var(--accent);
-            box-shadow: var(--shadow-sm);
-        }
-        .stat-card .stat-value {
-            font-size: 24px;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-            color: var(--text-primary);
-        }
-        .stat-card .stat-label {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-        .stat-card .stat-sub {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        /* ═══════════════════ Cards ═══════════════════ */
-        .card {
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            padding: 20px 24px;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .card:hover { border-color: var(--border-light); }
-        .card-title {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 6px;
-            letter-spacing: -0.2px;
-        }
-        .card-desc {
-            font-size: 13px;
-            color: var(--text-secondary);
-            line-height: 1.7;
-        }
-        .card-stats {
-            display: flex;
-            gap: 14px;
-            margin-top: 10px;
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        /* ═══════════════════ Grid ═══════════════════ */
-        .card-grid {
-            display: grid;
-            gap: 10px;
-        }
-        .card-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
-        .card-grid.cols-4 { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
-
-        /* ═══════════════════ Chapter List ═══════════════════ */
-        .chapter-list { list-style: none; }
-        .chapter-item {
+        .brand-logo {
+            padding: 1.5rem;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--bs-primary);
+            text-decoration: none;
             display: flex;
             align-items: center;
-            gap: 14px;
-            padding: 11px 16px;
-            border-bottom: 1px solid var(--border);
-            transition: background 0.12s;
-            text-decoration: none;
-            color: inherit;
+            gap: 0.5rem;
         }
-        .chapter-item:last-child { border-bottom: none; }
-        .chapter-item:hover {
-            background: var(--bg-hover);
-            border-radius: var(--radius-sm);
-        }
-        .chapter-num {
-            width: 30px; height: 30px;
-            background: var(--bg-elevated);
-            border: 1px solid var(--border);
-            border-radius: 7px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 11px; font-weight: 600; color: var(--text-muted);
-            flex-shrink: 0;
-            font-family: var(--font-mono);
-            transition: border-color 0.15s, color 0.15s;
-        }
-        .chapter-item:hover .chapter-num {
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-        .chapter-info { flex: 1; min-width: 0; }
-        .chapter-title {
-            font-size: 13.5px;
-            color: var(--text-primary);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            transition: color 0.15s;
-        }
-        .chapter-item:hover .chapter-title { color: var(--accent); }
-        .chapter-words { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
-        .chapter-arrow {
-            font-size: 12px;
-            color: var(--text-muted);
-            opacity: 0;
-            transition: opacity 0.15s, transform 0.15s;
-        }
-        .chapter-item:hover .chapter-arrow {
-            opacity: 1;
-            transform: translateX(2px);
-        }
-
-        /* ═══════════════════ Reading View ═══════════════════ */
-        .reading-page {
-            max-width: 720px;
+        /* Reading Mode Custom Styles */
+        .reading-container {
+            max-width: 800px;
             margin: 0 auto;
-            padding: 24px 0;
-        }
-        .reading-title-row {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 16px;
-            margin-bottom: 24px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--border);
-        }
-        .reading-title-row .nav-btn {
-            font-size: 13px;
-            color: var(--text-muted);
-            text-decoration: none;
-            white-space: nowrap;
-            padding: 4px 12px;
-            border-radius: var(--radius-sm);
-            transition: all 0.15s;
-            flex-shrink: 0;
-        }
-        .reading-title-row .nav-btn:hover {
-            color: var(--accent);
-            background: var(--accent-soft);
-        }
-        .reading-title-row .nav-btn.disabled {
-            visibility: hidden;
-        }
-        .reading-title-row h1 {
-            font-size: 22px;
-            font-weight: 600;
-            letter-spacing: -0.3px;
-            color: var(--text-primary);
-            flex: 1;
-            text-align: center;
-            min-width: 0;
-        }
-        .reading-title-row .meta {
-            font-size: 11px;
-            color: var(--text-muted);
-            text-align: center;
-            margin-top: 4px;
-        }
-        .reading-title-row .meta span { margin: 0 4px; }
-        .reading-content {
-            font-size: 16px;
+            font-size: 1.125rem;
             line-height: 2;
-            color: var(--text-secondary);
         }
         .reading-content p {
-            margin-bottom: 0.8em;
+            margin-bottom: 1.5rem;
             text-indent: 2em;
         }
-        .reading-content p:first-child { text-indent: 0; }
-        .reading-content .scene-break {
-            text-indent: 0;
-            color: var(--text-muted);
-            font-size: 13px;
-            font-style: italic;
-            text-align: center;
-            margin: 28px 0;
-        }
-        .reading-content .dialogue {
-            text-indent: 0;
-            padding-left: 1em;
-        }
-        .reading-footer {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border);
-        }
-        .reading-footer a {
-            padding: 8px 18px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            font-size: 13px;
-            color: var(--text-secondary);
-            transition: all 0.15s;
-            text-decoration: none;
-        }
-        .reading-footer a:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-            background: var(--accent-soft);
-        }
-        .reading-footer .disabled { visibility: hidden; }
-
-        /* Copy button */
-        .copy-btn {
-            display: inline-block;
-            margin-top: 12px;
-            padding: 5px 14px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            font-size: 12px;
-            color: var(--text-muted);
-            cursor: pointer;
-            transition: all 0.15s;
-            font-family: inherit;
-        }
-        .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
-        .copy-btn.copied { border-color: var(--success); color: var(--success); background: var(--success-soft); }
-
-        /* Version badge */
-        .version-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            background: var(--accent-soft);
-            border: 1px solid var(--accent);
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: 500;
-            color: var(--accent);
-            letter-spacing: 0.3px;
-            font-family: var(--font-mono);
-        }
-
-        /* ── End Notes ── */
-        .end-notes {
-            max-width: 720px;
-            margin: 40px auto 0;
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            padding: 20px 24px;
-        }
-        .end-notes-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border);
-        }
-        .end-notes-content { font-size: 13px; color: var(--text-secondary); line-height: 1.8; }
-        .end-notes-content .note-heading { font-weight: 600; color: var(--accent); }
-        .end-notes-content .note-item { margin: 4px 0; }
-
-        /* ═══════════════════ Character Cards ═══════════════════ */
-        .char-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 10px;
-        }
-        .char-card {
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            padding: 20px;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .char-card:hover { border-color: var(--border-light); box-shadow: var(--shadow-sm); }
-        .char-name { font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.2px; }
-        .char-title { font-size: 12px; color: var(--accent); margin-top: 2px; letter-spacing: 0.2px; }
-        .char-ability {
-            display: inline-block;
-            font-size: 11px;
-            color: var(--success);
-            margin: 8px 0 10px;
-            padding: 2px 10px;
-            background: var(--success-soft);
-            border: 1px solid rgba(34,197,94,0.2);
-            border-radius: 4px;
-        }
-        .char-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
-        .char-traits { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
-        .char-trait {
-            font-size: 11px;
-            padding: 2px 10px;
-            background: var(--accent-soft);
-            border-radius: 12px;
-            color: var(--accent);
-        }
-
-        /* ═══════════════════ World Settings ═══════════════════ */
-        .world-section { margin-bottom: 28px; }
-        .world-section h2 {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 10px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid var(--border);
-        }
-        .world-section p, .world-section li {
-            font-size: 13px;
-            color: var(--text-secondary);
-            line-height: 1.8;
-        }
-        .world-section ul { padding-left: 18px; }
-        .world-section li { margin-bottom: 3px; }
-
-        /* ═══════════════════ Timeline ═══════════════════ */
-        .timeline { position: relative; padding-left: 26px; }
-        .timeline::before {
-            content: '';
-            position: absolute;
-            left: 8px; top: 8px; bottom: 8px;
-            width: 2px;
-            background: var(--border);
-        }
-        .tl-item { position: relative; margin-bottom: 14px; }
-        .tl-item::before {
-            content: '';
-            position: absolute;
-            left: -20px; top: 7px;
-            width: 7px; height: 7px;
-            border-radius: 50%;
-            background: var(--bg-base);
-            border: 2px solid var(--accent);
-        }
-        .tl-label { font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: 0.2px; }
-        .tl-desc { font-size: 13px; color: var(--text-secondary); margin-top: 1px; line-height: 1.6; }
-
-        /* ═══════════════════ Tags & Buttons ═══════════════════ */
-        .tag {
-            display: inline-block;
-            font-size: 11px;
-            padding: 2px 10px;
-            border-radius: 4px;
-            background: var(--bg-elevated);
-            color: var(--text-muted);
-            margin-right: 4px;
-        }
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 7px 16px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.15s;
-            font-family: inherit;
-            text-decoration: none;
-        }
-        .btn:hover { border-color: var(--accent); color: var(--accent); }
-        .btn-primary {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: #fff;
-        }
-        .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
-
-        /* ═══════════════════ Section Group ═══════════════════ */
-        .section-group {
-            margin-top: 16px;
-            margin-bottom: 8px;
-            padding: 4px 8px;
-            background: var(--accent-soft);
-            border-left: 3px solid var(--accent);
-            border-radius: 2px;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--accent);
-            letter-spacing: 0.3px;
-        }
-        .section-group:first-child { margin-top: 0; }
-
-        /* ═══════════════════ Progress Bar ═══════════════════ */
-        .progress-bar {
-            height: 4px;
-            background: var(--bg-elevated);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-top: 6px;
-        }
-        .progress-bar .progress-fill {
-            height: 100%;
-            border-radius: 2px;
-            transition: width 0.5s ease;
-            background: linear-gradient(90deg, var(--accent), var(--accent-hover));
-        }
-
-        /* ═══════════════════ Accent Override Per Novel ═══════════════════ */
-        .accent-gui-yi-you-xi { --accent: #6366f1; --accent-hover: #818cf8; }
-        .accent-wo-de-wu-ran-deng-ji { --accent: #f97316; --accent-hover: #fb923c; }
-
-        /* ═══════════════════ Progress indicator for chapter list ═══════════════════ */
-        .ch-progress-wrap {
-            margin-bottom: 20px;
-            padding: 12px 16px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-        .ch-progress-wrap .ch-progress-text {
-            font-size: 12px;
-            color: var(--text-muted);
-            white-space: nowrap;
-        }
-        .ch-progress-wrap .progress-bar { flex: 1; margin-top: 0; }
-
-        /* ═══════════════════ Empty State ═══════════════════ */
-        .empty-state {
-            text-align: center;
-            padding: 48px 20px;
-            color: var(--text-muted);
-        }
-        .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
-        .empty-state .empty-text { font-size: 14px; }
-
-        /* ═══════════════════ Theme Button ═══════════════════ */
-        .theme-btn {
-            background: none;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 3px 8px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.15s;
-            line-height: 1;
-        }
-        .theme-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
-
-        /* ═══════════════════ Download Table ═══════════════════ */
-        .dl-table { width: 100%; border-collapse: collapse; }
-        .dl-table th {
-            text-align: left;
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 8px 12px;
-            border-bottom: 1px solid var(--border);
-        }
-        .dl-table td {
-            padding: 10px 12px;
-            font-size: 13px;
-            color: var(--text-secondary);
-            border-bottom: 1px solid var(--border);
-        }
-        .dl-table tr:hover td { background: var(--bg-hover); }
-        .dl-table a { font-weight: 500; }
-
-        /* ═══════════════════ Responsive ═══════════════════ */
-        @media (max-width: 768px) {
-            .sidebar { width: 56px; padding: 12px 0; }
-            .sidebar-brand { padding: 4px 12px 12px; }
-            .sidebar-brand .brand-icon { width: 24px; height: 24px; font-size: 12px; }
-            .sidebar-brand a span:not(.brand-icon) { display: none; }
-            .sidebar-label { display: none; }
-            .sidebar-nav a { justify-content: center; padding: 8px; }
-            .sidebar-nav a .nav-icon { width: auto; }
-            .sidebar-nav a span:not(.nav-icon) { display: none; }
-            .sidebar-footer .sidebar-user { display: none; }
-            .sidebar-footer .sidebar-footer-actions { justify-content: center; }
-            .sidebar-footer .sidebar-footer-actions .footer-link span { display: none; }
-            .main { margin-left: 56px; }
-            .page-header { padding: 20px 16px 12px; }
-            .page-content { padding: 16px; }
-            .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-            .card-grid.cols-2 { grid-template-columns: 1fr; }
-            .char-grid { grid-template-columns: 1fr; }
-            .reading-footer { flex-direction: column; gap: 8px; }
-            .reading-page { padding: 16px 0; }
+        @media (max-width: 991.98px) {
+            .sidebar {
+                left: calc(-1 * var(--sidebar-width));
+            }
+            .sidebar.show {
+                left: 0;
+            }
+            .main-content, .navbar {
+                margin-left: 0;
+            }
         }
     </style>
-    <script>
-        (function(){
-            var t = localStorage.getItem('novelstudio-theme');
-            if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-        })();
-    </script>
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- ═══ Sidebar ═══ -->
-    <aside class="sidebar">
-        <div class="sidebar-brand">
-            <a href="/">
-                <span class="brand-icon">✍</span>
-                <span>NovelStudio</span>
-            </a>
-        </div>
 
-        {% if current_role == 'admin' %}
-        {% if slug %}
-        {% set active = request.path.split('/')[3] if request.path.split('/')|length > 3 else 'home' %}
-        <div class="sidebar-section">
-            <div class="sidebar-label">小说</div>
-            <div class="sidebar-nav">
-                <a href="/novel/{{ slug }}/" {% if active == '' or active == None %}class="active"{% endif %}>
-                    <span class="nav-icon">📖</span>
-                    <span>小说主页</span>
-                </a>
-                <a href="/novel/{{ slug }}/chapters/" {% if active == 'chapters' %}class="active"{% endif %}>
-                    <span class="nav-icon">📄</span>
-                    <span>章节列表</span>
-                </a>
-            </div>
-        </div>
-        <div class="sidebar-section">
-            <div class="sidebar-label">设定</div>
-            <div class="sidebar-nav">
-                <a href="/novel/{{ slug }}/characters/" {% if active == 'characters' %}class="active"{% endif %}>
-                    <span class="nav-icon">👥</span>
-                    <span>角色档案</span>
-                </a>
-                <a href="/novel/{{ slug }}/world/" {% if active == 'world' %}class="active"{% endif %}>
-                    <span class="nav-icon">🌍</span>
-                    <span>世界观</span>
-                </a>
-                <a href="/novel/{{ slug }}/timeline/" {% if active == 'timeline' %}class="active"{% endif %}>
-                    <span class="nav-icon">📅</span>
-                    <span>时间线</span>
-                </a>
-            </div>
-        </div>
-        {% else %}
-        <div class="sidebar-section">
-            <div class="sidebar-nav">
-                <a href="/" class="active">
-                    <span class="nav-icon">📚</span>
-                    <span>小说库</span>
-                </a>
-            </div>
-        </div>
-        {% endif %}
-        {% endif %}
+    <!-- Sidebar -->
+    <aside class="sidebar d-flex flex-column" id="sidebar">
+        <a href="/" class="brand-logo">
+            <i class="bi bi-pen-fill"></i>
+            <span>NovelStudio</span>
+        </a>
 
-        <!-- ═══ 平台导航 ═══ -->
-        <div class="sidebar-section">
-            <div class="sidebar-label">平台</div>
-            <div class="sidebar-nav">
-                {% if current_user %}
-                <a href="/orders/" {% if request.path.startswith('/orders') %}class="active"{% endif %}>
-                    <span class="nav-icon">📝</span>
-                    <span>下单</span>
-                </a>
-                <a href="/dashboard/" {% if request.path.startswith('/dashboard') %}class="active"{% endif %}>
-                    <span class="nav-icon">📊</span>
-                    <span>看板</span>
-                </a>
-                {% if current_role == 'admin' %}
-                    <div class="sidebar-divider"></div>
-                    <a href="/admin/settings/" class="sidebar-link {% if request.path.startswith('/admin/settings') %}active{% endif %}">
-                        <span class="sidebar-icon">⚙️</span>
-                        定价设置
+        <div class="flex-grow-1 overflow-auto">
+            {% if current_role == 'admin' %}
+                {% if slug %}
+                <div class="sidebar-heading">当前小说</div>
+                <nav class="nav flex-column">
+                    <a class="nav-link {% if request.path == url_for('novel.novel_detail', slug=slug) %}active{% endif %}" href="{{ url_for('novel.novel_detail', slug=slug) }}">
+                        <i class="bi bi-book me-2"></i> 主页
                     </a>
-                    <a href="/admin/orders/" class="sidebar-link {% if request.path.startswith('/admin/orders') %}active{% endif %}">
-                        <span class="sidebar-icon">📋</span>
-                        订单管理
+                    <a class="nav-link {% if 'chapters' in request.path %}active{% endif %}" href="{{ url_for('novel.chapter_list', slug=slug) }}">
+                        <i class="bi bi-list-ol me-2"></i> 章节列表
                     </a>
+                    <a class="nav-link {% if 'characters' in request.path %}active{% endif %}" href="{{ url_for('novel.characters', slug=slug) }}">
+                        <i class="bi bi-people me-2"></i> 角色档案
+                    </a>
+                    <a class="nav-link {% if 'world' in request.path %}active{% endif %}" href="{{ url_for('novel.world_settings', slug=slug) }}">
+                        <i class="bi bi-globe me-2"></i> 世界观
+                    </a>
+                    <a class="nav-link {% if 'timeline' in request.path %}active{% endif %}" href="{{ url_for('novel.timeline', slug=slug) }}">
+                        <i class="bi bi-calendar3 me-2"></i> 时间线
+                    </a>
+                </nav>
                 {% endif %}
-            {% else %}
-                <a href="/login/" {% if request.path.startswith('/login') %}class="active"{% endif %}>
-                    <span class="nav-icon">🔐</span>
-                    <span>登录</span>
-                </a>
+
+                <div class="sidebar-heading">管理后台</div>
+                <nav class="nav flex-column">
+                    <a class="nav-link {% if request.path == url_for('novel.index') %}active{% endif %}" href="{{ url_for('novel.index') }}">
+                        <i class="bi bi-journals me-2"></i> 小说库
+                    </a>
+                    <a class="nav-link {% if 'admin/orders' in request.path %}active{% endif %}" href="{{ url_for('admin.admin_orders') }}">
+                        <i class="bi bi-clipboard-data me-2"></i> 订单管理
+                    </a>
+                    <a class="nav-link {% if 'admin/settings' in request.path %}active{% endif %}" href="{{ url_for('admin.admin_settings') }}">
+                        <i class="bi bi-gear me-2"></i> 系统设置
+                    </a>
+                    <a class="nav-link {% if 'downloads' in request.path %}active{% endif %}" href="{{ url_for('novel.download_index') }}">
+                        <i class="bi bi-download me-2"></i> 下载中心
+                    </a>
+                </nav>
             {% endif %}
-            </div>
+
+            <div class="sidebar-heading">平台</div>
+            <nav class="nav flex-column">
+                <a class="nav-link {% if request.path == url_for('customer.order_page') %}active{% endif %}" href="{{ url_for('customer.order_page') }}">
+                    <i class="bi bi-plus-circle me-2"></i> 我要下单
+                </a>
+                <a class="nav-link {% if request.path == url_for('customer.dashboard') %}active{% endif %}" href="{{ url_for('customer.dashboard') }}">
+                    <i class="bi bi-speedometer2 me-2"></i> 看板
+                </a>
+            </nav>
         </div>
 
-        <div class="sidebar-spacer"></div>
-        <div class="sidebar-footer">
-            <div class="sidebar-footer-actions">
-                {% if current_role == 'admin' %}<a href="/downloads/" class="footer-link">📥 下载中心</a>{% endif %}
-                <button id="theme-toggle" class="theme-btn" title="切换主题" aria-label="切换主题">☀️</button>
-            </div>
+        <div class="p-3 border-top">
             {% if current_user %}
-            <div class="sidebar-user">
-                <div class="user-avatar">{{ current_user[0] }}</div>
-                <span class="user-name">{{ current_user }}</span>
-                {% if current_role == 'admin' %}<span class="user-role">管理员</span>{% endif %}
-            </div>
-            <div style="display:flex;gap:6px;">
-                <span style="font-size:10px;color:var(--text-muted);">7天有效</span>
-                <a href="/logout/" style="font-size:11px;color:var(--accent);margin-left:auto;">退出</a>
-            </div>
+                <div class="d-flex align-items-center mb-3">
+                    <div class="flex-shrink-0">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            {{ current_user[0]|upper }}
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3 overflow-hidden">
+                        <div class="fw-bold text-truncate">{{ current_user }}</div>
+                        <div class="small text-secondary text-truncate">{{ '管理员' if current_role == 'admin' else '客户' }}</div>
+                    </div>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm w-100">
+                    <i class="bi bi-box-arrow-right me-1"></i> 退出登录
+                </a>
             {% else %}
-            <div style="margin-top:6px;font-size:11px;color:var(--text-muted);">未登录</div>
+                <a href="{{ url_for('auth.login_page') }}" class="btn btn-primary w-100">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> 登录
+                </a>
             {% endif %}
-            <div style="margin-top:4px;font-size:10px;color:var(--text-muted);opacity:0.5;">NovelStudio v2.0</div>
         </div>
     </aside>
 
-    <!-- ═══ Main Content ═══ -->
-    <main class="main {% if slug %}accent-{{ slug }}{% endif %}">
-        {% block content %}{% endblock %}
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top shadow-sm">
+        <div class="container-fluid">
+            <button class="btn btn-link d-lg-none me-2" id="sidebarToggle">
+                <i class="bi bi-list fs-4"></i>
+            </button>
+            <nav aria-label="breadcrumb" class="d-none d-md-block">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    {% block breadcrumb %}{% endblock %}
+                </ol>
+            </nav>
+            <div class="ms-auto d-flex align-items-center">
+                <!-- Theme Toggle -->
+                <button class="btn btn-link text-secondary p-2 me-2" id="themeToggle" title="切换主题">
+                    <i class="bi bi-sun-fill"></i>
+                </button>
+                <!-- Notifications -->
+                <div class="dropdown me-3">
+                    <button class="btn btn-link text-secondary p-2 position-relative" data-bs-toggle="dropdown">
+                        <i class="bi bi-bell-fill"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notif-count" style="display:none;">0</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end shadow border-0" style="width: 300px;">
+                        <h6 class="dropdown-header">通知</h6>
+                        <div id="notif-list">
+                            <div class="dropdown-item text-center text-muted py-3">暂无新通知</div>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item text-center small text-primary">查看全部</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container-fluid py-4">
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                {% for message in messages %}
+                  <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </div>
     </main>
 
-    {% block scripts %}{% endblock %}
-
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        (function(){
-            var btn = document.getElementById('theme-toggle');
-            if (!btn) return;
-            var html = document.documentElement;
-            function updateBtn() {
-                var theme = html.getAttribute('data-theme');
-                btn.textContent = theme === 'dark' ? '🌙' : '☀️';
-                btn.title = theme === 'dark' ? '切换到亮色' : '切换到暗色';
+        // Sidebar Toggle
+        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('show');
+        });
+
+        // Theme Toggle Logic
+        const getStoredTheme = () => localStorage.getItem('theme');
+        const setStoredTheme = theme => localStorage.setItem('theme', theme);
+        const getPreferredTheme = () => {
+            const storedTheme = getStoredTheme();
+            if (storedTheme) return storedTheme;
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        const setTheme = theme => {
+            if (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-bs-theme', theme);
             }
-            updateBtn();
-            btn.addEventListener('click', function(){
-                var cur = html.getAttribute('data-theme');
-                var next = cur === 'dark' ? null : 'dark';
-                if (next) {
-                    html.setAttribute('data-theme', 'dark');
-                    localStorage.setItem('novelstudio-theme', 'dark');
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.innerHTML = theme === 'dark' ? '<i class="bi bi-moon-stars-fill"></i>' : '<i class="bi bi-sun-fill"></i>';
+            }
+        }
+
+        setTheme(getPreferredTheme());
+
+        document.getElementById('themeToggle')?.addEventListener('click', () => {
+            const theme = document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+            setStoredTheme(theme);
+            setTheme(theme);
+        });
+
+        // Notifications Fetcher
+        async function fetchNotifications() {
+            try {
+                const resp = await fetch('/api/notifications');
+                if (!resp.ok) return;
+                const notifs = await resp.json();
+                const count = notifs.filter(n => !n.read).length;
+                const badge = document.getElementById('notif-count');
+                if (count > 0) {
+                    badge.innerText = count;
+                    badge.style.display = 'block';
                 } else {
-                    html.removeAttribute('data-theme');
-                    localStorage.removeItem('novelstudio-theme');
+                    badge.style.display = 'none';
                 }
-                updateBtn();
-            });
-        })();
+
+                const list = document.getElementById('notif-list');
+                if (notifs.length > 0) {
+                    list.innerHTML = notifs.map(n => `
+                        <a class="dropdown-item py-2 border-bottom" href="#">
+                            <div class="fw-bold small">${n.title || '通知'}</div>
+                            <div class="x-small text-secondary">${n.message}</div>
+                            <div class="x-small text-muted mt-1">${new Date(n.createdAt).toLocaleString()}</div>
+                        </a>
+                    `).join('');
+                }
+            } catch (e) {}
+        }
+        {% if current_user %}
+        fetchNotifications();
+        setInterval(fetchNotifications, 60000);
+        {% endif %}
     </script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

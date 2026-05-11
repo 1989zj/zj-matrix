@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}编辑第{{ chapter.num }}章 - {{ meta.title }} - NovelStudio{% endblock %}
+{% block extra_css %}
+<!-- Quill Rich Text Editor CSS -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    #editor-container {
+        height: 500px;
+        background-color: var(--bs-body-bg);
+    }
+    .ql-toolbar.ql-snow {
+        border-top-left-radius: 0.375rem;
+        border-top-right-radius: 0.375rem;
+        background-color: var(--bs-tertiary-bg);
+    }
+    .ql-container.ql-snow {
+        border-bottom-left-radius: 0.375rem;
+        border-bottom-right-radius: 0.375rem;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('novel.index') }}">小说库</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('novel.novel_detail', slug=slug) }}">{{ meta.title }}</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('novel.chapter_list', slug=slug) }}">章节列表</a></li>
+<li class="breadcrumb-item active">编辑第{{ chapter.num }}章</li>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-9">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">编辑章节内容</h5>
+                <div class="btn-group">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="saveChapter(false)">
+                        <i class="bi bi-save"></i> 暂存
+                    </button>
+                    <button class="btn btn-primary btn-sm px-4" onclick="saveChapter(true)">
+                        <i class="bi bi-cloud-upload"></i> 保存并发布
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">章节标题</label>
+                    <input type="text" class="form-control form-control-lg" id="chapterTitle" value="{{ chapter.title }}" placeholder="请输入章节标题...">
+                </div>
+                <div id="editor-container">
+                    {{ chapter.content|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent py-3">
+                <h6 class="mb-0 fw-bold">章节属性</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label small text-secondary">章节编号</label>
+                    <input type="number" class="form-control form-control-sm" id="chapterNum" value="{{ chapter.num }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-secondary">版本号</label>
+                    <input type="text" class="form-control form-control-sm" id="chapterVersion" value="{{ chapter.version or 'v1' }}">
+                </div>
+                <hr>
+                <div class="small text-secondary mb-1">字数统计</div>
+                <div class="h5 fw-bold mb-0" id="wordCountDisplay">0</div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent py-3">
+                <h6 class="mb-0 fw-bold">本章总结 / 钩子</h6>
+            </div>
+            <div class="card-body">
+                <textarea class="form-control small" id="chapterEndNotes" rows="6" placeholder="记录本章关键伏笔、钩子或总结...">{{ chapter.chapterEndNotes }}</textarea>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Quill JS -->
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<script>
+    var quill = new Quill('#editor-container', {
+        theme: 'snow',
+        placeholder: '在此输入章节内容...',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                ['blockquote', 'code-block'],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                ['clean']
+            ]
+        }
+    });
+
+    // Update word count
+    function updateWordCount() {
+        const text = quill.getText();
+        const count = text.replace(/\s+/g, '').length;
+        document.getElementById('wordCountDisplay').innerText = count.toLocaleString();
+    }
+
+    quill.on('text-change', updateWordCount);
+    updateWordCount();
+
+    async function saveChapter(publish) {
+        const data = {
+            novelName: "{{ meta.name }}",
+            chapterNumber: document.getElementById('chapterNum').value,
+            title: document.getElementById('chapterTitle').value,
+            content: quill.root.innerHTML,
+            chapterEndNotes: document.getElementById('chapterEndNotes').value,
+            version: document.getElementById('chapterVersion').value,
+            wordCount: parseInt(document.getElementById('wordCountDisplay').innerText.replace(/,/g, ''))
+        };
+
+        try {
+            const resp = await fetch('/api/upload-chapter', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await resp.json();
+            if (result.success) {
+                if (publish) {
+                    alert('章节已保存并发布');
+                    window.location.href = "{{ url_for('novel.chapter_list', slug=slug) }}";
+                } else {
+                    alert('暂存成功');
+                }
+            } else {
+                alert('保存失败: ' + (result.error || '未知错误'));
+            }
+        } catch (e) {
+            alert('网络错误');
+        }
+    }
+</script>
+{% endblock %}
