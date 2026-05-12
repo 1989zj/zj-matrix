@@ -2,3 +2,5 @@ Flask==3.0.0
 pymongo==4.6.0
 werkzeug==3.0.1
 python-dotenv==1.0.0
+alibabacloud_dysmsapi20170525>=2.0.24
+alibabacloud_tea_openapi>=0.3.7
