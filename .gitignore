@@ -1,9 +1,9 @@
+*.backup
+*.db
+*.egg-info/
+*.log
 *.pyc
-__pycache__/
 .env
 .venv/
-*.egg-info/
+__pycache__/
 dist/
-*.db
-*.backup
-*.log

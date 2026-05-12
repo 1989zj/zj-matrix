@@ -18,20 +18,31 @@ auth_bp = Blueprint('auth', __name__)
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '456321zj')
 
 def get_aliyun_config():
-    """读取阿里云配置（AccessKey/签名/模板已硬编码，其他可从数据库覆盖）"""
-    doc = settings_col.find_one({'_id': 'aliyun_sms_config'})
-    # 基础配置：使用提供的信息
-    config = {
+    """读取阿里云配置（优先级：环境变量 > 数据库settings_col）"""
+    # 优先从环境变量读取（.env 中的凭据，不提交到GitHub）
+    env_config = {
+        'access_key_id': os.environ.get('ALIYUN_SMS_ACCESS_KEY_ID', ''),
+        'access_key_secret': os.environ.get('ALIYUN_SMS_ACCESS_KEY_SECRET', ''),
+        'sign_name': os.environ.get('ALIYUN_SMS_SIGN_NAME', ''),
+        'template_code': os.environ.get('ALIYUN_SMS_TEMPLATE_CODE', ''),
     }
 
-    # 如果数据库中有配置，则允许覆盖（保留灵活性）
-    if doc:
-        if doc.get('sign_name'):
-            config['sign_name'] = doc.get('sign_name')
-        if doc.get('template_code'):
-            config['template_code'] = doc.get('template_code')
+    # 如果环境变量完整，直接使用
+    if all([env_config['access_key_id'], env_config['access_key_secret'],
+            env_config['sign_name'], env_config['template_code']]):
+        return env_config
 
-    return config
+    # 否则回退到数据库 settings_col
+    doc = settings_col.find_one({'_id': 'aliyun_sms_config'})
+    if doc:
+        return {
+            'access_key_id': doc.get('access_key_id', ''),
+            'access_key_secret': doc.get('access_key_secret', ''),
+            'sign_name': doc.get('sign_name', ''),
+            'template_code': doc.get('template_code', ''),
+        }
+
+    return {}
 
 def create_client(config_data):
     """初始化阿里云客户端"""
@@ -39,32 +50,26 @@ def create_client(config_data):
         access_key_id=config_data['access_key_id'],
         access_key_secret=config_data['access_key_secret']
     )
-    config.endpoint = f'dysmsapi.aliyuncs.com'
+    config.endpoint = 'dysmsapi.aliyuncs.com'
     return Dysmsapi20170525Client(config)
 
-def send_sms_real(phone, code, minutes):
+def send_sms_real(phone, code, minutes=5):
     """通过阿里云发送真实短信"""
     config_data = get_aliyun_config()
 
     if not config_data or not all([config_data.get('access_key_id'),
                                    config_data.get('access_key_secret'),
                                    config_data.get('template_code')]):
-        print("警告：数据库中阿里云短信配置不完整，将回退到模拟发送。")
+        print("警告：阿里云短信配置不完整，将回退到模拟发送。")
         return send_sms_mock(phone, code, minutes)
 
     client = create_client(config_data)
 
-    # 精确匹配要求的 TemplateParam 结构：{"code":"xxxxxx","min":"x"}
     template_params = {
         'code': code,
         'min': str(minutes)
     }
 
-    # SDK 属性说明:
-    # phone_numbers 对应 PhoneNumbers
-    # sign_name 对应 SignName
-    # template_code 对应 TemplateCode
-    # template_param 对应 TemplateParam
     send_sms_request = dysmsapi_20170525_models.SendSmsRequest(
         phone_numbers=phone,
         sign_name=config_data['sign_name'],
@@ -82,10 +87,9 @@ def send_sms_real(phone, code, minutes):
         print(f"阿里云 SDK 异常：{str(e)}")
         return False
 
-def send_sms_mock(phone, code, minutes):
-    """模拟发送短信"""
-    print(f"【NovelStudio】您的验证码为：{code}，请在5分钟内完成验证。")
-    # 实际开发时在此接入阿里云/腾讯云短信SDK
+def send_sms_mock(phone, code, minutes=5):
+    """模拟发送短信（调试备用）"""
+    print(f"【NovelStudio】验证码 {code} 有效期 {minutes} 分钟")
     return True
 
 @auth_bp.route('/api/auth/send-code', methods=['POST'])
@@ -111,9 +115,10 @@ def send_code():
         'createdAt': datetime.now()
     })
     
-    if send_sms_mock(phone, code):
+    if send_sms_real(phone, code, 5):
         return jsonify({"success": True, "message": "验证码已发送"})
-    return jsonify({"error": "验证码发送失败"}), 500
+    print(f"【调试】验证码 {code} 发送至 {phone}（阿里云失败，仅日志）")
+    return jsonify({"error": "验证码发送失败，请稍后重试"}), 500
 
 @auth_bp.route('/login/', methods=['GET', 'POST'])
 def login_page():
@@ -122,7 +127,7 @@ def login_page():
         code = request.form.get('code', '').strip()
         role = request.form.get('role', 'customer')
 
-        # 管理员后门 (保留，或根据需求移除)
+        # 管理员后门
         if phone == 'admin' and code == ADMIN_PASSWORD:
             session.permanent = True
             session['user'] = 'admin'
@@ -148,7 +153,6 @@ def login_page():
         # 查找或创建用户
         user = users_col.find_one({'phone': phone})
         if not user:
-            # 自动注册
             username = f"用户_{phone[-4:]}"
             user_data = {
                 'username': username,
