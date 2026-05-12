@@ -75,6 +75,29 @@ def upload_chapter():
     return {"success": True, "chapter": chapter_num, "words": word_count}
 
 
+@novel_bp.route('/api/chapter/update-content', methods=['POST'])
+@admin_required
+def update_chapter_content():
+    data = request.get_json()
+    if not data or 'novelName' not in data or 'chapterNumber' not in data or 'content' not in data:
+        return {"error": "missing fields"}, 400
+
+    novel_name = data['novelName']
+    chapter_num = int(data['chapterNumber'])
+    content = data['content']
+
+    # 计算字数（剔除HTML标签和空白符）
+    import re
+    text_only = re.sub('<[^<]+?>', '', content)
+    word_count = len(text_only.replace(' ', '').replace('\n', '').replace('\r', ''))
+
+    chapters_col.update_one(
+        {"novelName": novel_name, "chapterNumber": chapter_num},
+        {"$set": {"content": content, "wordCount": word_count}}
+    )
+    return {"success": True, "wordCount": word_count}
+
+
 @novel_bp.route('/novel/<slug>/')
 @admin_required
 def novel_detail(slug):

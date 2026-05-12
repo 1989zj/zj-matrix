@@ -39,17 +39,20 @@
             </div>
         </div>
         
-        <div class="d-flex justify-content-center gap-4 text-secondary small">
+        <div class="d-flex justify-content-center align-items-center gap-4 text-secondary small">
             <span><i class="bi bi-hash me-1"></i> 第 {{ chapter.num }} 章</span>
             <span><i class="bi bi-pencil me-1"></i> {{ '{:,}'.format(chapter.words) }} 字</span>
             {% if chapter.version %}
             <span><i class="bi bi-tag me-1"></i> {{ chapter.version }}</span>
             {% endif %}
+            <button class="btn btn-link btn-sm text-secondary p-0 text-decoration-none" onclick="copyContent()" title="复制全文">
+                <i class="bi bi-copy me-1"></i> 复制正文
+            </button>
         </div>
     </div>
 
     <!-- Reading Content -->
-    <article class="reading-content mb-5 shadow-sm p-4 p-md-5 bg-body rounded border">
+    <article class="reading-content mb-5 shadow-sm p-4 p-md-5 bg-body rounded border" style="white-space: pre-wrap;">
         {{ chapter.content|safe }}
     </article>
 
@@ -87,7 +90,7 @@
     </div>
 
     <!-- Floating Toolbar (Optional but cool) -->
-    <div class="position-fixed bottom-0 end-0 p-4 d-none d-lg-block">
+    <div class="position-fixed bottom-0 end-0 p-4 d-none d-lg-block" style="z-index: 1050;">
         <div class="btn-group-vertical shadow-lg">
             <button class="btn btn-primary" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="回顶部">
                 <i class="bi bi-arrow-up"></i>
@@ -95,9 +98,45 @@
             <button class="btn btn-light" onclick="copyContent()" title="复制全文">
                 <i class="bi bi-copy"></i>
             </button>
+            {% if current_role == 'admin' %}
+            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#replaceModal" title="一键替换">
+                <i class="bi bi-pencil-square"></i>
+            </button>
+            {% endif %}
         </div>
     </div>
 </div>
+
+{% if current_role == 'admin' %}
+<!-- Replace Modal -->
+<div class="modal fade" id="replaceModal" tabindex="-1" aria-labelledby="replaceModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="replaceModalLabel">一键替换内容</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="findText" class="form-label fw-bold">查找文本</label>
+          <input type="text" class="form-control" id="findText" placeholder="要被替换的文字">
+        </div>
+        <div class="mb-3">
+          <label for="replaceText" class="form-label fw-bold">替换为</label>
+          <input type="text" class="form-control" id="replaceText" placeholder="替换后的文字">
+        </div>
+        <div class="alert alert-warning small mb-0">
+            <i class="bi bi-exclamation-triangle me-1"></i> 注意：替换操作会直接更新到数据库且不可撤销（除非手动改回）。
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" onclick="executeReplace()">执行并保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -108,5 +147,56 @@ function copyContent() {
         alert('内容已成功复制到剪贴板');
     });
 }
+
+{% if current_role == 'admin' %}
+async function executeReplace() {
+    const find = document.getElementById('findText').value;
+    const replace = document.getElementById('replaceText').value;
+    
+    if (!find) {
+        alert('请输入要查找的文本');
+        return;
+    }
+
+    const contentArea = document.querySelector('.reading-content');
+    const originalHTML = contentArea.innerHTML;
+    
+    // 转义正则特殊字符
+    const escapedFind = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedFind, 'g');
+    const newHTML = originalHTML.replace(regex, replace);
+
+    if (originalHTML === newHTML) {
+        alert('未找到匹配文本');
+        return;
+    }
+
+    if (!confirm(`确定要在本章中将 "${find}" 全部替换为 "${replace}" 吗？`)) {
+        return;
+    }
+
+    try {
+        const resp = await fetch('/api/chapter/update-content', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                novelName: "{{ meta.name }}",
+                chapterNumber: {{ chapter.num }},
+                content: newHTML
+            })
+        });
+        const result = await resp.json();
+        if (result.success) {
+            alert('替换成功！新字数: ' + result.wordCount);
+            location.reload();
+        } else {
+            alert('保存失败: ' + (result.error || '未知错误'));
+        }
+    } catch (e) {
+        console.error(e);
+        alert('网络错误，请重试');
+    }
+}
+{% endif %}
 </script>
 {% endblock %}
