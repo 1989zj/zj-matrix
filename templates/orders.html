@@ -44,7 +44,7 @@
                     </div>
                     <div class="col-6 text-end">
                         <div class="text-secondary x-small">预算费用</div>
-                        <div class="fw-bold text-primary">¥{{ '{:,}'.format(o.cost) }}</div>
+                        <div class="fw-bold text-primary">¥{{ '{:,}'.format(o.cost or 0) }}</div>
                     </div>
                 </div>
 

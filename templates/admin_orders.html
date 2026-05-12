@@ -55,7 +55,7 @@
                                 <span class="x-small text-secondary">%</span>
                             </div>
                         </td>
-                        <td class="fw-semibold text-primary">¥{{ '{:,}'.format(o.cost) }}</td>
+                        <td class="fw-semibold text-primary">¥{{ '{:,}'.format(o.cost or 0) }}</td>
                         <td class="pe-4 text-end">
                             <a href="{{ url_for('admin.admin_order_detail', oid=o._id) }}" class="btn btn-outline-primary btn-sm">
                                 <i class="bi bi-pencil-square"></i> 管理
