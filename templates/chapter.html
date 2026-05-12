@@ -142,10 +142,49 @@
 {% block scripts %}
 <script>
 function copyContent() {
-    const content = document.querySelector('.reading-content').innerText;
-    navigator.clipboard.writeText(content).then(() => {
-        alert('内容已成功复制到剪贴板');
-    });
+    const el = document.querySelector('.reading-content');
+    if (!el) {
+        alert('未找到正文内容');
+        return;
+    }
+    const content = el.innerText;
+    
+    // 尝试使用现代 Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(content).then(() => {
+            alert('内容已成功复制到剪贴板');
+        }).catch(err => {
+            console.error('Clipboard API failed:', err);
+            copyToClipboardFallback(content);
+        });
+    } else {
+        copyToClipboardFallback(content);
+    }
+}
+
+function copyToClipboardFallback(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    // 确保 textarea 不可见且不影响滚动
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    textArea.style.top = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            alert('内容已成功复制到剪贴板 (Fallback)');
+        } else {
+            alert('复制失败，请手动选择复制');
+        }
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        alert('复制失败，请手动选择复制');
+    }
+    document.body.removeChild(textArea);
 }
 
 {% if current_role == 'admin' %}

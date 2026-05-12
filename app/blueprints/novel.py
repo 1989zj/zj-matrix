@@ -125,6 +125,35 @@ def chapter_list(slug):
     return render_template('chapters.html', novel_name=name, meta=meta,
                            chapters=stats['chapters'], slug=slug)
 
+def clean_content(content):
+    """去除正文头部和结尾的章节说明/勾子等标记"""
+    if not content:
+        return ""
+    markers = ['【本章钩子', '【本章爽点', '【本章节奏', '【情绪浓度', '【本章字数',
+               '【本章悬念', '【本章看点', '【本章信息', '【本章伏笔', '【本章高潮',
+               '【本章坑', '【本章金句', '【本章总结']
+    lines = content.split('\n')
+    
+    # 清理结尾
+    while lines:
+        stripped = lines[-1].strip()
+        if not stripped or stripped.startswith('---') or any(stripped.startswith(m) for m in markers):
+            lines.pop()
+        else:
+            break
+            
+    # 清理头部
+    start_idx = 0
+    while start_idx < len(lines):
+        stripped = lines[start_idx].strip()
+        if not stripped or stripped.startswith('---') or any(stripped.startswith(m) for m in markers):
+            start_idx += 1
+        else:
+            break
+            
+    return '\n'.join(lines[start_idx:]).strip()
+
+
 @novel_bp.route('/novel/<slug>/chapter/<int:num>/')
 @admin_required
 def chapter_read(slug, num):
@@ -139,6 +168,9 @@ def chapter_read(slug, num):
     target = get_chapter_content(name, num)
     if not target:
         abort(404)
+    
+    # 清洗正文显示，去除冗余的章节说明
+    target['content'] = clean_content(target['content'])
 
     chapter_data_list = stats['chapters']
     idx = next(i for i, c in enumerate(chapter_data_list) if c['num'] == num)
