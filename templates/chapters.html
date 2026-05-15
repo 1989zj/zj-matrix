@@ -122,6 +122,13 @@
             background-color: #e4e2dd;
             border-radius: 4px;
         }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-background text-on-background h-screen w-screen overflow-hidden flex flex-col antialiased">
@@ -150,7 +157,7 @@
 </div>
 </header>
 <!-- Main Workspace -->
-<div class="flex flex-1 overflow-hidden">
+<div class="flex-1 overflow-hidden flex">
 <!-- SideNavBar (App Navigation Anchor) -->
 <aside class="h-full w-64 sticky left-0 bg-surface-container-lowest border-r border-outline-variant flex flex-col py-unit gap-2 z-10">
 <!-- Header -->
@@ -211,16 +218,16 @@
 </button>
 </div>
 <div class="flex-1 overflow-y-auto py-2">
-<ul class="flex flex-col">
+<ul class="flex flex-col" id="chapter-list">
 {% for ch in chapters %}
-<li class="px-4 py-3 cursor-pointer hover:bg-surface-variant transition-colors border-l-2 border-transparent">
-<a href="{{ url_for('novel.chapter_read', slug=slug, num=ch.num) }}" class="flex justify-between items-center no-underline text-inherit">
+<li class="px-4 py-3 cursor-pointer hover:bg-surface-variant transition-colors border-l-2 border-transparent" onclick="loadChapter('{{ slug }}', {{ ch.num }}, this)">
+<div class="flex justify-between items-center no-underline text-inherit">
 <div class="flex flex-col min-width-0">
 <span class="font-body-md text-body-md text-on-surface-variant truncate w-40">第{{ ch.num }}章：{{ ch.title }}</span>
 <span class="font-label-sm text-label-sm text-secondary mt-1">{{ '{:,}'.format(ch.words) }} 字</span>
 </div>
 <span class="material-symbols-outlined text-secondary text-sm">chevron_right</span>
-</a>
+</div>
 </li>
 {% else %}
 <div class="text-center py-10 px-4">
@@ -236,12 +243,12 @@
                 </div>
 </div>
 </nav>
-<!-- Column 2: Immersive Editor (Placeholder for list view) -->
+<!-- Column 2: Immersive Editor -->
 <main class="flex-1 bg-surface-variant overflow-y-auto flex justify-center relative shadow-inner">
 <!-- Simulated Paper Background -->
-<article class="w-editor-width min-h-full bg-surface-container-lowest shadow-[0px_4px_24px_rgba(0,0,0,0.02)] my-8 mx-4 px-16 py-24 flex flex-col focus:outline-none">
-<h1 class="font-headline-lg text-headline-lg text-on-surface mb-8 outline-none">{{ meta.title }}</h1>
-<div class="font-body-lg text-body-lg text-on-surface leading-relaxed space-y-6 outline-none">
+<article id="editor-paper" class="w-editor-width min-h-full bg-surface-container-lowest shadow-[0px_4px_24px_rgba(0,0,0,0.02)] my-8 mx-4 px-16 py-24 flex flex-col focus:outline-none">
+<h1 id="display-title" class="font-headline-lg text-headline-lg text-on-surface mb-8 outline-none">{{ meta.title }}</h1>
+<div id="display-content" class="font-body-lg text-body-lg text-on-surface leading-relaxed space-y-6 outline-none">
 <p class="text-secondary">欢迎来到管理中心。请从左侧选择一个章节进行阅读或编辑。</p>
 <div class="mt-12 grid grid-cols-2 gap-6">
 <div class="p-6 bg-surface-container rounded-xl">
@@ -257,9 +264,12 @@
 </div>
 </div>
 </div>
+<div id="editor-actions" class="hidden mt-12 pt-8 border-t border-outline-variant flex justify-end gap-4">
+    <a id="edit-button" href="#" class="bg-primary text-on-primary font-label-md text-label-md px-6 py-2.5 rounded hover:opacity-90 no-underline">编辑本章</a>
+</div>
 </article>
 </main>
-<!-- Column 3: AI Toolbox (Right side) -->
+<!-- Column 3: AI Toolbox -->
 <aside class="w-80 border-l border-outline-variant bg-surface flex flex-col h-full flex-shrink-0 relative z-10 shadow-[-4px_0_24px_rgba(0,0,0,0.02)]">
 <div class="p-4 border-b border-outline-variant bg-surface-container-lowest flex items-center gap-2 sticky top-0">
 <span class="material-symbols-outlined text-primary">auto_awesome</span>
@@ -283,5 +293,53 @@
 </div>
 </aside>
 </div>
+
+<script>
+async function loadChapter(slug, num, el) {
+    // 高亮当前选中的章节
+    const listItems = document.querySelectorAll('#chapter-list li');
+    listItems.forEach(item => {
+        item.classList.remove('bg-primary-fixed', 'border-primary');
+        item.classList.add('border-transparent');
+    });
+    el.classList.add('bg-primary-fixed', 'border-primary');
+    el.classList.remove('border-transparent');
+
+    const titleEl = document.getElementById('display-title');
+    const contentEl = document.getElementById('display-content');
+    const actionsEl = document.getElementById('editor-actions');
+    const editBtn = document.getElementById('edit-button');
+
+    // 显示加载状态
+    contentEl.innerHTML = '<div class="flex justify-center py-20"><span class="material-symbols-outlined animate-spin text-primary text-4xl">sync</span></div>';
+    
+    try {
+        const resp = await fetch(`/api/novel/${slug}/chapter/${num}/`);
+        const data = await resp.json();
+        
+        if (data.error) {
+            contentEl.innerHTML = `<p class="text-error">${data.error}</p>`;
+            return;
+        }
+
+        // 更新标题和内容
+        titleEl.innerText = `第 ${data.num} 章：${data.title}`;
+        
+        // 处理正文内容，将换行符转为 <p> 标签以便展示
+        const paragraphs = data.content.split('\n').filter(p => p.trim() !== '');
+        contentEl.innerHTML = paragraphs.map(p => `<p class="mb-6">${p}</p>`).join('');
+        
+        // 显示操作按钮并更新链接
+        actionsEl.classList.remove('hidden');
+        editBtn.href = `/novel/${slug}/chapter/${num}/edit/`;
+        
+        // 滚动到顶部
+        document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch (e) {
+        contentEl.innerHTML = '<p class="text-red-500">内容加载失败，请重试。</p>';
+    }
+}
+</script>
 </body>
 </html>

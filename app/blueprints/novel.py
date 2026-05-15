@@ -1,10 +1,23 @@
 import os
-from flask import Blueprint, render_template, abort, send_from_directory, request, session, redirect, url_for
+from flask import Blueprint, render_template, abort, send_from_directory, request, session, redirect, url_for, jsonify
 from app.decorators import admin_required, login_required
 from app.db import novels_col, chapters_col
 from app.services import get_novel_meta, slug_to_name, get_novel_stats, get_chapter_content
 
 novel_bp = Blueprint('novel', __name__)
+
+@novel_bp.route('/api/novel/<slug>/chapter/<int:num>/')
+@admin_required
+def api_get_chapter(slug, num):
+    name = slug_to_name(slug)
+    if not name:
+        return jsonify({"error": "novel not found"}), 404
+    chapter = get_chapter_content(name, num)
+    if not chapter:
+        return jsonify({"error": "chapter not found"}), 404
+    # 清洗内容以便展示
+    chapter['content'] = clean_content(chapter['content'])
+    return jsonify(chapter)
 
 @novel_bp.route('/')
 @admin_required
@@ -100,6 +113,11 @@ def update_chapter_content():
     )
     return {"success": True, "wordCount": word_count}
 
+
+@novel_bp.route('/novel/create/')
+@admin_required
+def create_novel():
+    return render_template('create_novel.html')
 
 @novel_bp.route('/novel/<slug>/')
 @admin_required
