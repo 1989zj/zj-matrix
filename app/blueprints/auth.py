@@ -7,10 +7,17 @@ from flask import Blueprint, render_template, request, session, redirect, url_fo
 from werkzeug.security import generate_password_hash
 from app.db import users_col, sms_codes_col, settings_col
 
-# DYPNS SDK (号码认证服务 - 短信验证码)
-from alibabacloud_dypnsapi20170525.client import Client as DypnsapiClient
-from alibabacloud_tea_openapi import models as open_api_models
-from alibabacloud_dypnsapi20170525 import models as dypnsapi_models
+# DYPNS SDK (号码认证服务 - 短信验证码) 按需加载
+try:
+    from alibabacloud_dypnsapi20170525.client import Client as DypnsapiClient
+    from alibabacloud_tea_openapi import models as open_api_models
+    from alibabacloud_dypnsapi20170525 import models as dypnsapi_models
+    _DYPNS_AVAILABLE = True
+except ImportError:
+    _DYPNS_AVAILABLE = False
+    DypnsapiClient = None
+    open_api_models = None
+    dypnsapi_models = None
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -39,6 +46,8 @@ def get_aliyun_config():
 
 def create_dypns_client(config_data):
     """初始化 DYPNS 客户端"""
+    if not _DYPNS_AVAILABLE:
+        return None
     config = open_api_models.Config(
         access_key_id=config_data['access_key_id'],
         access_key_secret=config_data['access_key_secret']

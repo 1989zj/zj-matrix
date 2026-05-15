@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, render_template, abort, send_from_directory, request
+from flask import Blueprint, render_template, abort, send_from_directory, request, session, redirect, url_for
 from app.decorators import admin_required, login_required
 from app.db import novels_col, chapters_col
 from app.services import get_novel_meta, slug_to_name, get_novel_stats, get_chapter_content
@@ -9,6 +9,9 @@ novel_bp = Blueprint('novel', __name__)
 @novel_bp.route('/')
 @admin_required
 def index():
+    # 管理员访问根路径直接跳转到工作台
+    if session.get('role') == 'admin':
+        return redirect(url_for('admin.index'))
     novels = []
     for doc in novels_col.find({}, {'_id': 0}):
         name = doc['name']

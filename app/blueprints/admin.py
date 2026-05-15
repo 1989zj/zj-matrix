@@ -3,17 +3,31 @@ from flask import Blueprint, render_template, request, abort, url_for, redirect,
 from bson.objectid import ObjectId
 from pymongo import DESCENDING
 from app.decorators import admin_required
-from app.db import orders_col
+from app.db import novels_col, chapters_col, orders_col
 from app.constants import ORDER_STATUSES, ORDER_TYPES
-from app.services import get_order_prices, save_order_prices
+from app.services import get_order_prices, save_order_prices, get_novel_stats
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 @admin_bp.route('/')
 @admin_required
 def index():
-    # Admin root redirects to admin orders for now
-    return redirect(url_for('admin.admin_orders'))
+    novels = []
+    for doc in novels_col.find({}, {'_id': 0}):
+        name = doc['name']
+        ch_count = chapters_col.count_documents({"novelName": name})
+        if ch_count == 0:
+            continue
+        stats = get_novel_stats(name)
+        doc['stats']['words'] = stats['words']
+        doc['stats']['chapters'] = stats['count']
+        doc['title'] = doc.get('title', name)
+        novels.append({
+            'name': name,
+            'meta': doc,
+            'slug': doc['slug']
+        })
+    return render_template('workspace.html', novels=novels)
 
 @admin_bp.route('/orders/')
 @admin_required
