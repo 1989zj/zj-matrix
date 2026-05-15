@@ -12,12 +12,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --sidebar-width: 260px;
+            --sidebar-width: 240px;
             --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
         }
         body {
             font-family: var(--font-sans);
             background-color: var(--bs-body-bg);
+            min-height: 100vh;
         }
         .sidebar {
             width: var(--sidebar-width);
@@ -34,6 +35,7 @@
             margin-left: var(--sidebar-width);
             min-height: 100vh;
             padding-top: 56px; /* Height of navbar */
+            background-color: var(--bs-body-bg);
         }
         .navbar {
             margin-left: var(--sidebar-width);
@@ -63,7 +65,7 @@
             padding: 1.5rem 1.5rem 0.5rem;
         }
         .brand-logo {
-            padding: 1.5rem;
+            padding: 1rem 1.5rem;
             font-size: 1.25rem;
             font-weight: 800;
             color: var(--bs-primary);
@@ -74,7 +76,7 @@
         }
         /* Reading Mode Custom Styles */
         .reading-container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             font-size: 1.125rem;
             line-height: 2;
@@ -223,7 +225,7 @@
 
     <!-- Main Content -->
     <main class="main-content">
-        <div class="container-fluid py-4">
+        <div class="container-fluid px-md-4 py-4">
             {% with messages = get_flashed_messages() %}
               {% if messages %}
                 {% for message in messages %}

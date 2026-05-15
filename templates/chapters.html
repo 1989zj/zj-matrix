@@ -73,11 +73,11 @@
                     "full": "9999px"
             },
             "spacing": {
-                    "container-max": "1200px",
-                    "margin-desktop": "40px",
+                    "container-max": "1600px",
+                    "margin-desktop": "24px",
                     "margin-mobile": "16px",
                     "gutter": "24px",
-                    "editor-width": "720px",
+                    "editor-width": "1000px",
                     "unit": "8px"
             },
             "fontFamily": {
@@ -223,7 +223,7 @@
 <li class="px-4 py-3 cursor-pointer hover:bg-surface-variant transition-colors border-l-2 border-transparent" onclick="loadChapter('{{ slug }}', {{ ch.num }}, this)">
 <div class="flex justify-between items-center no-underline text-inherit">
 <div class="flex flex-col min-width-0">
-<span class="font-body-md text-body-md text-on-surface-variant truncate w-40">第{{ ch.num }}章：{{ ch.title }}</span>
+<span class="font-body-md text-body-md text-on-surface-variant truncate w-40">{{ ch.title }}</span>
 <span class="font-label-sm text-label-sm text-secondary mt-1">{{ '{:,}'.format(ch.words) }} 字</span>
 </div>
 <span class="material-symbols-outlined text-secondary text-sm">chevron_right</span>
@@ -244,30 +244,52 @@
 </div>
 </nav>
 <!-- Column 2: Immersive Editor -->
-<main class="flex-1 bg-surface-variant overflow-y-auto flex justify-center relative shadow-inner">
-<!-- Simulated Paper Background -->
-<article id="editor-paper" class="w-editor-width min-h-full bg-surface-container-lowest shadow-[0px_4px_24px_rgba(0,0,0,0.02)] my-8 mx-4 px-16 py-24 flex flex-col focus:outline-none">
-<h1 id="display-title" class="font-headline-lg text-headline-lg text-on-surface mb-8 outline-none">{{ meta.title }}</h1>
-<div id="display-content" class="font-body-lg text-body-lg text-on-surface leading-relaxed space-y-6 outline-none">
-<p class="text-secondary">欢迎来到管理中心。请从左侧选择一个章节进行阅读或编辑。</p>
-<div class="mt-12 grid grid-cols-2 gap-6">
-<div class="p-6 bg-surface-container rounded-xl">
-<h4 class="font-title-md text-title-md mb-2">作品信息</h4>
-<p class="text-sm text-on-surface-variant">类型：{{ meta.genre }}</p>
-<p class="text-sm text-on-surface-variant">目标：{{ meta.target }}</p>
-<p class="text-sm text-on-surface-variant">状态：{{ meta.stats.status }}</p>
+<main class="flex-1 bg-surface-variant overflow-y-auto relative">
+<!-- Wrapper to ensure background continuity -->
+<div class="min-h-full w-full flex justify-center py-8">
+    <!-- Simulated Paper Background -->
+    <article id="editor-paper" class="w-editor-width bg-surface-container-lowest shadow-[0px_4px_24px_rgba(0,0,0,0.02)] mx-4 px-16 py-24 flex flex-col focus:outline-none">
+    
+    <div id="chapter-nav" class="hidden flex justify-between items-center mb-8 pb-4 border-b border-outline-variant">
+        <button id="prev-chapter-btn" class="text-on-surface-variant hover:text-primary disabled:opacity-30 flex items-center gap-1 font-label-md transition-colors">
+            <span class="material-symbols-outlined">chevron_left</span> 上一章
+        </button>
+        <h1 id="display-title" class="font-headline-lg text-headline-lg text-on-surface outline-none text-center flex-1 px-4 truncate">
+            {{ meta.title }}
+        </h1>
+        <button id="next-chapter-btn" class="text-on-surface-variant hover:text-primary disabled:opacity-30 flex items-center gap-1 font-label-md transition-colors">
+            下一章 <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+    </div>
+
+    <div id="copy-action-wrapper" class="hidden flex justify-center mb-8">
+        <button onclick="copyChapterContent()" class="bg-surface-container text-on-surface-variant hover:bg-primary-container hover:text-primary px-4 py-2 rounded-full flex items-center gap-2 font-label-md transition-all">
+            <span class="material-symbols-outlined text-[18px]">content_copy</span> 复制本章正文
+        </button>
+    </div>
+
+    <h1 id="initial-title" class="font-headline-lg text-headline-lg text-on-surface mb-8 outline-none">{{ meta.title }}</h1>
+    <div id="display-content" class="font-body-lg text-body-lg text-on-surface leading-relaxed space-y-6 outline-none">
+    <p class="text-secondary">欢迎来到管理中心。请从左侧选择一个章节进行阅读或编辑。</p>
+    <div class="mt-12 grid grid-cols-2 gap-6">
+    <div class="p-6 bg-surface-container rounded-xl">
+    <h4 class="font-title-md text-title-md mb-2">作品信息</h4>
+    <p class="text-sm text-on-surface-variant">类型：{{ meta.genre }}</p>
+    <p class="text-sm text-on-surface-variant">目标：{{ meta.target }}</p>
+    <p class="text-sm text-on-surface-variant">状态：{{ meta.stats.status }}</p>
+    </div>
+    <div class="p-6 bg-surface-container rounded-xl">
+    <h4 class="font-title-md text-title-md mb-2">数据统计</h4>
+    <p class="text-sm text-on-surface-variant">总字数：{{ '{:,}'.format(meta.stats.words) }}</p>
+    <p class="text-sm text-on-surface-variant">章节数：{{ chapters|length }}</p>
+    </div>
+    </div>
+    </div>
+    <div id="editor-actions" class="hidden mt-12 pt-8 border-t border-outline-variant flex justify-end gap-4">
+        <a id="edit-button" href="#" class="bg-primary text-on-primary font-label-md text-label-md px-6 py-2.5 rounded hover:opacity-90 no-underline">编辑本章</a>
+    </div>
+    </article>
 </div>
-<div class="p-6 bg-surface-container rounded-xl">
-<h4 class="font-title-md text-title-md mb-2">数据统计</h4>
-<p class="text-sm text-on-surface-variant">总字数：{{ '{:,}'.format(meta.stats.words) }}</p>
-<p class="text-sm text-on-surface-variant">章节数：{{ chapters|length }}</p>
-</div>
-</div>
-</div>
-<div id="editor-actions" class="hidden mt-12 pt-8 border-t border-outline-variant flex justify-end gap-4">
-    <a id="edit-button" href="#" class="bg-primary text-on-primary font-label-md text-label-md px-6 py-2.5 rounded hover:opacity-90 no-underline">编辑本章</a>
-</div>
-</article>
 </main>
 <!-- Column 3: AI Toolbox -->
 <aside class="w-80 border-l border-outline-variant bg-surface flex flex-col h-full flex-shrink-0 relative z-10 shadow-[-4px_0_24px_rgba(0,0,0,0.02)]">
@@ -275,7 +297,9 @@
 <span class="material-symbols-outlined text-primary">auto_awesome</span>
 <h3 class="font-label-md text-label-md text-on-surface font-bold tracking-wider">AI 助手</h3>
 </div>
-<div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+
+{% if has_ai_access %}
+<div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4" id="ai-assistant-content">
 <div class="bg-primary-container border-l-4 border-primary rounded-lg p-4 relative overflow-hidden group cursor-pointer transition-colors hover:bg-[#ebdfff]">
 <div class="flex justify-between items-start mb-2 relative z-10">
 <div class="flex items-center gap-1.5 text-on-primary-fixed-variant">
@@ -290,25 +314,133 @@
                         立即同步 →
                     </button>
 </div>
+
+<!-- Chat Messages Area -->
+<div id="ai-chat-messages" class="flex-1 flex flex-col gap-3 min-h-[200px]">
+    <div class="bg-surface-container-low rounded-lg p-3 text-sm text-on-surface-variant italic border border-outline-variant/30">
+        我是 HermesAgent，您可以询问关于本章设定、剧情衔接或修改建议。
+    </div>
 </div>
+</div>
+
+<!-- AI Chat Input Area -->
+<div class="p-4 border-t border-outline-variant bg-surface-container-lowest">
+    <div class="relative">
+        <textarea id="ai-chat-input" rows="3" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 font-body-md text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none placeholder:text-on-surface-variant/50" placeholder="询问 AI 助手..."></textarea>
+        <button id="send-ai-chat" class="absolute bottom-3 right-3 w-8 h-8 bg-primary text-on-primary rounded-full flex items-center justify-center shadow-sm hover:opacity-90 active:scale-95 transition-all disabled:opacity-50">
+            <span class="material-symbols-outlined text-[18px]">send</span>
+        </button>
+    </div>
+    <p class="text-[10px] text-on-surface-variant/60 mt-2 text-center">HermesAgent 正在为您服务</p>
+</div>
+{% else %}
+<div class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+    <div class="w-16 h-16 bg-surface-variant rounded-full flex items-center justify-center mb-4 text-secondary">
+        <span class="material-symbols-outlined text-3xl">lock</span>
+    </div>
+    <h4 class="font-title-md text-title-md text-on-surface mb-2">权限受限</h4>
+    <p class="font-body-sm text-body-sm text-on-surface-variant">AI 助手目前仅对管理员及开通高级权限的用户开放。</p>
+</div>
+{% endif %}
 </aside>
 </div>
 
 <script>
-async function loadChapter(slug, num, el) {
-    // 高亮当前选中的章节
-    const listItems = document.querySelectorAll('#chapter-list li');
-    listItems.forEach(item => {
-        item.classList.remove('bg-primary-fixed', 'border-primary');
-        item.classList.add('border-transparent');
-    });
-    el.classList.add('bg-primary-fixed', 'border-primary');
-    el.classList.remove('border-transparent');
+// ── AI Assistant Chat ──
+const chatInput = document.getElementById('ai-chat-input');
+const sendBtn = document.getElementById('send-ai-chat');
+const chatMessages = document.getElementById('ai-chat-messages');
 
+if (chatInput && sendBtn && chatMessages) {
+    function addChatMessage(text, role) {
+        const msg = document.createElement('div');
+        const isUser = role === 'user';
+        msg.className = `max-w-[90%] p-3 rounded-xl text-sm ${isUser ? 'bg-primary text-on-primary self-end rounded-br-none' : 'bg-surface-container-high text-on-surface self-start rounded-bl-none border border-outline-variant/30'}`;
+        msg.innerText = text;
+        chatMessages.appendChild(msg);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    sendBtn.addEventListener('click', () => {
+        const text = chatInput.value.trim();
+        if (!text) return;
+        
+        addChatMessage(text, 'user');
+        chatInput.value = '';
+        
+        // 模拟 AI 回复 (待后续对接 HermesAgent)
+        setTimeout(() => {
+            addChatMessage('收到。我已经准备好对接 HermesAgent，正在分析您的请求...', 'ai');
+        }, 600);
+    });
+
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendBtn.click();
+        }
+    });
+}
+let currentSlug = '{{ slug }}';
+let currentNum = 0;
+const totalChapters = {{ chapters|length }};
+
+function copyChapterContent() {
+    const contentEl = document.getElementById('display-content');
+    if (!contentEl) return;
+    
+    const text = contentEl.innerText;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('#copy-action-wrapper button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span> 已复制正文';
+        btn.classList.replace('hover:bg-primary-container', 'bg-primary-container');
+        btn.classList.replace('hover:text-primary', 'text-primary');
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.replace('bg-primary-container', 'hover:bg-primary-container');
+            btn.classList.replace('text-primary', 'hover:text-primary');
+        }, 2000);
+    }).catch(err => {
+        alert('复制失败，请重试');
+    });
+}
+
+async function loadChapter(slug, num, el) {
+    if (el) {
+        // 高亮当前选中的章节
+        const listItems = document.querySelectorAll('#chapter-list li');
+        listItems.forEach(item => {
+            item.classList.remove('bg-primary-fixed', 'border-primary');
+            item.classList.add('border-transparent');
+        });
+        el.classList.add('bg-primary-fixed', 'border-primary');
+        el.classList.remove('border-transparent');
+    } else {
+        // 自动定位侧边栏
+        const items = document.querySelectorAll('#chapter-list li');
+        items.forEach(item => {
+            const onclickStr = item.getAttribute('onclick');
+            if (onclickStr && onclickStr.includes(`, ${num},`)) {
+                item.classList.add('bg-primary-fixed', 'border-primary');
+                item.classList.remove('border-transparent');
+                item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            } else {
+                item.classList.remove('bg-primary-fixed', 'border-primary');
+                item.classList.add('border-transparent');
+            }
+        });
+    }
+
+    currentNum = num;
     const titleEl = document.getElementById('display-title');
+    const initialTitle = document.getElementById('initial-title');
     const contentEl = document.getElementById('display-content');
     const actionsEl = document.getElementById('editor-actions');
     const editBtn = document.getElementById('edit-button');
+    const navEl = document.getElementById('chapter-nav');
+    const copyEl = document.getElementById('copy-action-wrapper');
 
     // 显示加载状态
     contentEl.innerHTML = '<div class="flex justify-center py-20"><span class="material-symbols-outlined animate-spin text-primary text-4xl">sync</span></div>';
@@ -322,18 +454,27 @@ async function loadChapter(slug, num, el) {
             return;
         }
 
-        // 更新标题和内容
-        titleEl.innerText = `第 ${data.num} 章：${data.title}`;
+        // 切换显示模式
+        if (initialTitle) initialTitle.classList.add('hidden');
+        navEl.classList.remove('hidden');
+        copyEl.classList.remove('hidden');
+
+        // 更新内容
+        titleEl.innerText = `${data.title}`;
         
-        // 处理正文内容，将换行符转为 <p> 标签以便展示
+        const prevBtn = document.getElementById('prev-chapter-btn');
+        const nextBtn = document.getElementById('next-chapter-btn');
+        prevBtn.disabled = (num <= 1);
+        nextBtn.disabled = (num >= totalChapters);
+        prevBtn.onclick = () => loadChapter(slug, num - 1);
+        nextBtn.onclick = () => loadChapter(slug, num + 1);
+        
         const paragraphs = data.content.split('\n').filter(p => p.trim() !== '');
         contentEl.innerHTML = paragraphs.map(p => `<p class="mb-6">${p}</p>`).join('');
         
-        // 显示操作按钮并更新链接
         actionsEl.classList.remove('hidden');
         editBtn.href = `/novel/${slug}/chapter/${num}/edit/`;
         
-        // 滚动到顶部
         document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
 
     } catch (e) {

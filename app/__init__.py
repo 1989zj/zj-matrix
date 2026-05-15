@@ -24,7 +24,8 @@ def create_app():
     def inject_user():
         return {
             'current_user': session.get('user', None),
-            'current_role': session.get('role', None)
+            'current_role': session.get('role', None),
+            'has_ai_access': session.get('role') == 'admin' or session.get('has_ai_access', False)
         }
 
     return app
