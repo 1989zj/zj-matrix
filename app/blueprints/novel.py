@@ -119,6 +119,67 @@ def update_chapter_content():
 def create_novel():
     return render_template('create_novel.html')
 
+
+import subprocess
+import json
+
+GENRE_MAP = {
+    'fantasy': '奇幻幻想', 'scifi': '科幻未来',
+    'mystery': '悬疑推理', 'romance': '都市言情',
+    'historical': '历史架空'
+}
+LENGTH_MAP = {
+    'short': '短篇（5万字以内）', 'medium': '中篇（5-20万字）',
+    'long': '长篇（20-100万字）', 'epic': '超长篇（100万字以上）'
+}
+
+@novel_bp.route('/api/novel/create/', methods=['POST'])
+@admin_required
+def api_create_novel():
+    data = request.get_json()
+    title = data.get('title', '').strip()
+    genre = data.get('genre', '')
+    target = data.get('target', '')
+    tags = data.get('tags', [])
+    summary = data.get('summary', '')
+
+    if not title:
+        return jsonify({'error': '请填写作品名称'}), 400
+    if not genre:
+        return jsonify({'error': '请选择主要体裁'}), 400
+    if not target:
+        return jsonify({'error': '请选择预计字数'}), 400
+
+    req_parts = [f"书名：{title}"]
+    if genre in GENRE_MAP:
+        req_parts.append(f"体裁：{GENRE_MAP[genre]}")
+    if target in LENGTH_MAP:
+        req_parts.append(f"篇幅：{LENGTH_MAP[target]}")
+    if tags:
+        req_parts.append(f"标签：{'、'.join(tags)}")
+    if summary:
+        req_parts.append(f"核心冲突：{summary}")
+
+    req_text = '，'.join(req_parts)
+
+    try:
+        result = subprocess.run(
+            ['novel-factory', 'new', req_text],
+            capture_output=True, text=True, timeout=600,
+            cwd=os.path.dirname(os.path.dirname(__file__))
+        )
+        if result.returncode != 0:
+            return jsonify({'error': f'创建失败', 'detail': result.stderr or result.stdout}), 500
+        return jsonify({
+            'success': True,
+            'message': f'小说「{title}」创建成功，可前往工作台查看',
+            'output': result.stdout
+        })
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': '创建超时（10分钟仍未完成），请稍后在工作台查看是否已创建'}), 504
+    except Exception as e:
+        return jsonify({'error': f'系统错误: {str(e)}'}), 500
+
 @novel_bp.route('/novel/<slug>/')
 @admin_required
 def novel_detail(slug):

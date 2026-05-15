@@ -170,11 +170,11 @@
 <!-- Content Canvas (Form Area) -->
 <div class="max-w-[720px] w-full bg-surface-container-lowest border border-outline-variant rounded-xl p-8 shadow-sm">
 <h2 class="font-title-md text-title-md text-on-background mb-8 pb-4 border-b border-outline-variant">基础信息录入</h2>
-<form class="space-y-6">
+<form class="space-y-6" id="create-form">
 <!-- Input Group: Title -->
 <div class="flex flex-col gap-2">
 <label class="font-label-sm text-label-sm text-on-surface-variant" for="novel-title">作品名称</label>
-<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 font-body-md text-body-md text-on-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder:text-on-surface-variant/50" id="novel-title" placeholder="输入你想好的绝妙书名..." type="text"/>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 font-body-md text-body-md text-on-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder:text-on-surface-variant/50" id="novel-title" placeholder="输入你想好的绝妙书名..." type="text" required/>
 </div>
 <!-- Bento Grid for Genre & Tags -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -182,7 +182,7 @@
 <div class="flex flex-col gap-2">
 <label class="font-label-sm text-label-sm text-on-surface-variant" for="novel-genre">主要体裁</label>
 <div class="relative">
-<select class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 font-body-md text-body-md text-on-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none cursor-pointer" id="novel-genre">
+<select class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 font-body-md text-body-md text-on-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none cursor-pointer" id="novel-genre" required>
 <option disabled="" selected="" value="">选择体裁...</option>
 <option value="fantasy">奇幻幻想</option>
 <option value="scifi">科幻未来</option>
@@ -197,7 +197,7 @@
 <div class="flex flex-col gap-2">
 <label class="font-label-sm text-label-sm text-on-surface-variant" for="novel-length">预计字数</label>
 <div class="relative">
-<select class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 font-body-md text-body-md text-on-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none cursor-pointer" id="novel-length">
+<select class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 font-body-md text-body-md text-on-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none cursor-pointer" id="novel-length" required>
 <option disabled="" selected="" value="">评估篇幅...</option>
 <option value="short">短篇 (&lt; 5万字)</option>
 <option value="medium">中篇 (5万 - 20万字)</option>
@@ -211,32 +211,33 @@
 <!-- Tag Cloud Selection -->
 <div class="flex flex-col gap-2">
 <label class="font-label-sm text-label-sm text-on-surface-variant">作品标签 (多选)</label>
-<div class="flex flex-wrap gap-2">
-<button class="px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant transition-colors" type="button">穿越</button>
-<button class="px-4 py-2 rounded-full border border-primary bg-primary-container text-on-primary-container font-label-md text-label-md transition-colors" type="button">赛博朋克</button>
-<button class="px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant transition-colors" type="button">系统流</button>
-<button class="px-4 py-2 rounded-full border border-primary bg-primary-container text-on-primary-container font-label-md text-label-md transition-colors" type="button">智斗</button>
-<button class="px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant transition-colors" type="button">治愈</button>
-<button class="px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant transition-colors border-dashed text-primary flex items-center gap-1" type="button"><span class="material-symbols-outlined text-[16px]">add</span> 添加自定义</button>
+<div class="flex flex-wrap gap-2" id="tag-cloud">
+<button class="tag-btn px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant transition-colors" data-tag="穿越" type="button">穿越</button>
+<button class="tag-btn px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant transition-colors" data-tag="赛博朋克" type="button">赛博朋克</button>
+<button class="tag-btn px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant transition-colors" data-tag="系统流" type="button">系统流</button>
+<button class="tag-btn px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant transition-colors" data-tag="智斗" type="button">智斗</button>
+<button class="tag-btn px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant transition-colors" data-tag="治愈" type="button">治愈</button>
 </div>
 </div>
 <!-- Textarea: Logline/Summary -->
 <div class="flex flex-col gap-2">
 <label class="font-label-sm text-label-sm text-on-surface-variant" for="novel-summary">一句话简介 (Logline)</label>
-<textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 font-body-md text-body-md text-on-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none" id="novel-summary" placeholder="用简短的一句话描述你的故事核心冲突..." rows="3"></textarea>
-<p class="font-label-sm text-label-sm text-on-surface-variant text-right">0 / 100</p>
+<textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 font-body-md text-body-md text-on-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none" id="novel-summary" placeholder="用简短的一句话描述你的故事核心冲突..." rows="3" maxlength="100"></textarea>
+<p class="font-label-sm text-label-sm text-on-surface-variant text-right" id="char-count">0 / 100</p>
 </div>
 </form>
-</div>
 <!-- Bottom Action Bar -->
 <div class="max-w-[720px] w-full mt-8 flex justify-between items-center">
 <a href="{{ url_for('admin.index') }}" class="px-6 py-3 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 no-underline">
                 取消创建
             </a>
-<button class="px-8 py-3 rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:opacity-90 active:scale-95 transition-all flex items-center gap-2 shadow-sm">
-                下一步：大纲框架
-                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+<button class="px-8 py-3 rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:opacity-90 active:scale-95 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" id="submit-btn" type="submit" form="create-form">
+<span id="btn-text">创建小说</span>
+<span class="material-symbols-outlined text-[18px]" id="btn-icon">auto_awesome</span>
 </button>
+</div>
+<!-- Feedback Toast -->
+<div class="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none" id="toast-container"></div>
 </div>
 </main>
 <!-- Footer -->
@@ -250,4 +251,71 @@
 </div>
 </div>
 </footer>
+<script>
+// ── Tag Toggle ──
+document.querySelectorAll('.tag-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const selected = btn.dataset.active === 'true';
+        if (selected) {
+            btn.dataset.active = 'false';
+            btn.className = 'tag-btn px-4 py-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant transition-colors';
+        } else {
+            btn.dataset.active = 'true';
+            btn.className = 'tag-btn px-4 py-2 rounded-full border border-primary bg-primary-container text-on-primary-container font-label-md text-label-md transition-colors';
+        }
+    });
+});
+// ── Character Counter ──
+const summaryInput = document.getElementById('novel-summary');
+const charCount = document.getElementById('char-count');
+summaryInput.addEventListener('input', () => {
+    const len = summaryInput.value.length;
+    charCount.textContent = `${len} / 100`;
+    charCount.className = `font-label-sm text-label-sm text-right ${len > 90 ? 'text-error' : 'text-on-surface-variant'}`;
+});
+// ── Toast System ──
+function showToast(message, type) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    const bg = type === 'success' ? 'bg-primary text-on-primary' : 'bg-error-container text-on-error-container';
+    const icon = type === 'success' ? 'check_circle' : 'error';
+    toast.className = `flex items-center gap-3 px-5 py-4 rounded-xl shadow-lg pointer-events-auto animate-slide-in ${bg}`;
+    toast.innerHTML = `<span class="material-symbols-outlined">${icon}</span><span class="font-body-md text-body-md">${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 4000);
+}
+// ── Form Submission ──
+document.getElementById('create-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('novel-title').value.trim();
+    const genre = document.getElementById('novel-genre').value;
+    const target = document.getElementById('novel-length').value;
+    const summary = document.getElementById('novel-summary').value.trim();
+    const tags = Array.from(document.querySelectorAll('.tag-btn[data-active="true"]')).map(b => b.dataset.tag);
+    if (!title) { showToast('请填写作品名称', 'error'); return; }
+    if (!genre) { showToast('请选择主要体裁', 'error'); return; }
+    if (!target) { showToast('请选择预计字数', 'error'); return; }
+    const btn = document.getElementById('submit-btn');
+    const btnText = document.getElementById('btn-text');
+    const btnIcon = document.getElementById('btn-icon');
+    btn.disabled = true; btnText.textContent = '正在创建...'; btnIcon.textContent = 'hourglass_top';
+    try {
+        const resp = await fetch('/api/novel/create/', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({title, genre, target, tags, summary})
+        });
+        const data = await resp.json();
+        if (!resp.ok) { showToast(data.error || '创建失败', 'error'); btn.disabled = false; btnText.textContent = '创建小说'; btnIcon.textContent = 'auto_awesome'; return; }
+        showToast(data.message || '创建成功！', 'success');
+        setTimeout(() => { window.location.href = '/admin/'; }, 1500);
+    } catch (err) {
+        showToast('网络错误，请重试', 'error');
+        btn.disabled = false; btnText.textContent = '创建小说'; btnIcon.textContent = 'auto_awesome';
+    }
+});
+</script>
+<style>
+    .animate-slide-in { animation: slideIn 0.3s ease-out; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+</style>
 </body></html>
