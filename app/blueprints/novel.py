@@ -125,6 +125,8 @@ def chapter_list(slug):
     if not meta:
         abort(404)
     stats = get_novel_stats(name)
+    meta['stats']['words'] = stats['words']
+    meta['stats']['chapters'] = stats['count']
     return render_template('chapters.html', novel_name=name, meta=meta,
                            chapters=stats['chapters'], slug=slug)
 
