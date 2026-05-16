@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}力量体系 - {{ meta.title }} - NovelStudio{% endblock %}
+
+{% block content %}
+<div class="min-h-full w-full flex justify-center py-8">
+    <article class="w-editor-width bg-surface-container-lowest shadow-[0px_4px_24px_rgba(0,0,0,0.02)] mx-4 px-10 py-12 flex flex-col">
+        <header class="mb-12 border-b border-outline-variant pb-8">
+            <div class="flex items-center gap-2 text-primary mb-2">
+                <span class="material-symbols-outlined">bolt</span>
+                <span class="font-label-sm text-label-sm uppercase tracking-widest font-bold">Power System</span>
+            </div>
+            <h1 class="font-headline-lg text-display-lg text-on-surface">力量体系</h1>
+            <p class="font-body-md text-body-lg text-on-surface-variant mt-2 italic">“规则是宇宙的脊梁，而力量则是撬动它的支点。”</p>
+        </header>
+
+        {% set ps = meta.world.power_system if meta.world and meta.world.power_system else {} %}
+        
+        <section class="space-y-10">
+            <!-- Core Info & Source -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="p-6 bg-surface-container rounded-2xl border border-outline-variant/30">
+                    <h3 class="font-label-sm text-label-sm text-primary font-bold uppercase mb-2">体系名称</h3>
+                    <div class="font-title-md text-2xl text-on-surface">{{ ps.name or '未设定' }}</div>
+                </div>
+                <div class="p-6 bg-surface-container rounded-2xl border border-outline-variant/30">
+                    <h3 class="font-label-sm text-label-sm text-primary font-bold uppercase mb-2">能量来源</h3>
+                    <div class="font-title-md text-2xl text-on-surface">{{ ps.source or '未设定' }}</div>
+                </div>
+            </div>
+
+            <!-- Mechanisms & Limitations -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Core Mechanisms -->
+                <div class="bg-surface p-6 rounded-lg border border-outline-variant/50">
+                    <h4 class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[16px]">settings_input_component</span>
+                        核心机制 (Mechanisms)
+                    </h4>
+                    <ul class="space-y-3 font-body-md text-body-md text-on-surface">
+                        {% if ps.mechanisms %}
+                            {% for m in ps.mechanisms %}
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-primary text-[18px] mt-1">check_circle</span>
+                                <span>{{ m|safe }}</span>
+                            </li>
+                            {% endfor %}
+                        {% else %}
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-primary text-[18px] mt-1">check_circle</span>
+                                <span><strong>以太感应：</strong> 所有的能量交互均基于对以太场的共鸣。</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-primary text-[18px] mt-1">check_circle</span>
+                                <span><strong>几何媒介：</strong> 大多数施法需要通过特定的几何纹路进行引导。</span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- Limitations & Costs -->
+                <div class="bg-surface p-6 rounded-lg border border-outline-variant/50">
+                    <h4 class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[16px]">block</span>
+                        限制与代价 (Limitations)
+                    </h4>
+                    <ul class="space-y-3 font-body-md text-body-md text-on-surface">
+                        {% if ps.limitations %}
+                            {% for l in ps.limitations %}
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px] mt-1">warning</span>
+                                <span>{{ l|safe }}</span>
+                            </li>
+                            {% endfor %}
+                        {% else %}
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px] mt-1">warning</span>
+                                <span><strong>精神衰竭：</strong> 过度使用会导致“以太灼烧”，表现为偏头痛或脑损伤。</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px] mt-1">warning</span>
+                                <span><strong>媒介依赖：</strong> 失去几何媒介，共鸣者只能进行最基础微弱的干预。</span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Power Levels -->
+            <div>
+                <h4 class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-4 mt-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[16px]">stairs</span>
+                    阶层划分 (Levels)
+                </h4>
+                <div class="space-y-4">
+                    {% if ps.level_list %}
+                        {% for lvl in ps.level_list %}
+                        <div class="flex items-center gap-4 bg-surface-container-low p-4 rounded-lg border {% if lvl.featured %}border-primary/20 bg-primary/5 relative overflow-hidden{% else %}border-outline-variant/30{% endif %}">
+                            {% if lvl.featured %}<div class="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none"></div>{% endif %}
+                            <div class="flex-shrink-0 w-12 h-12 rounded-full {% if lvl.featured %}bg-primary text-on-primary{% else %}bg-surface-container-highest text-on-surface-variant{% endif %} flex items-center justify-center font-title-md text-title-md font-bold">{{ lvl.rank or loop.index }}</div>
+                            <div class="{% if lvl.featured %}relative z-10{% endif %}">
+                                <h5 class="font-title-md text-title-md {% if lvl.featured %}text-primary font-bold{% else %}text-on-surface{% endif %}">{{ lvl.name }}</h5>
+                                <p class="font-body-md text-body-md text-on-surface-variant text-sm">{{ lvl.desc }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% elif ps.levels %}
+                        <div class="bg-surface-container-low rounded-3xl p-8 border border-outline-variant/20">
+                            <div class="font-body-lg text-body-lg text-on-surface leading-loose whitespace-pre-wrap">{{ ps.levels }}</div>
+                        </div>
+                    {% else %}
+                        <div class="bg-surface-container-low rounded-3xl p-10 border border-outline-variant/20 text-center">
+                            <p class="text-on-surface-variant italic opacity-50">暂未录入详细的等级阶位描述</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Rules & Notes -->
+            <div class="mt-12">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined text-sm">auto_stories</span>
+                    </div>
+                    <h2 class="font-title-md text-2xl text-on-surface">核心规则与备注</h2>
+                </div>
+                <div class="bg-surface-container-low rounded-3xl p-8 border border-outline-variant/20">
+                    <div class="font-body-md text-body-md text-on-surface-variant leading-relaxed whitespace-pre-wrap">
+                        {% if ps.note %}
+                            {{ ps.note }}
+                        {% else %}
+                            <p class="italic opacity-50 text-center py-6">暂无补充设定或核心规则描述</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="mt-20 pt-8 border-t border-outline-variant text-center">
+            <p class="text-[10px] text-on-surface-variant uppercase tracking-tighter">NovelStudio Architecture Documentation · {{ meta.title }}</p>
+        </footer>
+    </article>
+</div>
+{% endblock %}

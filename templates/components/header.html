@@ -1,0 +1,60 @@
+<header class="w-full top-0 sticky z-40 bg-surface border-b border-outline-variant flex justify-between items-center px-margin-desktop py-4 h-16">
+  <div class="flex items-center gap-gutter">
+    <a href="{{ url_for('admin.index') }}" class="no-underline">
+      <h1 class="font-headline-lg text-headline-lg font-bold text-primary tracking-tight">NovelStudio</h1>
+    </a>
+    <div class="hidden md:flex items-center bg-surface-container-low border border-outline-variant rounded-full px-4 py-2 focus-within:border-primary transition-colors w-64">
+      <span class="material-symbols-outlined text-on-surface-variant text-sm mr-2">search</span>
+      <input class="bg-transparent border-none focus:ring-0 font-label-md text-label-md text-on-surface w-full placeholder-on-surface-variant" placeholder="搜索项目或设定..." type="text"/>
+    </div>
+  </div>
+  <div class="flex items-center gap-4">
+    {% if all_novels %}
+    <div class="relative group">
+      <button class="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors p-2 rounded-lg hover:bg-primary/5 border border-transparent hover:border-primary/20">
+        <span class="material-symbols-outlined">swap_horiz</span>
+        <span class="hidden lg:block font-label-md text-label-md">切换作品</span>
+        <span class="material-symbols-outlined text-[16px] opacity-50">expand_more</span>
+      </button>
+      <div class="absolute right-0 mt-2 w-72 bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
+        <div class="bg-surface-container-low px-4 py-3 border-b border-outline-variant rounded-t-2xl">
+          <div class="font-label-sm text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">快速切换至其他作品</div>
+        </div>
+        <div class="p-2 max-h-96 overflow-y-auto">
+          {% for n in all_novels %}
+          <a href="{{ url_for('novel.novel_detail', slug=n.slug) }}" class="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-primary/5 transition-colors no-underline group/item {% if n.slug == slug %}bg-primary/10 border-l-4 border-primary{% endif %}">
+            <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0 transition-transform group-hover/item:scale-110">
+              {{ n.title[0]|upper if n.title else '?' }}
+            </div>
+            <div class="min-w-0">
+              <div class="font-label-md text-label-md text-on-surface group-hover/item:text-primary truncate">{{ n.title }}</div>
+              <div class="text-[10px] text-on-surface-variant/60 uppercase">Management Mode</div>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+        <div class="p-2 bg-surface-container-low border-t border-outline-variant rounded-b-2xl">
+          <a href="{{ url_for('admin.index') }}" class="flex items-center justify-center gap-2 py-2 text-[10px] text-primary font-bold uppercase tracking-tighter hover:underline no-underline">
+            <span class="material-symbols-outlined text-[14px]">dashboard</span> 全部作品列表
+          </a>
+        </div>
+      </div>
+    </div>
+    {% elif current_role == 'admin' %}
+    <span class="text-[10px] text-error font-mono">No Novels Found</span>
+    {% endif %}
+    <button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-70 flex items-center justify-center p-2 rounded-full hover:bg-surface-variant">
+      <span class="material-symbols-outlined">notifications</span>
+    </button>
+    <a href="{{ url_for('admin.admin_settings') }}" class="text-on-surface-variant hover:text-primary transition-colors no-underline flex items-center justify-center p-2 rounded-full hover:bg-surface-variant">
+      <span class="material-symbols-outlined">settings</span>
+    </a>
+    <div class="w-8 h-8 rounded-full bg-surface-variant border border-outline-variant cursor-pointer flex items-center justify-center overflow-hidden">
+      {% if current_user %}
+        <span class="text-xs font-bold text-primary">{{ current_user[0]|upper }}</span>
+      {% else %}
+        <span class="material-symbols-outlined text-on-surface-variant">person</span>
+      {% endif %}
+    </div>
+  </div>
+</header>
