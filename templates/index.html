@@ -1,92 +1,58 @@
 {% extends "base.html" %}
 {% block title %}小说库 - NovelStudio{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item active">小说库</li>
-{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-end mb-4">
-    <div>
-        <h1 class="h3 mb-0">📚 小说库</h1>
-        <p class="text-secondary mb-0">管理您的创作项目</p>
+<div class="max-w-container-max mx-auto px-margin-desktop py-12">
+    <div class="mb-12">
+        <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">📚 小说库</h1>
+        <p class="font-body-md text-body-md text-on-surface-variant">发现精彩的故事，沉浸在无限的想象空间中</p>
     </div>
-    {% if current_role == 'admin' %}
-    <button class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i> 新建小说
-    </button>
-    {% endif %}
-</div>
 
-{% if novels %}
-<div class="row g-4">
-    {% for novel in novels %}
-    <div class="col-md-6 col-xl-4">
-        <div class="card h-100 shadow-sm border-0">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h5 class="card-title mb-0">
-                        <a href="{{ url_for('novel.novel_detail', slug=novel.slug) }}" class="text-decoration-none text-reset stretched-link">
-                            {{ novel.meta.title }}
-                        </a>
-                    </h5>
-                    <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill">
-                        {{ novel.meta.stats.status }}
-                    </span>
-                </div>
-                
-                <div class="mb-3">
-                    <span class="badge bg-secondary-subtle text-secondary-emphasis me-1">{{ novel.meta.genre }}</span>
-                    {% if novel.meta.target %}
-                    <span class="badge bg-info-subtle text-info-emphasis me-1">{{ novel.meta.target }}</span>
-                    {% endif %}
-                </div>
-
-                <p class="card-text text-secondary small mb-4">
-                    {{ novel.meta.synopsis[:120] }}{% if novel.meta.synopsis|length > 120 %}...{% endif %}
-                </p>
-
-                <div class="d-flex gap-3 small text-secondary mb-3">
-                    <span><i class="bi bi-file-earmark-text me-1"></i> {{ novel.meta.stats.chapters }} 章</span>
-                    <span><i class="bi bi-pencil-square me-1"></i> {{ '{:,}'.format(novel.meta.stats.words) }} 字</span>
-                </div>
-
-                {% if novel.meta.stats.chapters > 0 %}
-                {% set total_chs = novel.meta.total_chapters or 100 %}
-                {% set pct = (novel.meta.stats.chapters / total_chs * 100)|round %}
-                <div class="progress" style="height: 6px;">
-                    <div class="progress-bar" role="progressbar" style="width: {{ pct if pct <= 100 else 100 }}%" 
-                         aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-                <div class="d-flex justify-content-between mt-1">
-                    <span class="x-small text-secondary">进度</span>
-                    <span class="x-small text-secondary">{{ pct }}%</span>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-gutter">
+        {% for novel in novels %}
+        <article class="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden flex flex-col min-h-[420px] hover:-translate-y-1 hover:shadow-xl transition-all duration-300 relative group">
+            <!-- Cover -->
+            <div class="h-56 relative overflow-hidden bg-surface-variant">
+                {% if novel.meta.cover %}
+                <img alt="{{ novel.meta.title }}封面" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="{{ novel.meta.cover }}"/>
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-surface-variant">
+                    <span class="material-symbols-outlined text-6xl text-primary/20">book_5</span>
                 </div>
                 {% endif %}
+                <div class="absolute top-4 left-4 bg-surface-container-lowest/90 backdrop-blur px-3 py-1 rounded-full text-primary font-label-sm text-label-sm border border-outline-variant/30 shadow-sm">
+                    {{ novel.meta.genre or '未分类' }}
+                </div>
             </div>
-            <div class="card-footer bg-transparent border-0 pt-0 pb-3">
-                <div class="d-grid">
-                    <a href="{{ url_for('novel.novel_detail', slug=novel.slug) }}" class="btn btn-outline-primary btn-sm">
-                        管理详情 <i class="bi bi-arrow-right ms-1"></i>
+
+            <!-- Content -->
+            <div class="p-6 flex flex-col flex-1">
+                <h3 class="font-title-md text-xl text-on-surface mb-2 group-hover:text-primary transition-colors line-clamp-1">{{ novel.meta.title }}</h3>
+                
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="flex items-center text-on-surface-variant text-sm">
+                        <span class="material-symbols-outlined text-sm mr-1">history_edu</span>
+                        <span>{{ novel.meta.stats.chapters }} 章节</span>
+                    </div>
+                    <div class="flex items-center text-on-surface-variant text-sm">
+                        <span class="material-symbols-outlined text-sm mr-1">edit_note</span>
+                        <span>{{ '{:,}'.format(novel.meta.stats.words) }} 字</span>
+                    </div>
+                </div>
+
+                <p class="font-body-md text-body-md text-on-surface-variant line-clamp-3 mb-6 text-sm italic">
+                    {{ novel.meta.synopsis or novel.meta.description or '暂无简介' }}
+                </p>
+
+                <div class="mt-auto pt-4 border-t border-outline-variant/30 flex items-center justify-between">
+                    <span class="text-xs text-on-surface-variant uppercase tracking-widest font-bold">{{ novel.meta.stats.status }}</span>
+                    <a href="{{ url_for('novel.novel_detail', slug=novel.slug) }}" class="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-2 rounded-xl font-label-md text-label-md hover:opacity-90 transition-all no-underline shadow-md shadow-primary/10">
+                        立即阅读 <span class="material-symbols-outlined text-sm">arrow_forward</span>
                     </a>
                 </div>
             </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% else %}
-<div class="card border-0 shadow-sm">
-    <div class="card-body text-center py-5">
-        <div class="display-1 text-muted mb-4">
-            <i class="bi bi-journal-x"></i>
-        </div>
-        <h3>暂无可显示的小说</h3>
-        <p class="text-secondary">开始您的第一个创作吧！</p>
-        <button class="btn btn-primary mt-3">立即创建</button>
+        </article>
+        {% endfor %}
     </div>
 </div>
-{% endif %}
-
-<style>
-    .x-small { font-size: 0.75rem; }
-</style>
 {% endblock %}

@@ -1,114 +1,68 @@
 {% extends "base.html" %}
-{% block title %}订单管理 - Admin - NovelStudio{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">管理后台</a></li>
-<li class="breadcrumb-item active">订单管理</li>
-{% endblock %}
+{% block title %}订单管理 - NovelStudio{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-end mb-4">
-    <div>
-        <h1 class="h3 mb-0">📋 订单管理</h1>
-        <p class="text-secondary mb-0">处理客户需求，更新项目进度</p>
-    </div>
-</div>
-
-<div class="card border-0 shadow-sm">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th class="ps-4">项目与客户</th>
-                        <th>类型</th>
-                        <th>状态</th>
-                        <th>进度</th>
-                        <th>费用</th>
-                        <th class="pe-4 text-end">操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for o in orders %}
-                    <tr>
-                        <td class="ps-4">
-                            <div class="fw-bold">{{ o.projectName }}</div>
-                            <div class="x-small text-secondary">{{ o.customerName }} · #{{ o._id[-6:] }}</div>
-                        </td>
-                        <td><span class="badge bg-secondary-subtle text-secondary-emphasis">{{ o.orderType }}</span></td>
-                        <td>
-                            <select class="form-select form-select-sm border-0 bg-light" 
-                                    onchange="updateOrderStatus('{{ o._id }}', this.value)"
-                                    style="width: auto; min-width: 100px;">
-                                {% for key, label in ORDER_STATUSES.items() %}
-                                <option value="{{ key }}" {% if o.status == key %}selected{% endif %}>{{ label }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center gap-2" style="min-width: 150px;">
-                                <div class="progress flex-grow-1" style="height: 6px;">
-                                    <div class="progress-bar" id="pb-{{ o._id }}" role="progressbar" style="width: {{ o.progress }}%"></div>
-                                </div>
-                                <input type="number" class="form-control form-control-sm border-0 bg-light text-center p-0" 
-                                       value="{{ o.progress }}" style="width: 40px;"
-                                       onchange="updateOrderProgress('{{ o._id }}', this.value)">
-                                <span class="x-small text-secondary">%</span>
-                            </div>
-                        </td>
-                        <td class="fw-semibold text-primary">¥{{ '{:,}'.format(o.cost or 0) }}</td>
-                        <td class="pe-4 text-end">
-                            <a href="{{ url_for('admin.admin_order_detail', oid=o._id) }}" class="btn btn-outline-primary btn-sm">
-                                <i class="bi bi-pencil-square"></i> 管理
-                            </a>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">暂无订单数据</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="max-w-container-max mx-auto px-margin-desktop py-12">
+    <div class="flex justify-between items-end mb-8">
+        <div>
+            <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">📋 订单管理</h1>
+            <p class="font-body-md text-body-md text-on-surface-variant">查看与处理所有定制化写作订单</p>
+        </div>
+        <div class="flex gap-2">
+            <button class="bg-surface-container text-on-surface-variant px-4 py-2.5 rounded-xl font-label-md text-label-md hover:bg-surface-variant transition-all border border-outline-variant/50">
+                <span class="material-symbols-outlined text-sm align-middle">filter_alt</span> 筛选
+            </button>
         </div>
     </div>
+
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-surface-container-low border-b border-outline-variant">
+                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">订单编号</th>
+                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">用户 / 作品</th>
+                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">类型</th>
+                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">金额</th>
+                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">状态</th>
+                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">创建日期</th>
+                    <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">操作</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant/30 font-body-md text-body-md text-on-surface">
+                {% for o in orders %}
+                <tr class="hover:bg-surface-variant/30 transition-colors">
+                    <td class="px-6 py-4 font-mono text-sm text-primary">#{{ o._id[-6:]|upper }}</td>
+                    <td class="px-6 py-4">
+                        <div class="font-bold">{{ o.customerName }}</div>
+                        <div class="text-xs text-on-surface-variant">{{ o.projectName or '新作品' }}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-0.5 bg-surface-container rounded text-xs">{{ o.orderType }}</span>
+                    </td>
+                    <td class="px-6 py-4 font-bold">¥{{ o.cost or o.price or 0 }}</td>
+                    <td class="px-6 py-4">
+                        {% if o.status == 'completed' %}
+                            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">{{ o.statusLabel }}</span>
+                        {% elif o.status == 'cancelled' %}
+                            <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">{{ o.statusLabel }}</span>
+                        {% else %}
+                            <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">{{ o.statusLabel }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-on-surface-variant">{{ o.createdAt[:10] if o.createdAt is string else o.createdAt.strftime('%Y-%m-%d') }}</td>
+                    <td class="px-6 py-4 text-right">
+                        <a href="{{ url_for('admin.admin_order_detail', oid=o._id) }}" class="text-primary hover:underline font-label-md no-underline">查看详情</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="px-6 py-20 text-center">
+                        <p class="text-on-surface-variant italic opacity-50">暂无订单记录</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
-
-<style>
-    .x-small { font-size: 0.75rem; }
-</style>
-{% endblock %}
-
-{% block scripts %}
-<script>
-async function updateOrderStatus(oid, status) {
-    try {
-        const resp = await fetch(`/api/orders/${oid}`, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({status: status})
-        });
-        const result = await resp.json();
-        if (!result.success) alert('更新状态失败');
-    } catch (e) { alert('网络错误'); }
-}
-
-async function updateOrderProgress(oid, progress) {
-    try {
-        const val = parseInt(progress);
-        if (isNaN(val) || val < 0 || val > 100) return;
-        
-        const resp = await fetch(`/api/orders/${oid}`, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({progress: val})
-        });
-        const result = await resp.json();
-        if (result.success) {
-            document.getElementById(`pb-${oid}`).style.width = val + '%';
-        } else {
-            alert('更新进度失败');
-        }
-    } catch (e) { alert('网络错误'); }
-}
-</script>
 {% endblock %}

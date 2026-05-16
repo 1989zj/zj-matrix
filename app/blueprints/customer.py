@@ -43,6 +43,11 @@ def order_page():
     for o in all_orders:
         o['_id'] = str(o['_id'])
         o['statusLabel'] = ORDER_STATUSES.get(o['status'], o['status'])
+        # 确保是 datetime 对象供模板 strftime 使用
+        if isinstance(o.get('createdAt'), str):
+            try:
+                o['createdAt'] = datetime.fromisoformat(o['createdAt'].replace('Z', '+00:00'))
+            except: pass
     return render_template('orders.html', orders=all_orders)
 
 @customer_bp.route('/dashboard/')
@@ -57,6 +62,12 @@ def dashboard():
     for o in all_orders:
         o['_id'] = str(o['_id'])
         o['statusLabel'] = ORDER_STATUSES.get(o['status'], o['status'])
+        # 确保是 datetime 对象供模板 strftime 使用
+        for field in ['createdAt', 'updatedAt']:
+            if isinstance(o.get(field), str):
+                try:
+                    o[field] = datetime.fromisoformat(o[field].replace('Z', '+00:00'))
+                except: pass
     stats = {
         'total': len(all_orders),
         'pending': sum(1 for o in all_orders if o['status'] == 'pending'),

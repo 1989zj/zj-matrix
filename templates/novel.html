@@ -1,112 +1,95 @@
 {% extends "base.html" %}
-{% block title %}{{ meta.title }} - NovelStudio{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('novel.index') }}">小说库</a></li>
-<li class="breadcrumb-item active">{{ meta.title }}</li>
-{% endblock %}
+{% block title %}{{ meta.title }} - 作品主页 - NovelStudio{% endblock %}
 
 {% block content %}
-<div class="row g-4">
-    <!-- Left: Novel Meta -->
-    <div class="col-lg-8">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-start mb-3">
+<div class="max-w-container-max mx-auto px-margin-desktop py-12">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+        <!-- Left: Novel Meta -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-surface-container-lowest rounded-2xl p-8 border border-outline-variant shadow-sm">
+                <div class="flex justify-between items-start mb-6">
                     <div>
-                        <h1 class="h2 fw-bold mb-1">{{ meta.title }}</h1>
-                        <div class="mb-3">
-                            <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill me-2">{{ meta.genre }}</span>
-                            <span class="badge bg-info-subtle text-info-emphasis rounded-pill me-2">{{ meta.target }}</span>
-                            <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill">{{ meta.stats.status }}</span>
+                        <h1 class="font-headline-lg text-display-lg text-on-surface mb-2">{{ meta.title }}</h1>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 bg-primary/10 text-primary rounded-full font-label-sm text-label-sm">{{ meta.genre }}</span>
+                            <span class="px-3 py-1 bg-secondary/10 text-secondary rounded-full font-label-sm text-label-sm">{{ meta.target }}</span>
+                            <span class="px-3 py-1 bg-surface-variant text-on-surface-variant rounded-full font-label-sm text-label-sm">{{ meta.stats.status }}</span>
                         </div>
                     </div>
                     {% if current_role == 'admin' %}
-                    <button class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-pencil me-1"></i> 编辑元数据
+                    <button class="flex items-center gap-2 px-4 py-2 border border-outline-variant rounded-lg hover:bg-surface-variant transition-colors font-label-md text-label-md text-on-surface-variant">
+                        <span class="material-symbols-outlined text-sm">edit</span> 编辑元数据
                     </button>
                     {% endif %}
                 </div>
                 
-                <h6 class="fw-bold mb-2">作品简介</h6>
-                <p class="text-secondary mb-4" style="line-height: 1.8; white-space: pre-wrap;">
-                    {{ meta.synopsis }}
+                <h3 class="font-title-md text-title-md text-on-surface mb-3">作品简介</h3>
+                <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed whitespace-pre-wrap mb-8">
+                    {{ meta.synopsis or '暂无简介' }}
                 </p>
 
-                <div class="row g-3">
-                    <div class="col-6 col-md-3">
-                        <div class="p-3 bg-light rounded text-center">
-                            <div class="text-secondary small">已创作章节</div>
-                            <div class="h4 fw-bold mb-0">{{ meta.stats.chapters }}</div>
-                        </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/30">
+                        <div class="text-on-surface-variant font-label-sm text-label-sm mb-1">已创作章节</div>
+                        <div class="text-2xl font-headline-lg text-on-surface">{{ meta.stats.chapters }}</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="p-3 bg-light rounded text-center">
-                            <div class="text-secondary small">总计字数</div>
-                            <div class="h4 fw-bold mb-0">{{ '{:,}'.format(meta.stats.words) }}</div>
-                        </div>
+                    <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/30">
+                        <div class="text-on-surface-variant font-label-sm text-label-sm mb-1">当前总字数</div>
+                        <div class="text-2xl font-headline-lg text-on-surface">{{ '{:,}'.format(meta.stats.words) }}</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="p-3 bg-light rounded text-center">
-                            <div class="text-secondary small">目标字数</div>
-                            <div class="h4 fw-bold mb-0">{{ '{:,}'.format(meta.target_words or 0) }}</div>
-                        </div>
+                    <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/30">
+                        <div class="text-on-surface-variant font-label-sm text-label-sm mb-1">目标总字数</div>
+                        <div class="text-2xl font-headline-lg text-on-surface">{{ '{:,}'.format(meta.target_words or 0) }}</div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="p-3 bg-light rounded text-center">
-                            <div class="text-secondary small">最后更新</div>
-                            <div class="fw-bold mb-0">{{ meta.last_updated or '-' }}</div>
-                        </div>
+                    <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/30">
+                        <div class="text-on-surface-variant font-label-sm text-label-sm mb-1">最后更新时间</div>
+                        <div class="text-lg font-title-md text-on-surface leading-tight mt-1">{{ meta.last_updated or '-' }}</div>
                     </div>
+                </div>
+            </div>
+
+            <div class="bg-surface-container-lowest rounded-2xl p-8 border border-outline-variant shadow-sm">
+                <h3 class="font-title-md text-title-md text-on-surface mb-4">作品标签</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for tag in meta.tags %}
+                    <span class="px-4 py-1.5 bg-surface-container rounded-full border border-outline-variant/50 text-on-surface-variant font-label-md text-label-md">{{ tag }}</span>
+                    {% else %}
+                    <p class="text-on-surface-variant italic opacity-50 text-sm">暂无标签</p>
+                    {% endfor %}
                 </div>
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fw-bold">作品标签</h5>
+        <!-- Right: Actions -->
+        <div class="space-y-6">
+            <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant shadow-sm flex flex-col gap-3">
+                <a href="{{ url_for('novel.chapter_list', slug=slug) }}" class="w-full bg-primary text-on-primary font-label-md text-label-md py-4 rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-3 no-underline shadow-md">
+                    <span class="material-symbols-outlined">book_2</span> 章节管理 / 续写
+                </a>
+                <a href="{{ url_for('novel.characters', slug=slug) }}" class="w-full bg-surface-container text-on-surface font-label-md text-label-md py-3 px-4 rounded-xl hover:bg-surface-variant transition-all flex items-center gap-3 no-underline border border-outline-variant/50">
+                    <span class="material-symbols-outlined text-primary">group</span> 角色档案
+                </a>
+                <a href="{{ url_for('novel.world_settings', slug=slug) }}" class="w-full bg-surface-container text-on-surface font-label-md text-label-md py-3 px-4 rounded-xl hover:bg-surface-variant transition-all flex items-center gap-3 no-underline border border-outline-variant/50">
+                    <span class="material-symbols-outlined text-primary">public</span> 世界观设定
+                </a>
+                <a href="{{ url_for('novel.power_system', slug=slug) }}" class="w-full bg-surface-container text-on-surface font-label-md text-label-md py-3 px-4 rounded-xl hover:bg-surface-variant transition-all flex items-center gap-3 no-underline border border-outline-variant/50">
+                    <span class="material-symbols-outlined text-primary">bolt</span> 力量体系
+                </a>
+                <a href="{{ url_for('novel.timeline', slug=slug) }}" class="w-full bg-surface-container text-on-surface font-label-md text-label-md py-3 px-4 rounded-xl hover:bg-surface-variant transition-all flex items-center gap-3 no-underline border border-outline-variant/50">
+                    <span class="material-symbols-outlined text-primary">calendar_month</span> 故事时间线
+                </a>
             </div>
-            <div class="card-body">
-                {% for tag in meta.tags %}
-                <span class="badge bg-light text-secondary border me-1 mb-1">{{ tag }}</span>
-                {% else %}
-                <p class="text-muted small mb-0">暂无标签</p>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
 
-    <!-- Right: Quick Actions / Stats -->
-    <div class="col-lg-4">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body d-grid gap-2">
-                <a href="{{ url_for('novel.chapter_list', slug=slug) }}" class="btn btn-primary py-2">
-                    <i class="bi bi-book-half me-2"></i> 开始阅读 / 章节管理
-                </a>
-                <a href="{{ url_for('novel.characters', slug=slug) }}" class="btn btn-outline-secondary py-2 text-start">
-                    <i class="bi bi-people me-2"></i> 角色档案
-                </a>
-                <a href="{{ url_for('novel.world_settings', slug=slug) }}" class="btn btn-outline-secondary py-2 text-start">
-                    <i class="bi bi-globe me-2"></i> 世界观设定
-                </a>
-                <a href="{{ url_for('novel.timeline', slug=slug) }}" class="btn btn-outline-secondary py-2 text-start">
-                    <i class="bi bi-calendar3 me-2"></i> 故事时间线
-                </a>
-            </div>
-        </div>
-
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent py-3">
-                <h6 class="mb-0 fw-bold">创作进度</h6>
-            </div>
-            <div class="card-body">
+            <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant shadow-sm">
+                <h4 class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-4 font-bold tracking-widest">创作进度</h4>
                 {% set total = meta.target_words or 200000 %}
                 {% set pct = (meta.stats.words / total * 100)|round %}
-                <div class="progress mb-2" style="height: 12px;">
-                    <div class="progress-bar progress-bar-striped bg-success" role="progressbar" style="width: {{ pct if pct <= 100 else 100 }}%"></div>
+                <div class="w-full bg-surface-container rounded-full h-3 mb-3 overflow-hidden">
+                    <div class="bg-primary h-full rounded-full transition-all duration-1000" style="width: {{ pct if pct <= 100 else 100 }}%"></div>
                 </div>
-                <div class="d-flex justify-content-between small">
-                    <span class="text-secondary">字数完成度</span>
-                    <span class="fw-bold">{{ pct }}%</span>
+                <div class="flex justify-between items-center">
+                    <span class="font-label-md text-label-md text-on-surface-variant">字数完成度</span>
+                    <span class="font-headline-lg text-headline-lg-mobile text-primary">{{ pct }}%</span>
                 </div>
             </div>
         </div>

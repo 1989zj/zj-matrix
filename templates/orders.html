@@ -1,187 +1,152 @@
 {% extends "base.html" %}
-{% block title %}我要下单 - NovelStudio{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item active">我要下单</li>
-{% endblock %}
+{% block title %}我的订单 - NovelStudio{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-end mb-4">
-    <div>
-        <h1 class="h3 mb-0">📝 我的订单</h1>
-        <p class="text-secondary mb-0">提交您的创作需求，开启专业写作旅程</p>
+<div class="max-w-container-max mx-auto px-margin-desktop py-12">
+    <div class="flex justify-between items-end mb-8">
+        <div>
+            <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">🛍️ 我的写作订单</h1>
+            <p class="font-body-md text-body-md text-on-surface-variant">定制您的专属文学作品，AI 驱动的高质量创作服务</p>
+        </div>
+        <button onclick="openOrderModal()" class="bg-primary text-on-primary px-8 py-3 rounded-2xl font-label-md text-label-md hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">add_circle</span> 发起新需求
+        </button>
     </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createOrderModal">
-        <i class="bi bi-plus-lg me-1"></i> 提交新需求
-    </button>
-</div>
 
-<!-- Orders Grid -->
-<div class="row g-4">
-    {% for o in orders %}
-    <div class="col-md-6 col-lg-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
-                <span class="badge rounded-pill 
-                    {% if o.status == 'completed' %}bg-success
-                    {% elif o.status in ('writing', 'confirmed') %}bg-info
-                    {% elif o.status == 'pending' %}bg-warning
-                    {% else %}bg-secondary{% endif %}">
-                    {{ o.statusLabel }}
-                </span>
-                <span class="x-small text-secondary">#{{ o._id[-6:] }}</span>
-            </div>
-            <div class="card-body">
-                <h5 class="card-title mb-1 text-truncate">{{ o.projectName }}</h5>
-                <div class="mb-3">
-                    <span class="badge bg-secondary-subtle text-secondary-emphasis me-1">{{ o.orderType }}</span>
-                    <span class="badge bg-light text-dark border">{{ o.genre }}</span>
+    <div class="grid grid-cols-1 gap-6">
+        {% for o in orders %}
+        <div class="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant shadow-sm hover:shadow-md transition-all flex flex-col lg:flex-row gap-8 items-start">
+            <!-- Project Info -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="px-3 py-1 bg-surface-container rounded-full text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{{ o.orderType }}</span>
+                    <span class="font-mono text-xs text-on-surface-variant/40">#{{ o._id[-6:]|upper }}</span>
                 </div>
+                <h3 class="font-headline-lg text-2xl text-on-surface mb-3 truncate">{{ o.projectName }}</h3>
+                <p class="font-body-md text-body-md text-on-surface-variant line-clamp-2 italic mb-6">“{{ o.description }}”</p>
                 
-                <div class="row g-2 mb-4">
-                    <div class="col-6">
-                        <div class="text-secondary x-small">目标字数</div>
-                        <div class="fw-bold">{{ '{:,}'.format(o.targetWords) }}</div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 pt-6 border-t border-outline-variant/30">
+                    <div>
+                        <div class="text-[10px] text-on-surface-variant uppercase font-bold tracking-tighter mb-1">期望风格</div>
+                        <div class="font-label-md text-on-surface">{{ o.style }}</div>
                     </div>
-                    <div class="col-6 text-end">
-                        <div class="text-secondary x-small">预算费用</div>
-                        <div class="fw-bold text-primary">¥{{ '{:,}'.format(o.cost or 0) }}</div>
+                    <div>
+                        <div class="text-[10px] text-on-surface-variant uppercase font-bold tracking-tighter mb-1">目标规模</div>
+                        <div class="font-label-md text-on-surface">{{ o.target_words }}</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-on-surface-variant uppercase font-bold tracking-tighter mb-1">订单金额</div>
+                        <div class="font-label-md text-primary font-bold">¥{{ o.price }}</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-on-surface-variant uppercase font-bold tracking-tighter mb-1">下单日期</div>
+                        <div class="font-label-md text-on-surface">{{ o.createdAt.strftime('%Y-%m-%d') }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status & Progress -->
+            <div class="w-full lg:w-72 flex flex-col gap-6 shrink-0 bg-surface-container-low/50 p-6 rounded-2xl border border-outline-variant/30">
+                <div>
+                    <div class="text-[10px] text-on-surface-variant uppercase font-bold tracking-tighter mb-4">当前状态</div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center
+                            {% if o.status == 'completed' %}bg-green-100 text-green-700
+                            {% elif o.status in ('writing', 'confirmed') %}bg-blue-100 text-blue-700
+                            {% elif o.status == 'pending' %}bg-amber-100 text-amber-700
+                            {% else %}bg-gray-100 text-gray-700{% endif %}">
+                            <span class="material-symbols-outlined">
+                                {% if o.status == 'completed' %}check_circle{% elif o.status == 'writing' %}edit_square{% else %}hourglass_empty{% endif %}
+                            </span>
+                        </div>
+                        <div class="font-title-md text-on-surface font-bold">{{ o.statusLabel }}</div>
                     </div>
                 </div>
 
-                <div class="progress mb-2" style="height: 6px;">
-                    <div class="progress-bar" role="progressbar" style="width: {{ o.progress }}%"></div>
-                </div>
-                <div class="d-flex justify-content-between x-small text-secondary">
-                    <span>进度</span>
-                    <span>{{ o.progress }}%</span>
-                </div>
-            </div>
-            <div class="card-footer bg-transparent border-0 pt-0 pb-3">
-                <div class="d-flex gap-2">
-                    <button class="btn btn-light btn-sm flex-grow-1" onclick="showOrderDetail('{{ o._id }}')">
-                        <i class="bi bi-info-circle"></i> 详情
-                    </button>
-                    {% if o.deliverable %}
-                    <a href="{{ o.deliverable }}" class="btn btn-outline-success btn-sm flex-grow-1">
-                        <i class="bi bi-download"></i> 交付物
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    {% else %}
-    <div class="col-12 text-center py-5">
-        <div class="display-1 text-muted opacity-25 mb-4">
-            <i class="bi bi-inbox"></i>
-        </div>
-        <h4>暂无订单记录</h4>
-        <p class="text-secondary">点击右上角“提交新需求”开启您的第一个项目</p>
-    </div>
-    {% endfor %}
-</div>
-
-<!-- Create Order Modal -->
-<div class="modal fade" id="createOrderModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">提交写作需求</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <form id="orderForm">
-                    <div class="row g-3">
-                        <div class="col-md-8">
-                            <label class="form-label fw-semibold">项目名称</label>
-                            <input type="text" class="form-control" name="projectName" required placeholder="例如：我的玄幻小说新书">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">订单类型</label>
-                            <select class="form-select" name="orderType">
-                                <option value="全本新小说">全本新小说</option>
-                                <option value="小说续写">小说续写</option>
-                                <option value="小说改写">小说改写</option>
-                                <option value="小说优化">小说优化</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">联系方式</label>
-                            <input type="text" class="form-control" name="contact" required placeholder="手机号、微信号或QQ">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-semibold">目标字数</label>
-                            <input type="number" class="form-control" name="targetWords" value="100000">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-semibold">预计章节</label>
-                            <input type="number" class="form-control" name="chapters" value="60">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">题材类型</label>
-                            <input type="text" class="form-control" name="genre" placeholder="玄幻, 都市, 言情...">
-                        </div>
-                        <div class="col-md-8">
-                            <label class="form-label fw-semibold">创作参考 (URL/书名)</label>
-                            <input type="text" class="form-control" name="reference" placeholder="如有参考书籍请填写">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">详细需求 / 剧情梗概</label>
-                            <textarea class="form-control" name="detail" rows="4" placeholder="请详细描述您的创作要求..."></textarea>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">文风要求</label>
-                            <input type="text" class="form-control" name="style" placeholder="如：快节奏、幽默、热血...">
-                        </div>
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] text-on-surface-variant uppercase font-bold tracking-tighter">交付进度</span>
+                        <span class="text-[10px] font-bold text-primary">{{ o.progress }}%</span>
                     </div>
-                </form>
-            </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary px-4" id="submitOrderBtn">立即提交</button>
+                    <div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
+                        <div class="bg-primary h-full rounded-full transition-all duration-1000" style="width: {{ o.progress }}%"></div>
+                    </div>
+                </div>
+
+                <button class="w-full py-2.5 rounded-xl border border-primary text-primary font-label-md text-label-md hover:bg-primary/5 transition-all">
+                    查看交付稿件
+                </button>
             </div>
         </div>
+        {% else %}
+        <div class="py-32 text-center">
+            <div class="w-24 h-24 bg-surface-container rounded-full flex items-center justify-center mx-auto mb-6 text-on-surface-variant/30">
+                <span class="material-symbols-outlined text-6xl">shopping_bag</span>
+            </div>
+            <h2 class="font-headline-lg text-2xl text-on-surface mb-2">空空如也</h2>
+            <p class="text-on-surface-variant font-body-lg italic opacity-50">您还没有发起过写作需求，现在就开始第一部作品吧</p>
+        </div>
+        {% endfor %}
     </div>
 </div>
 
-<style>
-    .x-small { font-size: 0.75rem; }
-</style>
+<!-- Simple Order Modal (Hidden by default) -->
+<div id="order-modal" class="fixed inset-0 bg-surface/80 backdrop-blur-sm z-[100] hidden items-center justify-center p-6">
+    <div class="bg-surface-container-lowest rounded-3xl w-full max-w-2xl border border-outline-variant shadow-2xl overflow-hidden">
+        <div class="px-8 py-6 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+            <h3 class="font-title-md text-xl text-on-surface font-bold">发起定制创作需求</h3>
+            <button onclick="closeOrderModal()" class="text-on-surface-variant hover:text-on-surface">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form action="{{ url_for('customer.create_order') }}" method="POST" class="p-8 space-y-6">
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <label class="block font-label-sm text-on-surface-variant uppercase font-bold mb-2">项目名称</label>
+                    <input type="text" name="projectName" required class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 focus:outline-none focus:border-primary transition-all">
+                </div>
+                <div>
+                    <label class="block font-label-sm text-on-surface-variant uppercase font-bold mb-2">订单类型</label>
+                    <select name="orderType" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 focus:outline-none focus:border-primary transition-all">
+                        {% for type in order_types %}
+                        <option value="{{ type }}">{{ type }} (¥{{ order_types[type] }}/千字)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block font-label-sm text-on-surface-variant uppercase font-bold mb-2">核心需求描述</label>
+                <textarea name="description" rows="4" required class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 focus:outline-none focus:border-primary transition-all resize-none" placeholder="描述您的故事大纲、核心爽点或特定要求..."></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <label class="block font-label-sm text-on-surface-variant uppercase font-bold mb-2">期望风格</label>
+                    <input type="text" name="style" placeholder="如：黑暗压抑、轻松搞笑" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 focus:outline-none focus:border-primary transition-all">
+                </div>
+                <div>
+                    <label class="block font-label-sm text-on-surface-variant uppercase font-bold mb-2">目标字数 (千字)</label>
+                    <input type="number" name="target_words" value="10" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 focus:outline-none focus:border-primary transition-all">
+                </div>
+            </div>
+            <button type="submit" class="w-full bg-primary text-on-primary py-4 rounded-2xl font-label-md font-bold uppercase tracking-widest hover:opacity-90 transition-all shadow-lg">
+                提交订单并进入评估阶段
+            </button>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.getElementById('submitOrderBtn').addEventListener('click', async () => {
-    const form = document.getElementById('orderForm');
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-    
-    // Simple validation
-    if (!data.projectName || !data.contact) {
-        alert('请填写必填项');
-        return;
-    }
-
-    try {
-        const resp = await fetch('/api/orders', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-        const result = await resp.json();
-        if (result.success) {
-            location.reload();
-        } else {
-            alert(result.error || '提交失败');
-        }
-    } catch (e) {
-        alert('网络错误');
-    }
-});
-
-function showOrderDetail(oid) {
-    // Implement detail view if needed, or just redirect
-    alert('详情功能开发中，订单ID: ' + oid);
+function openOrderModal() {
+    const modal = document.getElementById('order-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+function closeOrderModal() {
+    const modal = document.getElementById('order-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
 }
 </script>
 {% endblock %}

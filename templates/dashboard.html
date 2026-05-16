@@ -1,102 +1,92 @@
 {% extends "base.html" %}
 {% block title %}看板 - NovelStudio{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item active">看板</li>
-{% endblock %}
+
 {% block content %}
-<div class="mb-4">
-    <h1 class="h3 mb-0">📊 数据看板</h1>
-    <p class="text-secondary">实时掌握您的订单与创作进度</p>
-</div>
+<div class="max-w-container-max mx-auto px-margin-desktop py-12">
+    <div class="mb-8">
+        <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">📊 数据看板</h1>
+        <p class="font-body-md text-body-md text-on-surface-variant">实时掌握您的创作订单与资产交付进度</p>
+    </div>
 
-<!-- Stats Row -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="card border-0 shadow-sm text-center py-3">
-            <div class="text-secondary small mb-1">总订单</div>
-            <div class="h3 fw-bold mb-0 text-primary">{{ stats.total }}</div>
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
+        <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm text-center">
+            <div class="text-on-surface-variant font-label-sm text-label-sm uppercase mb-2">总订单</div>
+            <div class="text-3xl font-headline-lg text-primary">{{ stats.total }}</div>
+        </div>
+        <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm text-center">
+            <div class="text-on-surface-variant font-label-sm text-label-sm uppercase mb-2">待处理</div>
+            <div class="text-3xl font-headline-lg text-amber-600">{{ stats.pending }}</div>
+        </div>
+        <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm text-center">
+            <div class="text-on-surface-variant font-label-sm text-label-sm uppercase mb-2">创作中</div>
+            <div class="text-3xl font-headline-lg text-blue-600">{{ stats.writing }}</div>
+        </div>
+        <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm text-center">
+            <div class="text-on-surface-variant font-label-sm text-label-sm uppercase mb-2">已完成</div>
+            <div class="text-3xl font-headline-lg text-green-600">{{ stats.completed }}</div>
+        </div>
+        <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm text-center">
+            <div class="text-on-surface-variant font-label-sm text-label-sm uppercase mb-2">交付章节</div>
+            <div class="text-3xl font-headline-lg text-on-surface">{{ stats.totalChapters }}</div>
+        </div>
+        <div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm text-center">
+            <div class="text-on-surface-variant font-label-sm text-label-sm uppercase mb-2">交付字数</div>
+            <div class="text-2xl font-headline-lg text-on-surface">{{ '{:,}'.format(stats.totalWords) }}</div>
         </div>
     </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="card border-0 shadow-sm text-center py-3">
-            <div class="text-secondary small mb-1">待处理</div>
-            <div class="h3 fw-bold mb-0 text-warning">{{ stats.pending }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="card border-0 shadow-sm text-center py-3">
-            <div class="text-secondary small mb-1">创作中</div>
-            <div class="h3 fw-bold mb-0 text-info">{{ stats.writing }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="card border-0 shadow-sm text-center py-3">
-            <div class="text-secondary small mb-1">已完成</div>
-            <div class="h3 fw-bold mb-0 text-success">{{ stats.completed }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="card border-0 shadow-sm text-center py-3">
-            <div class="text-secondary small mb-1">交付章节</div>
-            <div class="h3 fw-bold mb-0 text-dark">{{ stats.totalChapters }}</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="card border-0 shadow-sm text-center py-3">
-            <div class="text-secondary small mb-1">交付字数</div>
-            <div class="h3 fw-bold mb-0 text-dark">{{ '{:,}'.format(stats.totalWords) }}</div>
-        </div>
-    </div>
-</div>
 
-<!-- Orders Table Card -->
-<div class="card border-0 shadow-sm">
-    <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center py-3">
-        <h5 class="mb-0">近期订单</h5>
-        <a href="{{ url_for('customer.order_page') }}" class="btn btn-outline-primary btn-sm">查看详情</a>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th class="ps-4">项目名称</th>
-                        <th>类型</th>
-                        <th>状态</th>
-                        <th>进度</th>
-                        <th class="pe-4 text-end">最后更新</th>
+    <!-- Recent Orders -->
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+        <div class="px-8 py-6 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+            <h3 class="font-title-md text-title-md text-on-surface font-bold">近期订单动态</h3>
+            <a href="{{ url_for('customer.order_page') }}" class="text-primary font-label-md hover:underline no-underline">查看全部详情</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-surface-container-low/50 border-b border-outline-variant">
+                        <th class="px-8 py-4 font-label-sm text-on-surface-variant uppercase tracking-widest">项目名称</th>
+                        <th class="px-8 py-4 font-label-sm text-on-surface-variant uppercase tracking-widest">类型</th>
+                        <th class="px-8 py-4 font-label-sm text-on-surface-variant uppercase tracking-widest text-center">状态</th>
+                        <th class="px-8 py-4 font-label-sm text-on-surface-variant uppercase tracking-widest">进度</th>
+                        <th class="px-8 py-4 font-label-sm text-on-surface-variant uppercase tracking-widest text-right">最后更新</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-outline-variant/30 font-body-md text-on-surface">
                     {% for o in orders[:10] %}
-                    <tr>
-                        <td class="ps-4">
-                            <div class="fw-bold">{{ o.projectName }}</div>
-                            <div class="x-small text-secondary">#{{ o._id[-6:] }}</div>
+                    <tr class="hover:bg-surface-variant/20 transition-colors">
+                        <td class="px-8 py-5">
+                            <div class="font-bold">{{ o.projectName }}</div>
+                            <div class="text-xs font-mono text-on-surface-variant/60 uppercase">#{{ o._id[-6:] }}</div>
                         </td>
-                        <td><span class="badge bg-secondary-subtle text-secondary-emphasis">{{ o.orderType }}</span></td>
-                        <td>
-                            <span class="badge rounded-pill 
-                                {% if o.status == 'completed' %}bg-success
-                                {% elif o.status in ('writing', 'confirmed') %}bg-info
-                                {% elif o.status == 'pending' %}bg-warning
-                                {% else %}bg-secondary{% endif %}">
+                        <td class="px-8 py-5">
+                            <span class="px-3 py-1 bg-surface-container rounded-full text-xs">{{ o.orderType }}</span>
+                        </td>
+                        <td class="px-8 py-5 text-center">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold
+                                {% if o.status == 'completed' %}bg-green-100 text-green-700
+                                {% elif o.status in ('writing', 'confirmed') %}bg-blue-100 text-blue-700
+                                {% elif o.status == 'pending' %}bg-amber-100 text-amber-700
+                                {% else %}bg-gray-100 text-gray-700{% endif %}">
                                 {{ o.statusLabel }}
                             </span>
                         </td>
-                        <td style="min-width: 120px;">
-                            <div class="progress" style="height: 6px;">
-                                <div class="progress-bar" role="progressbar" style="width: {{ o.progress }}%"></div>
+                        <td class="px-8 py-5">
+                            <div class="w-32">
+                                <div class="w-full bg-surface-container rounded-full h-1.5 mb-2 overflow-hidden">
+                                    <div class="bg-primary h-full rounded-full transition-all" style="width: {{ o.progress }}%"></div>
+                                </div>
+                                <div class="text-[10px] text-on-surface-variant font-bold uppercase tracking-tighter">{{ o.progress }}% 完成</div>
                             </div>
-                            <div class="x-small text-secondary mt-1">{{ o.progress }}%</div>
                         </td>
-                        <td class="pe-4 text-end text-secondary small">
+                        <td class="px-8 py-5 text-right text-sm text-on-surface-variant">
                             {{ o.updatedAt.strftime('%Y-%m-%d %H:%M') if o.updatedAt else '-' }}
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" class="text-center py-5 text-muted">暂无订单数据</td>
+                        <td colspan="5" class="px-8 py-20 text-center text-on-surface-variant italic opacity-50">暂无订单数据</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -104,8 +94,4 @@
         </div>
     </div>
 </div>
-
-<style>
-    .x-small { font-size: 0.75rem; }
-</style>
 {% endblock %}

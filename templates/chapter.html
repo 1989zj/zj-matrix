@@ -1,241 +1,72 @@
 {% extends "base.html" %}
 {% block title %}第{{ chapter.num }}章 {{ chapter.title }} - {{ meta.title }} - NovelStudio{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('novel.index') }}">小说库</a></li>
-<li class="breadcrumb-item"><a href="{{ url_for('novel.novel_detail', slug=slug) }}">{{ meta.title }}</a></li>
-<li class="breadcrumb-item"><a href="{{ url_for('novel.chapter_list', slug=slug) }}">章节列表</a></li>
-<li class="breadcrumb-item active">第{{ chapter.num }}章</li>
-{% endblock %}
 
 {% block content %}
-<div class="reading-container">
-    <!-- Header -->
-    <div class="mb-5 border-bottom pb-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="flex-shrink-0">
-                {% if prev %}
-                <a href="{{ url_for('novel.chapter_read', slug=slug, num=prev.num) }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center">
-                    <i class="bi bi-chevron-left me-1"></i> <span class="d-none d-md-inline">上一章</span>
-                </a>
-                {% else %}
-                <button class="btn btn-outline-secondary btn-sm disabled d-flex align-items-center">
-                    <i class="bi bi-chevron-left me-1"></i> <span class="d-none d-md-inline">上一章</span>
-                </button>
-                {% endif %}
+<div class="min-h-full w-full flex justify-center py-8">
+    <article class="w-editor-width bg-surface-container-lowest shadow-[0px_4px_24px_rgba(0,0,0,0.02)] mx-4 px-16 py-24 flex flex-col">
+        <!-- Navigation Header -->
+        <div class="flex justify-between items-center mb-12 pb-6 border-b border-outline-variant">
+            {% if prev %}
+            <a href="{{ url_for('novel.chapter_read', slug=slug, num=prev.num) }}" class="text-on-surface-variant hover:text-primary flex items-center gap-2 font-label-md transition-colors no-underline">
+                <span class="material-symbols-outlined">chevron_left</span> 上一章
+            </a>
+            {% else %}
+            <div class="opacity-20 flex items-center gap-2 font-label-md">
+                <span class="material-symbols-outlined">chevron_left</span> 序幕
             </div>
-
-            <h1 class="h2 fw-bold mb-0 text-center mx-3">{{ chapter.title }}</h1>
-
-            <div class="flex-shrink-0">
-                {% if next %}
-                <a href="{{ url_for('novel.chapter_read', slug=slug, num=next.num) }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center">
-                    <span class="d-none d-md-inline me-1">下一章</span> <i class="bi bi-chevron-right"></i>
-                </a>
-                {% else %}
-                <button class="btn btn-outline-secondary btn-sm disabled d-flex align-items-center">
-                    <span class="d-none d-md-inline me-1">下一章</span> <i class="bi bi-chevron-right"></i>
-                </button>
-                {% endif %}
-            </div>
-        </div>
-        
-        <div class="d-flex justify-content-center align-items-center gap-4 text-secondary small">
-            <span><i class="bi bi-hash me-1"></i> 第 {{ chapter.num }} 章</span>
-            <span><i class="bi bi-pencil me-1"></i> {{ '{:,}'.format(chapter.words) }} 字</span>
-            {% if chapter.version %}
-            <span><i class="bi bi-tag me-1"></i> {{ chapter.version }}</span>
             {% endif %}
-            <button class="btn btn-link btn-sm text-secondary p-0 text-decoration-none" onclick="copyContent()" title="复制全文">
-                <i class="bi bi-copy me-1"></i> 复制正文
-            </button>
+
+            <div class="flex flex-col items-center">
+                <div class="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest mb-1">{{ meta.title }}</div>
+                <div class="font-label-sm text-label-sm text-primary">第 {{ chapter.num }} 章</div>
+            </div>
+
+            {% if next %}
+            <a href="{{ url_for('novel.chapter_read', slug=slug, num=next.num) }}" class="text-on-surface-variant hover:text-primary flex items-center gap-2 font-label-md transition-colors no-underline">
+                下一章 <span class="material-symbols-outlined">chevron_right</span>
+            </a>
+            {% else %}
+            <div class="opacity-20 flex items-center gap-2 font-label-md">
+                未完待续 <span class="material-symbols-outlined">chevron_right</span>
+            </div>
+            {% endif %}
         </div>
-    </div>
 
-    <!-- Reading Content -->
-    <article class="reading-content mb-5 shadow-sm p-4 p-md-5 bg-body rounded border" style="white-space: pre-wrap;">
-        {{ chapter.content|safe }}
-    </article>
+        <!-- Chapter Title -->
+        <h1 class="font-headline-lg text-headline-lg text-on-surface mb-12 text-center">{{ chapter.title }}</h1>
 
-    <!-- End Notes -->
-    {% if chapter.chapterEndNotes %}
-    <div class="card border-0 shadow-sm bg-light-subtle mb-5 border-start border-primary border-4">
-        <div class="card-body">
-            <h6 class="fw-bold text-primary"><i class="bi bi-chat-left-dots-fill me-2"></i> 本章总结 / 钩子</h6>
-            <div class="small text-secondary" style="white-space: pre-wrap;">{{ chapter.chapterEndNotes }}</div>
+        <!-- Reading Content -->
+        <div class="font-body-lg text-body-lg text-on-surface leading-loose space-y-8 mb-16">
+            {{ chapter.content|safe }}
         </div>
-    </div>
-    {% endif %}
 
-    <!-- Footer Navigation -->
-    <div class="d-flex justify-content-between align-items-center mb-5 pt-4 border-top">
-        {% if prev %}
-        <a href="{{ url_for('novel.chapter_read', slug=slug, num=prev.num) }}" class="btn btn-outline-primary">
-            <i class="bi bi-chevron-left"></i> 上一章
-        </a>
-        {% else %}
-        <button class="btn btn-outline-secondary disabled"><i class="bi bi-chevron-left"></i> 第一章</button>
+        <!-- End Notes -->
+        {% if chapter.chapterEndNotes %}
+        <div class="bg-surface-container-low p-8 rounded-3xl border border-outline-variant/30 mb-16">
+            <h4 class="font-label-sm text-label-sm text-primary uppercase mb-4 font-bold tracking-widest flex items-center gap-2">
+                <span class="material-symbols-outlined text-[16px]">history_edu</span>
+                本章伏笔与钩子
+            </h4>
+            <div class="font-body-md text-body-md text-on-surface-variant leading-relaxed whitespace-pre-wrap italic opacity-80">
+                {{ chapter.chapterEndNotes }}
+            </div>
+        </div>
         {% endif %}
 
-        <a href="{{ url_for('novel.chapter_list', slug=slug) }}" class="btn btn-light" title="返回目录">
-            <i class="bi bi-list-ul"></i>
-        </a>
-
-        {% if next %}
-        <a href="{{ url_for('novel.chapter_read', slug=slug, num=next.num) }}" class="btn btn-outline-primary">
-            下一章 <i class="bi bi-chevron-right"></i>
-        </a>
-        {% else %}
-        <button class="btn btn-outline-secondary disabled">末尾章 <i class="bi bi-chevron-right"></i></button>
-        {% endif %}
-    </div>
-
-    <!-- Floating Toolbar (Optional but cool) -->
-    <div class="position-fixed bottom-0 end-0 p-4 d-none d-lg-block" style="z-index: 1050;">
-        <div class="btn-group-vertical shadow-lg">
-            <button class="btn btn-primary" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="回顶部">
-                <i class="bi bi-arrow-up"></i>
+        <!-- Footer Actions -->
+        <div class="flex justify-center gap-4 pt-12 border-t border-outline-variant">
+            <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-primary-container hover:text-primary transition-all">
+                <span class="material-symbols-outlined">arrow_upward</span>
             </button>
-            <button class="btn btn-light" onclick="copyContent()" title="复制全文">
-                <i class="bi bi-copy"></i>
-            </button>
+            <a href="{{ url_for('novel.chapter_list', slug=slug) }}" class="px-8 py-3 rounded-full bg-surface-container text-on-surface-variant font-label-md hover:bg-surface-variant transition-all no-underline flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">list</span> 返回目录
+            </a>
             {% if current_role == 'admin' %}
-            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#replaceModal" title="一键替换">
-                <i class="bi bi-pencil-square"></i>
-            </button>
+            <a href="{{ url_for('novel.chapter_edit', slug=slug, num=chapter.num) }}" class="px-8 py-3 rounded-full bg-primary text-on-primary font-label-md hover:opacity-90 transition-all no-underline flex items-center gap-2 shadow-md">
+                <span class="material-symbols-outlined text-sm">edit</span> 立即修改
+            </a>
             {% endif %}
         </div>
-    </div>
+    </article>
 </div>
-
-{% if current_role == 'admin' %}
-<!-- Replace Modal -->
-<div class="modal fade" id="replaceModal" tabindex="-1" aria-labelledby="replaceModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="replaceModalLabel">一键替换内容</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label for="findText" class="form-label fw-bold">查找文本</label>
-          <input type="text" class="form-control" id="findText" placeholder="要被替换的文字">
-        </div>
-        <div class="mb-3">
-          <label for="replaceText" class="form-label fw-bold">替换为</label>
-          <input type="text" class="form-control" id="replaceText" placeholder="替换后的文字">
-        </div>
-        <div class="alert alert-warning small mb-0">
-            <i class="bi bi-exclamation-triangle me-1"></i> 注意：替换操作会直接更新到数据库且不可撤销（除非手动改回）。
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-        <button type="button" class="btn btn-primary" onclick="executeReplace()">执行并保存</button>
-      </div>
-    </div>
-  </div>
-</div>
-{% endif %}
-{% endblock %}
-
-{% block scripts %}
-<script>
-function copyContent() {
-    const el = document.querySelector('.reading-content');
-    if (!el) {
-        alert('未找到正文内容');
-        return;
-    }
-    const content = el.innerText;
-    
-    // 尝试使用现代 Clipboard API
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(content).then(() => {
-            alert('内容已成功复制到剪贴板');
-        }).catch(err => {
-            console.error('Clipboard API failed:', err);
-            copyToClipboardFallback(content);
-        });
-    } else {
-        copyToClipboardFallback(content);
-    }
-}
-
-function copyToClipboardFallback(text) {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    // 确保 textarea 不可见且不影响滚动
-    textArea.style.position = "fixed";
-    textArea.style.left = "-9999px";
-    textArea.style.top = "0";
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            alert('内容已成功复制到剪贴板 (Fallback)');
-        } else {
-            alert('复制失败，请手动选择复制');
-        }
-    } catch (err) {
-        console.error('Fallback copy failed:', err);
-        alert('复制失败，请手动选择复制');
-    }
-    document.body.removeChild(textArea);
-}
-
-{% if current_role == 'admin' %}
-async function executeReplace() {
-    const find = document.getElementById('findText').value;
-    const replace = document.getElementById('replaceText').value;
-    
-    if (!find) {
-        alert('请输入要查找的文本');
-        return;
-    }
-
-    const contentArea = document.querySelector('.reading-content');
-    const originalHTML = contentArea.innerHTML;
-    
-    // 转义正则特殊字符
-    const escapedFind = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(escapedFind, 'g');
-    const newHTML = originalHTML.replace(regex, replace);
-
-    if (originalHTML === newHTML) {
-        alert('未找到匹配文本');
-        return;
-    }
-
-    if (!confirm(`确定要在本章中将 "${find}" 全部替换为 "${replace}" 吗？`)) {
-        return;
-    }
-
-    try {
-        const resp = await fetch('/api/chapter/update-content', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                novelName: "{{ meta.name }}",
-                chapterNumber: {{ chapter.num }},
-                content: newHTML
-            })
-        });
-        const result = await resp.json();
-        if (result.success) {
-            alert('替换成功！新字数: ' + result.wordCount);
-            location.reload();
-        } else {
-            alert('保存失败: ' + (result.error || '未知错误'));
-        }
-    } catch (e) {
-        console.error(e);
-        alert('网络错误，请重试');
-    }
-}
-{% endif %}
-</script>
 {% endblock %}

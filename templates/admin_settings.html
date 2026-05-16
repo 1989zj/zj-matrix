@@ -1,77 +1,73 @@
 {% extends "base.html" %}
-{% block title %}系统设置 - Admin - NovelStudio{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('admin.index') }}">管理后台</a></li>
-<li class="breadcrumb-item active">系统设置</li>
-{% endblock %}
+{% block title %}系统设置 - NovelStudio{% endblock %}
 
 {% block content %}
-<div class="mb-4">
-    <h1 class="h3 mb-0">⚙️ 系统设置</h1>
-    <p class="text-secondary">配置平台参数与定价策略</p>
-</div>
-
-<div class="row g-4">
-    <!-- Pricing Settings -->
-    <div class="col-lg-6">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0 py-3">
-                <h5 class="mb-0 fw-bold">服务定价设置</h5>
-            </div>
-            <div class="card-body">
-                <p class="text-secondary small mb-4">设置每种订单类型的每章价格（单位：元/章）</p>
-                <form id="priceForm">
-                    {% for type, default_price in order_types.items() %}
-                    <div class="mb-3 row align-items-center">
-                        <label class="col-sm-6 col-form-label fw-semibold">{{ type }}</label>
-                        <div class="col-sm-6">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0">¥</span>
-                                <input type="number" class="form-control border-start-0" 
-                                       name="price_{{ type }}" 
-                                       value="{{ prices.get(type, default_price) }}"
-                                       data-type="{{ type }}">
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </form>
-            </div>
-            <div class="card-footer bg-transparent border-0 pb-4">
-                <button type="button" class="btn btn-primary w-100" id="savePricesBtn">
-                    <i class="bi bi-save me-1"></i> 保存定价配置
-                </button>
-            </div>
-        </div>
+<div class="max-w-container-max mx-auto px-margin-desktop py-12">
+    <div class="mb-8">
+        <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">⚙️ 系统设置</h1>
+        <p class="font-body-md text-body-md text-on-surface-variant">管理平台全局配置、定价策略与系统参数</p>
     </div>
 
-    <!-- System Info -->
-    <div class="col-lg-6">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent border-0 py-3">
-                <h5 class="mb-0 fw-bold">系统信息</h5>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+        <!-- Pricing Strategy -->
+        <div class="bg-surface-container-lowest rounded-2xl p-8 border border-outline-variant shadow-sm">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    <span class="material-symbols-outlined">payments</span>
+                </div>
+                <h3 class="font-title-md text-title-md text-on-surface font-bold">订单定价策略</h3>
             </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-3 pb-3 border-bottom">
-                    <span class="text-secondary">版本号</span>
-                    <span class="fw-bold">v3.0.0 (Bootstrap Upgrade)</span>
+            
+            <div class="space-y-4">
+                {% for type, default_price in order_types.items() %}
+                <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-xl border border-outline-variant/30">
+                    <label class="font-label-md text-label-md text-on-surface font-bold">{{ type }}</label>
+                    <div class="flex items-center gap-2">
+                        <span class="text-on-surface-variant font-label-md">¥</span>
+                        <input type="number" class="w-24 bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-1.5 font-label-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" data-type="{{ type }}" value="{{ prices.get(type, default_price) }}">
+                    </div>
                 </div>
-                <div class="d-flex justify-content-between mb-3 pb-3 border-bottom">
-                    <span class="text-secondary">数据库状态</span>
-                    <span class="text-success fw-bold"><i class="bi bi-check-circle-fill"></i> MongoDB Connected</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span class="text-secondary">运行环境</span>
-                    <span class="badge bg-info-subtle text-info-emphasis">Production Mode</span>
-                </div>
+                {% endfor %}
             </div>
+
+            <button onclick="savePrices()" class="mt-8 w-full bg-primary text-on-primary font-label-md text-label-md py-3 rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-md">
+                保存定价设置
+            </button>
         </div>
 
-        <div class="card border-0 shadow-sm border-start border-warning border-4">
-            <div class="card-body">
-                <h6 class="fw-bold text-warning-emphasis"><i class="bi bi-exclamation-triangle-fill"></i> 危险操作</h6>
-                <p class="small text-secondary mb-3">清空系统缓存或重置定价将不可撤销</p>
-                <button class="btn btn-outline-danger btn-sm">清空所有缓存</button>
+        <!-- System Parameters -->
+        <div class="bg-surface-container-lowest rounded-2xl p-8 border border-outline-variant shadow-sm">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    <span class="material-symbols-outlined">terminal</span>
+                </div>
+                <h3 class="font-title-md text-title-md text-on-surface font-bold">系统运行参数</h3>
+            </div>
+
+            <div class="space-y-6">
+                <div>
+                    <label class="block font-label-sm text-label-sm text-on-surface-variant uppercase mb-2 font-bold tracking-wider">AI 接口并发限制</label>
+                    <input type="range" class="w-full h-2 bg-surface-container rounded-lg appearance-none cursor-pointer accent-primary" min="1" max="10" value="5">
+                    <div class="flex justify-between text-xs text-on-surface-variant mt-2">
+                        <span>1</span>
+                        <span>当前: 5</span>
+                        <span>10</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-label-sm text-label-sm text-on-surface-variant uppercase mb-2 font-bold tracking-wider">系统通知邮箱</label>
+                    <input type="email" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-2.5 font-body-md text-on-surface focus:outline-none focus:border-primary transition-colors" value="admin@novelstudio.ai">
+                </div>
+
+                <div class="pt-4 border-t border-outline-variant/30">
+                    <h4 class="font-label-md text-label-md text-on-surface mb-3 font-bold">高级维护</h4>
+                    <div class="flex flex-col gap-2">
+                        <button class="text-left px-4 py-2 text-sm text-on-surface-variant hover:bg-surface-variant rounded-lg transition-colors">清理系统日志</button>
+                        <button class="text-left px-4 py-2 text-sm text-on-surface-variant hover:bg-surface-variant rounded-lg transition-colors">导出系统全量备份</button>
+                        <button class="text-left px-4 py-2 text-sm text-error hover:bg-error/5 rounded-lg transition-colors">重启 AI 服务引擎</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -80,10 +76,9 @@
 
 {% block scripts %}
 <script>
-document.getElementById('savePricesBtn').addEventListener('click', async () => {
-    const inputs = document.querySelectorAll('#priceForm input');
+async function savePrices() {
     const prices = {};
-    inputs.forEach(input => {
+    document.querySelectorAll('input[data-type]').forEach(input => {
         prices[input.dataset.type] = parseInt(input.value);
     });
 
@@ -91,17 +86,17 @@ document.getElementById('savePricesBtn').addEventListener('click', async () => {
         const resp = await fetch('/admin/api/settings/prices', {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({prices: prices})
+            body: JSON.stringify({prices})
         });
         const result = await resp.json();
         if (result.success) {
-            alert('保存成功');
+            alert('定价设置已更新');
         } else {
-            alert('保存失败: ' + (result.error || '未知错误'));
+            alert('保存失败: ' + result.error);
         }
     } catch (e) {
-        alert('网络错误');
+        alert('保存失败');
     }
-});
+}
 </script>
 {% endblock %}

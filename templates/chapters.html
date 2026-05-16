@@ -1,352 +1,152 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>{{ meta.title }} - 管理 - NovelStudio</title>
-<!-- Google Fonts -->
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&amp;display=swap" rel="stylesheet"/>
-<!-- Material Symbols -->
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<!-- Tailwind CSS -->
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            "colors": {
-                    "secondary": "#5e5e5b",
-                    "on-primary-fixed-variant": "#5a00c6",
-                    "secondary-fixed-dim": "#c8c6c2",
-                    "surface-dim": "#d0dbed",
-                    "surface-tint": "#732ee4",
-                    "secondary-fixed": "#e4e2dd",
-                    "on-background": "#121c2a",
-                    "primary": "#630ed4",
-                    "surface-container": "#e6eeff",
-                    "on-tertiary-fixed": "#191c1f",
-                    "primary-fixed": "#eaddff",
-                    "tertiary-fixed-dim": "#c4c7ca",
-                    "inverse-surface": "#27313f",
-                    "surface-container-high": "#dee9fc",
-                    "outline-variant": "#ccc3d8",
-                    "on-error-container": "#93000a",
-                    "error-container": "#ffdad6",
-                    "surface-bright": "#f8f9ff",
-                    "surface": "#f8f9ff",
-                    "surface-variant": "#d9e3f6",
-                    "inverse-on-surface": "#eaf1ff",
-                    "inverse-primary": "#d2bbff",
-                    "tertiary-fixed": "#e0e2e6",
-                    "on-secondary-container": "#63635f",
-                    "tertiary-container": "#64676b",
-                    "on-tertiary-container": "#e4e6ea",
-                    "on-secondary-fixed": "#1b1c19",
-                    "on-surface-variant": "#4a4455",
-                    "on-primary-container": "#ede0ff",
-                    "on-tertiary": "#ffffff",
-                    "primary-container": "#7c3aed",
-                    "outline": "#7b7487",
-                    "on-error": "#ffffff",
-                    "primary-fixed-dim": "#d2bbff",
-                    "on-primary": "#ffffff",
-                    "surface-container-lowest": "#ffffff",
-                    "on-primary-fixed": "#25005a",
-                    "on-secondary": "#ffffff",
-                    "error": "#ba1a1a",
-                    "on-tertiary-fixed-variant": "#44474a",
-                    "surface-container-highest": "#d9e3f6",
-                    "on-surface": "#121c2a",
-                    "on-secondary-fixed-variant": "#474744",
-                    "background": "#f8f9ff",
-                    "secondary-container": "#e1dfdb",
-                    "surface-container-low": "#eff4ff",
-                    "tertiary": "#4c4f52"
-            },
-            "borderRadius": {
-                    "DEFAULT": "0.25rem",
-                    "lg": "0.5rem",
-                    "xl": "0.75rem",
-                    "full": "9999px"
-            },
-            "spacing": {
-                    "container-max": "1600px",
-                    "margin-desktop": "24px",
-                    "margin-mobile": "16px",
-                    "gutter": "24px",
-                    "editor-width": "1000px",
-                    "unit": "8px"
-            },
-            "fontFamily": {
-                    "headline-lg": ["Literata"],
-                    "title-md": ["Literata"],
-                    "body-md": ["Literata"],
-                    "headline-lg-mobile": ["Literata"],
-                    "label-md": ["Hanken Grotesk"],
-                    "display-lg": ["Literata"],
-                    "body-lg": ["Literata"],
-                    "label-sm": ["Hanken Grotesk"]
-            },
-            "fontSize": {
-                    "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "600"}],
-                    "title-md": ["20px", {"lineHeight": "1.5", "fontWeight": "500"}],
-                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
-                    "headline-lg-mobile": ["28px", {"lineHeight": "1.3", "fontWeight": "600"}],
-                    "label-md": ["14px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "500"}],
-                    "display-lg": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-                    "body-lg": ["18px", {"lineHeight": "1.8", "fontWeight": "400"}],
-                    "label-sm": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}]
-            }
-          }
-        }
-      }
-    </script>
-<style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-        .material-symbols-outlined.fill {
-            font-variation-settings: 'FILL' 1;
-        }
-        /* Custom scrollbar for immersive feel */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background-color: #e4e2dd;
-            border-radius: 4px;
-        }
-        .animate-spin {
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body class="bg-background text-on-background h-screen w-screen overflow-hidden flex flex-col antialiased">
-<!-- TopAppBar -->
-<header class="w-full top-0 sticky bg-surface border-b border-outline-variant flex justify-between items-center px-margin-desktop py-4 z-20">
-<div class="flex items-center gap-gutter">
-<a href="{{ url_for('admin.index') }}" class="no-underline">
-<h1 class="font-headline-lg text-headline-lg font-bold text-primary tracking-tight">NovelStudio</h1>
-</a>
-<!-- Search Bar -->
-<div class="hidden md:flex items-center bg-surface-container-low border border-outline-variant rounded-full px-4 py-2 focus-within:border-primary transition-colors w-64">
-<span class="material-symbols-outlined text-on-surface-variant text-sm mr-2">search</span>
-<input class="bg-transparent border-none focus:ring-0 font-label-md text-label-md text-on-surface w-full placeholder-on-surface-variant" placeholder="搜索章节..." type="text"/>
-</div>
-</div>
-<div class="flex items-center gap-4">
-<button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-70 flex items-center justify-center p-2 rounded-full hover:bg-surface-variant">
-<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
-</button>
-<a href="{{ url_for('admin.admin_settings') }}" class="text-on-surface-variant hover:text-primary transition-colors no-underline flex items-center justify-center p-2 rounded-full hover:bg-surface-variant">
-<span class="material-symbols-outlined" data-icon="settings">settings</span>
-</a>
-<div class="w-8 h-8 rounded-full bg-surface-variant border border-outline-variant cursor-pointer flex items-center justify-center">
-<span class="material-symbols-outlined text-on-surface-variant">person</span>
-</div>
-</div>
-</header>
-<!-- Main Workspace -->
-<div class="flex-1 overflow-hidden flex">
-<!-- SideNavBar (App Navigation Anchor) -->
-<aside class="h-full w-64 sticky left-0 bg-surface-container-lowest border-r border-outline-variant flex flex-col py-unit gap-2 z-10">
-<!-- Header -->
-<div class="px-4 py-6 border-b border-outline-variant mb-2">
-<div class="flex items-center gap-3 mb-4">
-<div class="w-10 h-10 rounded bg-primary-container text-on-primary-container flex items-center justify-center font-bold font-headline-lg text-headline-lg-mobile">
-                        {{ meta.title[0] }}
+{% extends "base.html" %}
+{% block title %}{{ meta.title }} - 管理中心 - NovelStudio{% endblock %}
+
+{% block main_extra_class %}overflow-hidden{% endblock %}
+{% block content_container_class %}h-full{% endblock %}
+
+{% block content %}
+<div class="h-full flex overflow-hidden">
+    <!-- Chapter List Sidebar -->
+    <nav class="w-64 border-r border-outline-variant bg-surface flex flex-col h-full flex-shrink-0 relative">
+        <div class="p-4 border-b border-outline-variant bg-surface-container-lowest flex justify-between items-center sticky top-0">
+            <h3 class="font-label-md text-label-md text-on-surface font-bold tracking-wider">章节目录</h3>
+            <button class="text-on-surface-variant hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-sm">filter_list</span>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto py-2">
+            <ul class="flex flex-col" id="chapter-list">
+                {% for ch in chapters %}
+                <li class="px-4 py-3 cursor-pointer hover:bg-surface-variant transition-colors border-l-2 border-transparent" onclick="loadChapter('{{ slug }}', {{ ch.num }}, this)">
+                    <div class="flex justify-between items-center no-underline text-inherit">
+                        <div class="flex flex-col min-width-0">
+                            <span class="font-body-md text-body-md text-on-surface-variant truncate w-40">{{ ch.title }}</span>
+                            <span class="font-label-sm text-label-sm text-secondary mt-1">{{ '{:,}'.format(ch.words) }} 字</span>
+                        </div>
+                        <span class="material-symbols-outlined text-secondary text-sm">chevron_right</span>
                     </div>
-<div>
-<h2 class="font-title-md text-title-md text-on-surface truncate w-32" title="{{ meta.title }}">{{ meta.title }}</h2>
-<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">{{ '{:,}'.format(meta.stats.words) }} 字</p>
-</div>
-</div>
-<a href="{{ url_for('novel.chapter_edit', slug=slug, num=chapters|length + 1) }}" class="w-full bg-primary text-on-primary font-label-md text-label-md py-2 rounded-lg hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm no-underline">
-<span class="material-symbols-outlined text-sm">add</span>
-                    新章节
-                </a>
-</div>
-<!-- Primary Tabs -->
-<nav class="flex-1 px-2 flex flex-col gap-1">
-<!-- Active Tab -->
-<a class="flex items-center gap-3 px-3 py-2 bg-primary-container text-on-primary-container font-bold rounded-lg border-l-4 border-primary cursor-pointer active:scale-95 transition-transform" href="#">
-<span class="material-symbols-outlined fill" data-icon="edit_note" data-weight="fill" style="font-variation-settings: 'FILL' 1;">edit_note</span>
-<span class="font-label-md text-label-md">管理中心</span>
-</a>
-<!-- Inactive Tabs -->
-<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant rounded-lg cursor-pointer active:scale-95 transition-all duration-200" href="{{ url_for('novel.index') }}">
-<span class="material-symbols-outlined" data-icon="book">book</span>
-<span class="font-label-md text-label-md">小说库</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant rounded-lg cursor-pointer active:scale-95 transition-all duration-200" href="{{ url_for('novel.world_settings', slug=slug) }}">
-<span class="material-symbols-outlined" data-icon="public">public</span>
-<span class="font-label-md text-label-md">世界观设定</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant rounded-lg cursor-pointer active:scale-95 transition-all duration-200" href="{{ url_for('novel.characters', slug=slug) }}">
-<span class="material-symbols-outlined" data-icon="group">group</span>
-<span class="font-label-md text-label-md">角色管理</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant rounded-lg cursor-pointer active:scale-95 transition-all duration-200" href="{{ url_for('novel.timeline', slug=slug) }}">
-<span class="material-symbols-outlined" data-icon="calendar_month">calendar_month</span>
-<span class="font-label-md text-label-md">故事时间线</span>
-</a>
-</nav>
-<!-- Footer Tabs -->
-<div class="mt-auto px-2 border-t border-outline-variant pt-2 flex flex-col gap-1">
-<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant rounded-lg cursor-pointer active:scale-95 transition-all duration-200" href="#">
-<span class="material-symbols-outlined" data-icon="archive">archive</span>
-<span class="font-label-md text-label-md">归档</span>
-</a>
-</div>
-</aside>
-<!-- Column 1: Chapter List -->
-<nav class="w-64 border-r border-outline-variant bg-surface flex flex-col h-full flex-shrink-0 relative">
-<div class="p-4 border-b border-outline-variant bg-surface-container-lowest flex justify-between items-center sticky top-0">
-<h3 class="font-label-md text-label-md text-on-surface font-bold tracking-wider">章节目录</h3>
-<button class="text-on-surface-variant hover:text-primary transition-colors">
-<span class="material-symbols-outlined text-sm">filter_list</span>
-</button>
-</div>
-<div class="flex-1 overflow-y-auto py-2">
-<ul class="flex flex-col" id="chapter-list">
-{% for ch in chapters %}
-<li class="px-4 py-3 cursor-pointer hover:bg-surface-variant transition-colors border-l-2 border-transparent" onclick="loadChapter('{{ slug }}', {{ ch.num }}, this)">
-<div class="flex justify-between items-center no-underline text-inherit">
-<div class="flex flex-col min-width-0">
-<span class="font-body-md text-body-md text-on-surface-variant truncate w-40">{{ ch.title }}</span>
-<span class="font-label-sm text-label-sm text-secondary mt-1">{{ '{:,}'.format(ch.words) }} 字</span>
-</div>
-<span class="material-symbols-outlined text-secondary text-sm">chevron_right</span>
-</div>
-</li>
-{% else %}
-<div class="text-center py-10 px-4">
-<p class="text-secondary font-label-md">暂无章节</p>
-</div>
-{% endfor %}
-</ul>
-</div>
-<!-- Bottom Word Count Chip -->
-<div class="p-3 bg-surface-container-lowest border-t border-outline-variant flex justify-center">
-<div class="bg-surface-container-high rounded-full px-3 py-1 font-label-sm text-label-sm text-on-surface-variant">
+                </li>
+                {% else %}
+                <div class="text-center py-10 px-4">
+                    <p class="text-secondary font-label-md">暂无章节</p>
+                </div>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="p-3 bg-surface-container-lowest border-t border-outline-variant flex flex-col gap-2">
+            <a href="{{ url_for('novel.chapter_edit', slug=slug, num=chapters|length + 1) }}" class="w-full bg-primary text-on-primary font-label-md text-label-md py-2 rounded-lg hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm no-underline">
+                <span class="material-symbols-outlined text-sm">add</span> 新章节
+            </a>
+            <div class="flex justify-center mt-1">
+                <div class="bg-surface-container-high rounded-full px-3 py-1 font-label-sm text-label-sm text-on-surface-variant">
                     共 {{ chapters|length }} 个章节
                 </div>
-</div>
-</nav>
-<!-- Column 2: Immersive Editor -->
-<main class="flex-1 bg-surface-variant overflow-y-auto relative">
-<!-- Wrapper to ensure background continuity -->
-<div class="min-h-full w-full flex justify-center py-8">
-    <!-- Simulated Paper Background -->
-    <article id="editor-paper" class="w-editor-width bg-surface-container-lowest shadow-[0px_4px_24px_rgba(0,0,0,0.02)] mx-4 px-16 py-24 flex flex-col focus:outline-none">
-    
-    <div id="chapter-nav" class="hidden flex justify-between items-center mb-8 pb-4 border-b border-outline-variant">
-        <button id="prev-chapter-btn" class="text-on-surface-variant hover:text-primary disabled:opacity-30 flex items-center gap-1 font-label-md transition-colors">
-            <span class="material-symbols-outlined">chevron_left</span> 上一章
-        </button>
-        <h1 id="display-title" class="font-headline-lg text-headline-lg text-on-surface outline-none text-center flex-1 px-4 truncate">
-            {{ meta.title }}
-        </h1>
-        <button id="next-chapter-btn" class="text-on-surface-variant hover:text-primary disabled:opacity-30 flex items-center gap-1 font-label-md transition-colors">
-            下一章 <span class="material-symbols-outlined">chevron_right</span>
-        </button>
-    </div>
+            </div>
+        </div>
+    </nav>
 
-    <div id="copy-action-wrapper" class="hidden flex justify-center mb-8">
-        <button onclick="copyChapterContent()" class="bg-surface-container text-on-surface-variant hover:bg-primary-container hover:text-primary px-4 py-2 rounded-full flex items-center gap-2 font-label-md transition-all">
-            <span class="material-symbols-outlined text-[18px]">content_copy</span> 复制本章正文
-        </button>
-    </div>
-
-    <h1 id="initial-title" class="font-headline-lg text-headline-lg text-on-surface mb-8 outline-none">{{ meta.title }}</h1>
-    <div id="display-content" class="font-body-lg text-body-lg text-on-surface leading-relaxed space-y-6 outline-none">
-    <p class="text-secondary">欢迎来到管理中心。请从左侧选择一个章节进行阅读或编辑。</p>
-    <div class="mt-12 grid grid-cols-2 gap-6">
-    <div class="p-6 bg-surface-container rounded-xl">
-    <h4 class="font-title-md text-title-md mb-2">作品信息</h4>
-    <p class="text-sm text-on-surface-variant">类型：{{ meta.genre }}</p>
-    <p class="text-sm text-on-surface-variant">目标：{{ meta.target }}</p>
-    <p class="text-sm text-on-surface-variant">状态：{{ meta.stats.status }}</p>
-    </div>
-    <div class="p-6 bg-surface-container rounded-xl">
-    <h4 class="font-title-md text-title-md mb-2">数据统计</h4>
-    <p class="text-sm text-on-surface-variant">总字数：{{ '{:,}'.format(meta.stats.words) }}</p>
-    <p class="text-sm text-on-surface-variant">章节数：{{ chapters|length }}</p>
-    </div>
-    </div>
-    </div>
-    <div id="editor-actions" class="hidden mt-12 pt-8 border-t border-outline-variant flex justify-end gap-4">
-        <a id="edit-button" href="#" class="bg-primary text-on-primary font-label-md text-label-md px-6 py-2.5 rounded hover:opacity-90 no-underline">编辑本章</a>
-    </div>
-    </article>
-</div>
-</main>
-<!-- Column 3: AI Toolbox -->
-<aside class="w-80 border-l border-outline-variant bg-surface flex flex-col h-full flex-shrink-0 relative z-10 shadow-[-4px_0_24px_rgba(0,0,0,0.02)]">
-<div class="p-4 border-b border-outline-variant bg-surface-container-lowest flex items-center gap-2 sticky top-0">
-<span class="material-symbols-outlined text-primary">auto_awesome</span>
-<h3 class="font-label-md text-label-md text-on-surface font-bold tracking-wider">AI 助手</h3>
-</div>
-
-{% if has_ai_access %}
-<div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4" id="ai-assistant-content">
-<div class="bg-primary-container border-l-4 border-primary rounded-lg p-4 relative overflow-hidden group cursor-pointer transition-colors hover:bg-[#ebdfff]">
-<div class="flex justify-between items-start mb-2 relative z-10">
-<div class="flex items-center gap-1.5 text-on-primary-fixed-variant">
-<span class="material-symbols-outlined text-sm">sync_saved_locally</span>
-<span class="font-label-md text-label-md font-bold">同步大纲</span>
-</div>
-</div>
-<p class="font-body-md text-body-md text-on-surface-variant text-sm relative z-10 leading-snug">
-                        保持故事逻辑一致，自动同步最新设定。
-                    </p>
-<button class="mt-3 font-label-sm text-label-sm text-primary hover:text-surface-tint uppercase tracking-wider relative z-10">
-                        立即同步 →
+    <!-- Reader/Editor Area -->
+    <div id="reader-area" class="flex-1 overflow-y-auto bg-surface-variant">
+        <div class="min-h-full w-full flex justify-center py-8">
+            <article id="editor-paper" class="w-editor-width bg-surface-container-lowest shadow-[0px_4px_24px_rgba(0,0,0,0.02)] mx-4 px-16 py-24 flex flex-col focus:outline-none">
+        <div id="chapter-nav" class="hidden flex justify-between items-center mb-8 pb-4 border-b border-outline-variant">
+                    <button id="prev-chapter-btn" class="text-on-surface-variant hover:text-primary disabled:opacity-30 flex items-center gap-1 font-label-md transition-colors">
+                        <span class="material-symbols-outlined">chevron_left</span> 上一章
                     </button>
-</div>
+                    <h1 id="display-title" class="font-headline-lg text-headline-lg text-on-surface outline-none text-center flex-1 px-4 truncate cursor-help" onclick="checkAndShowTitleToast()">
+                        {{ meta.title }}
+                    </h1>
+                    <button id="next-chapter-btn" class="text-on-surface-variant hover:text-primary disabled:opacity-30 flex items-center gap-1 font-label-md transition-colors">
+                        下一章 <span class="material-symbols-outlined">chevron_right</span>
+                    </button>
+                </div>
 
-<!-- Chat Messages Area -->
-<div id="ai-chat-messages" class="flex-1 flex flex-col gap-3 min-h-[200px]">
-    <div class="bg-surface-container-low rounded-lg p-3 text-sm text-on-surface-variant italic border border-outline-variant/30">
-        我是 HermesAgent，您可以询问关于本章设定、剧情衔接或修改建议。
-    </div>
-</div>
-</div>
+                <div id="copy-action-wrapper" class="hidden flex justify-center mb-8">
+                    <button onclick="copyChapterContent()" class="bg-surface-container text-on-surface-variant hover:bg-primary-container hover:text-primary px-4 py-2 rounded-full flex items-center gap-2 font-label-md transition-all">
+                        <span class="material-symbols-outlined text-[18px]">content_copy</span> 复制本章正文
+                    </button>
+                </div>
 
-<!-- AI Chat Input Area -->
-<div class="p-4 border-t border-outline-variant bg-surface-container-lowest">
-    <div class="relative">
-        <textarea id="ai-chat-input" rows="3" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 font-body-md text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none placeholder:text-on-surface-variant/50" placeholder="询问 AI 助手..."></textarea>
-        <button id="send-ai-chat" class="absolute bottom-3 right-3 w-8 h-8 bg-primary text-on-primary rounded-full flex items-center justify-center shadow-sm hover:opacity-90 active:scale-95 transition-all disabled:opacity-50">
-            <span class="material-symbols-outlined text-[18px]">send</span>
-        </button>
+                <h1 id="initial-title" class="font-headline-lg text-headline-lg text-on-surface mb-8 outline-none">{{ meta.title }}</h1>
+                <div id="display-content" class="font-body-lg text-body-lg text-on-surface leading-relaxed space-y-6 outline-none">
+                    <p class="text-secondary">欢迎来到管理中心。请从左侧选择一个章节进行阅读或编辑。</p>
+                    <div class="mt-12 grid grid-cols-2 gap-6">
+                        <div class="p-6 bg-surface-container rounded-xl">
+                            <h4 class="font-title-md text-title-md mb-2">作品信息</h4>
+                            <p class="text-sm text-on-surface-variant">类型：{{ meta.genre }}</p>
+                            <p class="text-sm text-on-surface-variant">目标：{{ meta.target }}</p>
+                            <p class="text-sm text-on-surface-variant">状态：{{ meta.stats.status }}</p>
+                        </div>
+                        <div class="p-6 bg-surface-container rounded-xl">
+                            <h4 class="font-title-md text-title-md mb-2">数据统计</h4>
+                            <p class="text-sm text-on-surface-variant">总字数：{{ '{:,}'.format(meta.stats.words) }}</p>
+                            <p class="text-sm text-on-surface-variant">章节数：{{ chapters|length }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="editor-actions" class="hidden mt-12 pt-8 border-t border-outline-variant flex justify-end gap-4">
+                    <a id="edit-button" href="#" class="bg-primary text-on-primary font-label-md text-label-md px-6 py-2.5 rounded hover:opacity-90 no-underline">编辑本章</a>
+                </div>
+            </article>
+        </div>
     </div>
-    <p class="text-[10px] text-on-surface-variant/60 mt-2 text-center">HermesAgent 正在为您服务</p>
 </div>
-{% else %}
-<div class="flex-1 flex flex-col items-center justify-center p-6 text-center">
-    <div class="w-16 h-16 bg-surface-variant rounded-full flex items-center justify-center mb-4 text-secondary">
-        <span class="material-symbols-outlined text-3xl">lock</span>
+{% endblock %}
+
+{% block ai_toolbox %}
+<aside class="w-80 border-l border-outline-variant bg-surface flex flex-col h-full flex-shrink-0 relative z-10 shadow-[-4px_0_24px_rgba(0,0,0,0.02)]">
+    <div class="p-4 border-b border-outline-variant bg-surface-container-lowest flex items-center gap-2 sticky top-0">
+        <span class="material-symbols-outlined text-primary">auto_awesome</span>
+        <h3 class="font-label-md text-label-md text-on-surface font-bold tracking-wider">AI 助手</h3>
     </div>
-    <h4 class="font-title-md text-title-md text-on-surface mb-2">权限受限</h4>
-    <p class="font-body-sm text-body-sm text-on-surface-variant">AI 助手目前仅对管理员及开通高级权限的用户开放。</p>
-</div>
-{% endif %}
+
+    {% if has_ai_access %}
+    <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4" id="ai-assistant-content">
+        <div class="bg-primary-container border-l-4 border-primary rounded-lg p-4 relative overflow-hidden group cursor-pointer transition-colors hover:bg-[#ebdfff]">
+            <div class="flex justify-between items-start mb-2 relative z-10">
+                <div class="flex items-center gap-1.5 text-on-primary-fixed-variant">
+                    <span class="material-symbols-outlined text-sm">sync_saved_locally</span>
+                    <span class="font-label-md text-label-md font-bold">同步大纲</span>
+                </div>
+            </div>
+            <p class="font-body-md text-body-md text-on-surface-variant text-sm relative z-10 leading-snug">
+                保持故事逻辑一致，自动同步最新设定。
+            </p>
+            <button class="mt-3 font-label-sm text-label-sm text-primary hover:text-surface-tint uppercase tracking-wider relative z-10">
+                立即同步 →
+            </button>
+        </div>
+
+        <div id="ai-chat-messages" class="flex-1 flex flex-col gap-3 min-h-[200px]">
+            <div class="bg-surface-container-low rounded-lg p-3 text-sm text-on-surface-variant italic border border-outline-variant/30">
+                我是 HermesAgent，您可以询问关于本章设定、剧情衔接或修改建议。
+            </div>
+        </div>
+    </div>
+
+    <div class="p-4 border-t border-outline-variant bg-surface-container-lowest">
+        <div class="relative">
+            <textarea id="ai-chat-input" rows="3" class="w-full bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 font-body-md text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none placeholder:text-on-surface-variant/50" placeholder="询问 AI 助手..."></textarea>
+            <button id="send-ai-chat" class="absolute bottom-3 right-3 w-8 h-8 bg-primary text-on-primary rounded-full flex items-center justify-center shadow-sm hover:opacity-90 active:scale-95 transition-all disabled:opacity-50">
+                <span class="material-symbols-outlined text-[18px]">send</span>
+            </button>
+        </div>
+        <p class="text-[10px] text-on-surface-variant/60 mt-2 text-center">HermesAgent 正在为您服务</p>
+    </div>
+    {% else %}
+    <div class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+        <div class="w-16 h-16 bg-surface-variant rounded-full flex items-center justify-center mb-4 text-secondary">
+            <span class="material-symbols-outlined text-3xl">lock</span>
+        </div>
+        <h4 class="font-title-md text-title-md text-on-surface mb-2">权限受限</h4>
+        <p class="font-body-sm text-body-sm text-on-surface-variant">AI 助手目前仅对管理员及开通高级权限的用户开放。</p>
+    </div>
+    {% endif %}
 </aside>
-</div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-// ── AI Assistant Chat ──
 const chatInput = document.getElementById('ai-chat-input');
 const sendBtn = document.getElementById('send-ai-chat');
 const chatMessages = document.getElementById('ai-chat-messages');
@@ -364,11 +164,8 @@ if (chatInput && sendBtn && chatMessages) {
     sendBtn.addEventListener('click', () => {
         const text = chatInput.value.trim();
         if (!text) return;
-        
         addChatMessage(text, 'user');
         chatInput.value = '';
-        
-        // 模拟 AI 回复 (待后续对接 HermesAgent)
         setTimeout(() => {
             addChatMessage('收到。我已经准备好对接 HermesAgent，正在分析您的请求...', 'ai');
         }, 600);
@@ -381,6 +178,7 @@ if (chatInput && sendBtn && chatMessages) {
         }
     });
 }
+
 let currentSlug = '{{ slug }}';
 let currentNum = 0;
 const totalChapters = {{ chapters|length }};
@@ -388,9 +186,7 @@ const totalChapters = {{ chapters|length }};
 function copyChapterContent() {
     const contentEl = document.getElementById('display-content');
     if (!contentEl) return;
-    
     const text = contentEl.innerText;
-    
     navigator.clipboard.writeText(text).then(() => {
         const btn = document.querySelector('#copy-action-wrapper button');
         const originalHTML = btn.innerHTML;
@@ -403,13 +199,19 @@ function copyChapterContent() {
             btn.classList.replace('text-primary', 'hover:text-primary');
         }, 2000);
     }).catch(err => {
-        alert('复制失败，请重试');
+        alert('复制失败');
     });
+}
+
+function checkAndShowTitleToast() {
+    const titleEl = document.getElementById('display-title');
+    if (titleEl && titleEl.scrollWidth > titleEl.clientWidth) {
+        showToast(titleEl.innerText, 'auto_stories');
+    }
 }
 
 async function loadChapter(slug, num, el) {
     if (el) {
-        // 高亮当前选中的章节
         const listItems = document.querySelectorAll('#chapter-list li');
         listItems.forEach(item => {
             item.classList.remove('bg-primary-fixed', 'border-primary');
@@ -417,22 +219,7 @@ async function loadChapter(slug, num, el) {
         });
         el.classList.add('bg-primary-fixed', 'border-primary');
         el.classList.remove('border-transparent');
-    } else {
-        // 自动定位侧边栏
-        const items = document.querySelectorAll('#chapter-list li');
-        items.forEach(item => {
-            const onclickStr = item.getAttribute('onclick');
-            if (onclickStr && onclickStr.includes(`, ${num},`)) {
-                item.classList.add('bg-primary-fixed', 'border-primary');
-                item.classList.remove('border-transparent');
-                item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-            } else {
-                item.classList.remove('bg-primary-fixed', 'border-primary');
-                item.classList.add('border-transparent');
-            }
-        });
     }
-
     currentNum = num;
     const titleEl = document.getElementById('display-title');
     const initialTitle = document.getElementById('initial-title');
@@ -442,24 +229,18 @@ async function loadChapter(slug, num, el) {
     const navEl = document.getElementById('chapter-nav');
     const copyEl = document.getElementById('copy-action-wrapper');
 
-    // 显示加载状态
     contentEl.innerHTML = '<div class="flex justify-center py-20"><span class="material-symbols-outlined animate-spin text-primary text-4xl">sync</span></div>';
     
     try {
         const resp = await fetch(`/api/novel/${slug}/chapter/${num}/`);
         const data = await resp.json();
-        
         if (data.error) {
             contentEl.innerHTML = `<p class="text-error">${data.error}</p>`;
             return;
         }
-
-        // 切换显示模式
         if (initialTitle) initialTitle.classList.add('hidden');
         navEl.classList.remove('hidden');
         copyEl.classList.remove('hidden');
-
-        // 更新内容
         titleEl.innerText = `${data.title}`;
         
         const prevBtn = document.getElementById('prev-chapter-btn');
@@ -471,16 +252,15 @@ async function loadChapter(slug, num, el) {
         
         const paragraphs = data.content.split('\n').filter(p => p.trim() !== '');
         contentEl.innerHTML = paragraphs.map(p => `<p class="mb-6">${p}</p>`).join('');
-        
         actionsEl.classList.remove('hidden');
         editBtn.href = `/novel/${slug}/chapter/${num}/edit/`;
+        document.getElementById('reader-area').scrollTo({ top: 0, behavior: 'smooth' });
         
-        document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
-
+        // 检查标题是否溢出并展示 Toast
+        setTimeout(checkAndShowTitleToast, 100);
     } catch (e) {
-        contentEl.innerHTML = '<p class="text-red-500">内容加载失败，请重试。</p>';
+        contentEl.innerHTML = '<p class="text-red-500">内容加载失败。</p>';
     }
 }
 </script>
-</body>
-</html>
+{% endblock %}

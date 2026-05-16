@@ -12,33 +12,31 @@ def _format_world_settings(world):
     # 力量体系
     if 'power_system' in world:
         ps = world['power_system']
-        lines = []
-        if ps.get('name'):
-            lines.append(f"体系名称：{ps['name']}")
-        if ps.get('levels'):
-            lines.append(f"等级划分：{ps['levels']}")
-        if ps.get('source'):
-            lines.append(f"能量来源：{ps['source']}")
-        if ps.get('note'):
-            lines.append(f"补充设定：{ps['note']}")
-        sections.append({'title': '力量体系', 'content': '<br>'.join(lines)})
-
-    # 时间线
-    if 'timeline' in world:
         items = []
-        for k, v in sorted(world['timeline'].items()):
-            label = k.replace('_', ' → ')
-            items.append(f"<b>{label}</b>：{v}")
-        sections.append({'title': '故事时间线', 'content': items})
+        if ps.get('name'):
+            items.append({'label': '体系名称', 'value': ps['name']})
+        if ps.get('levels'):
+            items.append({'label': '等级划分', 'value': ps['levels']})
+        if ps.get('source'):
+            items.append({'label': '能量来源', 'value': ps['source']})
+        if ps.get('note'):
+            items.append({'label': '补充设定', 'value': ps['note']})
+        sections.append({'title': '力量体系', 'content': items})
 
     # 势力分布
     if 'factions' in world:
-        items = [f"<b>{name}</b>：{desc}" for name, desc in world['factions'].items()]
+        items = [{'label': name, 'value': desc} for name, desc in world['factions'].items()]
         sections.append({'title': '势力分布', 'content': items})
 
     # 威胁层级
     if 'threats' in world:
-        sections.append({'title': '威胁与结局', 'content': world['threats']})
+        # 威胁通常是纯文本或列表，这里为了统一，如果不是列表则转为单项
+        content = world['threats']
+        if isinstance(content, str):
+            sections.append({'title': '威胁与结局', 'content': content})
+        else:
+            items = [{'label': f'层级 {i+1}', 'value': v} for i, v in enumerate(content)]
+            sections.append({'title': '威胁与结局', 'content': items})
 
     return sections
 

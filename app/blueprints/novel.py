@@ -300,6 +300,17 @@ def world_settings(slug):
         abort(404)
     return render_template('world.html', novel_name=name, meta=meta, slug=slug)
 
+@novel_bp.route('/novel/<slug>/power-system/')
+@admin_required
+def power_system(slug):
+    name = slug_to_name(slug)
+    if not name:
+        abort(404)
+    meta = get_novel_meta(name)
+    if not meta:
+        abort(404)
+    return render_template('power_system.html', novel_name=name, meta=meta, slug=slug)
+
 @novel_bp.route('/novel/<slug>/timeline/')
 @admin_required
 def timeline(slug):

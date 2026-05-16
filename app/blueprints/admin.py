@@ -36,6 +36,8 @@ def admin_orders():
     for o in all_orders:
         o['_id'] = str(o['_id'])
         o['statusLabel'] = ORDER_STATUSES.get(o['status'], o['status'])
+        if isinstance(o.get('createdAt'), datetime):
+            o['createdAt'] = o['createdAt'].strftime('%Y-%m-%d %H:%M:%S')
     return render_template('admin_orders.html', orders=all_orders,
                            ORDER_STATUSES=ORDER_STATUSES)
 
@@ -51,6 +53,8 @@ def admin_order_detail(oid):
         abort(404)
     order['_id'] = str(order['_id'])
     order['statusLabel'] = ORDER_STATUSES.get(order['status'], order['status'])
+    if isinstance(order.get('createdAt'), datetime):
+        order['createdAt'] = order['createdAt'].strftime('%Y-%m-%d %H:%M:%S')
     return render_template('admin_order_detail.html', order=order,
                            ORDER_STATUSES=ORDER_STATUSES)
 

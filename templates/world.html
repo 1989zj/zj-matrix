@@ -1,44 +1,62 @@
 {% extends "base.html" %}
-{% block title %}世界观 - {{ meta.title }} - NovelStudio{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('novel.index') }}">小说库</a></li>
-<li class="breadcrumb-item"><a href="{{ url_for('novel.novel_detail', slug=slug) }}">{{ meta.title }}</a></li>
-<li class="breadcrumb-item active">世界观</li>
-{% endblock %}
+{% block title %}世界观设定 - {{ meta.title }} - NovelStudio{% endblock %}
 
 {% block content %}
-<div class="mb-4">
-    <h1 class="h3 mb-1">🌍 世界观设定</h1>
-    <p class="text-secondary">{{ meta.title }} · 逻辑内核、地理、力量体系</p>
-</div>
-
-<div class="row g-4">
-    {% for section in meta.world_settings %}
-    <div class="col-lg-6">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent py-3 border-0">
-                <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-bookmark-fill me-2"></i> {{ section.title }}</h5>
+<div class="max-w-container-max mx-auto px-margin-desktop py-12">
+    <div class="mb-10">
+        <div class="flex items-center gap-3 mb-2">
+            <div class="w-8 h-8 rounded bg-primary/10 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-sm">public</span>
             </div>
-            <div class="card-body pt-0">
-                <div class="text-secondary" style="line-height: 1.8;">
-                    {% if section.content is string %}
-                        {{ section.content|safe }}
-                    {% else %}
-                        <ul class="list-group list-group-flush small">
-                            {% for item in section.content %}
-                            <li class="list-group-item bg-transparent px-0 border-light-subtle">{{ item|safe }}</li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
+            <h1 class="font-headline-lg text-headline-lg text-on-surface">世界观设定</h1>
+        </div>
+        <p class="font-body-md text-on-surface-variant opacity-70">{{ meta.title }}</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {% for section in meta.world_settings %}
+        <div class="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant shadow-sm flex flex-col h-full hover:shadow-md transition-all duration-300">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="w-12 h-12 rounded-2xl bg-primary-container text-on-primary-container flex items-center justify-center shadow-inner">
+                    <span class="material-symbols-outlined">auto_awesome_motion</span>
                 </div>
+                <h3 class="font-title-md text-2xl text-on-surface font-bold tracking-tight">{{ section.title }}</h3>
+            </div>
+            
+            <div class="flex-1 font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                {% if section.content is string %}
+                    <div class="p-6 bg-surface-container-low rounded-2xl border border-outline-variant/30 italic opacity-80 whitespace-pre-wrap">
+                        {{ section.content|safe }}
+                    </div>
+                {% else %}
+                    <div class="space-y-6">
+                        {% for item in section.content %}
+                            {% if item is mapping and 'label' in item %}
+                            <div class="group">
+                                <div class="font-label-sm text-[10px] text-primary uppercase font-bold tracking-widest mb-2 flex items-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                                    {{ item.label }}
+                                </div>
+                                <div class="px-5 py-4 bg-surface-container-low rounded-2xl border border-outline-variant/20 text-on-surface leading-loose shadow-sm group-hover:border-primary/30 transition-colors">
+                                    {{ item.value|safe }}
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="p-5 bg-surface-container-low rounded-2xl border border-outline-variant/30">{{ item|safe }}</div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
         </div>
+        {% else %}
+        <div class="col-span-full py-32 text-center">
+            <div class="w-24 h-24 bg-surface-container rounded-full flex items-center justify-center mx-auto mb-8 text-on-surface-variant/20">
+                <span class="material-symbols-outlined text-6xl">public_off</span>
+            </div>
+            <p class="text-on-surface-variant font-body-lg italic opacity-40">暂未录入核心世界观信息</p>
+        </div>
+        {% endfor %}
     </div>
-    {% else %}
-    <div class="col-12 text-center py-5">
-        <div class="display-1 text-muted opacity-25 mb-4"><i class="bi bi-globe"></i></div>
-        <p class="text-secondary">暂未录入世界观信息</p>
-    </div>
-    {% endfor %}
 </div>
 {% endblock %}

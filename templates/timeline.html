@@ -1,41 +1,48 @@
 {% extends "base.html" %}
-{% block title %}时间线 - {{ meta.title }} - NovelStudio{% endblock %}
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('novel.index') }}">小说库</a></li>
-<li class="breadcrumb-item"><a href="{{ url_for('novel.novel_detail', slug=slug) }}">{{ meta.title }}</a></li>
-<li class="breadcrumb-item active">时间线</li>
-{% endblock %}
+{% block title %}故事时间线 - {{ meta.title }} - NovelStudio{% endblock %}
 
 {% block content %}
-<div class="mb-4">
-    <h1 class="h3 mb-1">📅 故事时间线</h1>
-    <p class="text-secondary">{{ meta.title }} · 大事记与情节脉络</p>
-</div>
+<div class="max-w-container-max mx-auto px-margin-desktop py-12">
+    <div class="mb-12 text-center">
+        <h1 class="font-headline-lg text-display-lg text-on-surface mb-3">⏳ 故事时间线</h1>
+        <p class="font-body-md text-body-md text-on-surface-variant max-w-2xl mx-auto italic">“时间并非一条直线，而是由无数个关键节点交织而成的网络。每一刻的选择都在重塑着未来的形状。”</p>
+    </div>
 
-<div class="card border-0 shadow-sm">
-    <div class="card-body p-4">
-        <div class="timeline-v2">
-            {% for item in meta.timeline %}
-            <div class="timeline-item pb-4 border-start border-primary-subtle position-relative ps-4 ms-2">
-                <div class="timeline-dot bg-primary position-absolute rounded-circle" style="width: 12px; height: 12px; left: -7px; top: 0;"></div>
-                <div class="mb-1 text-primary fw-bold small">{{ item.label }}</div>
-                <div class="bg-light p-3 rounded">
-                    <p class="mb-0 text-secondary small">{{ item.desc }}</p>
+    <div class="relative">
+        <!-- Vertical Line -->
+        <div class="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-gradient-to-b from-primary/10 via-primary/30 to-primary/10 rounded-full"></div>
+
+        <div class="space-y-16 relative z-10">
+            {% set tl = meta.world.timeline if meta.world and meta.world.timeline else {} %}
+            {% for key, val in tl|dictsort %}
+            <div class="flex items-center w-full {% if loop.index is odd %}flex-row-reverse{% endif %}">
+                <!-- Content Side -->
+                <div class="w-1/2 {% if loop.index is odd %}pl-12 text-left{% else %}pr-12 text-right{% endif %}">
+                    <div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant shadow-sm hover:shadow-md transition-all group">
+                        <div class="font-headline-lg text-headline-lg-mobile text-primary mb-2 group-hover:scale-105 transition-transform origin-left">
+                            {{ key.replace('_', ' → ') }}
+                        </div>
+                        <p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">{{ val }}</p>
+                    </div>
                 </div>
+
+                <!-- Center Point -->
+                <div class="w-12 h-12 rounded-full bg-primary border-4 border-surface shadow-lg flex items-center justify-center relative z-20">
+                    <span class="material-symbols-outlined text-on-primary text-xl">history_toggle_off</span>
+                </div>
+
+                <!-- Spacer Side -->
+                <div class="w-1/2"></div>
             </div>
             {% else %}
-            <div class="text-center py-5">
-                <div class="display-1 text-muted opacity-25 mb-4"><i class="bi bi-calendar3"></i></div>
-                <p class="text-secondary">暂未录入时间线信息</p>
+            <div class="py-20 text-center">
+                <div class="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mx-auto mb-6 text-on-surface-variant/30">
+                    <span class="material-symbols-outlined text-5xl">calendar_month</span>
+                </div>
+                <p class="text-on-surface-variant font-body-lg italic opacity-50">暂未录入时间线设定</p>
             </div>
             {% endfor %}
         </div>
     </div>
 </div>
-
-<style>
-    .timeline-v2 .timeline-item:last-child {
-        border-start: 0 !important;
-    }
-</style>
 {% endblock %}
