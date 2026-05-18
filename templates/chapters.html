@@ -14,10 +14,19 @@
                 <span class="material-symbols-outlined text-sm">filter_list</span>
             </button>
         </div>
+        <!-- Chapter Search -->
+        <div class="p-3 border-b border-outline-variant bg-surface-container-low">
+            <div class="relative">
+                <input type="text" id="chapter-search" placeholder="输入数字隐藏1-N或搜索标题..." 
+                    class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg pl-8 pr-3 py-1.5 text-[12px] focus:outline-none focus:border-primary transition-colors placeholder:text-on-surface-variant/50"
+                    oninput="filterChapters()">
+                <span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-[16px] text-on-surface-variant">search</span>
+            </div>
+        </div>
         <div class="flex-1 overflow-y-auto py-2">
             <ul class="flex flex-col" id="chapter-list">
                 {% for ch in chapters %}
-                <li class="px-4 py-3 cursor-pointer hover:bg-surface-variant transition-colors border-l-2 border-transparent" onclick="loadChapter('{{ slug }}', {{ ch.num }}, this)">
+                <li data-num="{{ ch.num }}" class="px-4 py-3 cursor-pointer hover:bg-surface-variant transition-colors border-l-2 border-transparent" onclick="loadChapter('{{ slug }}', {{ ch.num }}, this)">
                     <div class="flex justify-between items-center no-underline text-inherit">
                         <div class="flex flex-col min-width-0">
                             <span class="font-body-md text-body-md text-on-surface-variant truncate w-40">{{ ch.title }}</span>
@@ -53,7 +62,7 @@
                     <button id="prev-chapter-btn" class="text-on-surface-variant hover:text-primary disabled:opacity-30 flex items-center gap-1 font-label-md transition-colors">
                         <span class="material-symbols-outlined">chevron_left</span> 上一章
                     </button>
-                    <h1 id="display-title" class="font-headline-lg text-headline-lg text-on-surface outline-none text-center flex-1 px-4 truncate cursor-help" onclick="checkAndShowTitleToast()">
+                    <h1 id="display-title" class="font-headline-lg text-headline-lg text-on-surface outline-none text-center flex-1 px-4 truncate cursor-help" onclick="copyChapterTitle()">
                         {{ meta.title }}
                     </h1>
                     <button id="next-chapter-btn" class="text-on-surface-variant hover:text-primary disabled:opacity-30 flex items-center gap-1 font-label-md transition-colors">
@@ -233,7 +242,36 @@ function fallbackCopyTextToClipboard(text, callback) {
     document.body.removeChild(textArea);
 }
 
+function copyChapterTitle() {
+    const titleEl = document.getElementById('display-title');
+    if (!titleEl) return;
+    
+    const fullText = titleEl.innerText.trim();
+    // 移除前缀：
+    // 1. 第N章/第一章/第1卷 等 (支持中文数字)
+    // 2. Chapter 1
+    // 3. 数字开头如 "01. ", "01-", "01 "
+    const cleanText = fullText.replace(/^(第?\s*[0-9一二三四五六七八九十百千万零]+\s*[章节卷回部篇项]\s*[:：\s-]*|Chapter\s*[0-9]+\s*[:：\s-]*|[0-9]+[\.．\s-]*)/i, '').trim();
+    
+    // 如果剥离后为空（说明标题本身就是“第1章”这种形式），则保留原样或只取数字
+    const finalCopyText = cleanText || fullText;
+
+    const successCallback = () => {
+        showToast('已复制标题: ' + finalCopyText, 'content_copy');
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(finalCopyText).then(successCallback).catch(err => {
+            fallbackCopyTextToClipboard(finalCopyText, successCallback);
+        });
+    } else {
+        fallbackCopyTextToClipboard(finalCopyText, successCallback);
+    }
+}
+
 function checkAndShowTitleToast() {
+    // 这里的逻辑已经整合到 copyChapterTitle 中，但 loadChapter 还在调用它，
+    // 我们保留它以确保长标题仍然有溢出提示的可能（虽然 copy 现在也会触发 toast）
     const titleEl = document.getElementById('display-title');
     if (titleEl && titleEl.scrollWidth > titleEl.clientWidth) {
         showToast(titleEl.innerText, 'auto_stories');
@@ -290,6 +328,40 @@ async function loadChapter(slug, num, el) {
         setTimeout(checkAndShowTitleToast, 100);
     } catch (e) {
         contentEl.innerHTML = '<p class="text-red-500">内容加载失败。</p>';
+    }
+}
+
+function filterChapters() {
+    const val = document.getElementById('chapter-search').value.trim();
+    const items = document.querySelectorAll('#chapter-list li');
+    
+    if (!val) {
+        items.forEach(item => item.classList.remove('hidden'));
+        return;
+    }
+
+    const numVal = parseInt(val);
+    if (!isNaN(numVal) && val.match(/^\d+$/)) {
+        // 如果是纯数字，执行“隐藏1-N”逻辑
+        items.forEach(item => {
+            const chNum = parseInt(item.getAttribute('data-num'));
+            if (chNum <= numVal) {
+                item.classList.add('hidden');
+            } else {
+                item.classList.remove('hidden');
+            }
+        });
+    } else {
+        // 否则执行标题搜索逻辑
+        const searchLower = val.toLowerCase();
+        items.forEach(item => {
+            const title = item.querySelector('.text-on-surface-variant').innerText.toLowerCase();
+            if (title.includes(searchLower)) {
+                item.classList.remove('hidden');
+            } else {
+                item.classList.add('hidden');
+            }
+        });
     }
 }
 </script>

@@ -49,7 +49,7 @@
   </div>
 
   <!-- Global Toast -->
-  <div id="global-toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 translate-y-20 opacity-0 pointer-events-none">
+  <div id="global-toast" onclick="keepToast()" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 translate-y-20 opacity-0 pointer-events-none cursor-pointer">
     <div class="bg-inverse-surface text-inverse-on-surface px-6 py-3 rounded-xl shadow-lg font-label-md flex items-center gap-2">
       <span id="toast-icon" class="material-symbols-outlined text-[20px]">info</span>
       <span id="toast-message"></span>
@@ -61,16 +61,26 @@
       const toast = document.getElementById('global-toast');
       const msgEl = document.getElementById('toast-message');
       const iconEl = document.getElementById('toast-icon');
-      
+
       msgEl.innerText = message;
       iconEl.innerText = icon;
-      
+
       toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
-      
+
       clearTimeout(window.toastTimer);
       window.toastTimer = setTimeout(() => {
-        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+        hideToast();
       }, 3000);
+    }
+
+    function hideToast() {
+      const toast = document.getElementById('global-toast');
+      toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+    }
+
+    function keepToast() {
+      clearTimeout(window.toastTimer);
+      // Optional: Add a visual indicator that it's now pinned or just let it stay
     }
   </script>
 

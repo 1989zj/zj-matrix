@@ -10,13 +10,13 @@
   </div>
   <div class="flex items-center gap-4">
     {% if all_novels %}
-    <div class="relative group">
-      <button class="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors p-2 rounded-lg hover:bg-primary/5 border border-transparent hover:border-primary/20">
+    <div class="relative" id="novel-switcher-root" onmouseenter="showNovelMenu()" onmouseleave="startNovelMenuTimer()">
+      <button onclick="toggleNovelMenu(event)" class="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors p-2 rounded-lg hover:bg-primary/5 border border-transparent hover:border-primary/20">
         <span class="material-symbols-outlined">swap_horiz</span>
         <span class="hidden lg:block font-label-md text-label-md">切换作品</span>
         <span class="material-symbols-outlined text-[16px] opacity-50">expand_more</span>
       </button>
-      <div class="absolute right-0 mt-2 w-72 bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
+      <div id="novel-menu" onclick="keepNovelMenu(event)" class="absolute right-0 mt-2 w-72 bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-2xl opacity-0 translate-y-2 pointer-events-none transition-all duration-200 z-50">
         <div class="bg-surface-container-low px-4 py-3 border-b border-outline-variant rounded-t-2xl">
           <div class="font-label-sm text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">快速切换至其他作品</div>
         </div>
@@ -40,6 +40,59 @@
         </div>
       </div>
     </div>
+
+    <script>
+      let novelMenuTimer;
+      let isNovelMenuPinned = false;
+
+      function toggleNovelMenu(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const menu = document.getElementById('novel-menu');
+        const isHidden = menu.classList.contains('opacity-0');
+        
+        if (isHidden) {
+          showNovelMenu();
+          isNovelMenuPinned = true;
+        } else {
+          hideNovelMenu();
+          isNovelMenuPinned = false;
+        }
+      }
+
+      function showNovelMenu() {
+        const menu = document.getElementById('novel-menu');
+        menu.classList.remove('opacity-0', 'translate-y-2', 'pointer-events-none');
+        clearTimeout(novelMenuTimer);
+      }
+
+      function startNovelMenuTimer() {
+        if (isNovelMenuPinned) return;
+        clearTimeout(novelMenuTimer);
+        novelMenuTimer = setTimeout(hideNovelMenu, 3000);
+      }
+
+      function hideNovelMenu() {
+        if (isNovelMenuPinned) return;
+        const menu = document.getElementById('novel-menu');
+        menu.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
+      }
+
+      function keepNovelMenu(e) {
+        // e.stopPropagation(); // Allow links to work but stop closing
+        isNovelMenuPinned = true;
+        clearTimeout(novelMenuTimer);
+      }
+
+      // Close when clicking outside
+      document.addEventListener('click', (e) => {
+        const root = document.getElementById('novel-switcher-root');
+        if (root && !root.contains(e.target)) {
+          isNovelMenuPinned = false;
+          hideNovelMenu();
+        }
+      });
+    </script>
     {% elif current_role == 'admin' %}
     <span class="text-[10px] text-error font-mono">No Novels Found</span>
     {% endif %}
