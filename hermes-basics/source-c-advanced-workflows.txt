@@ -1,0 +1,169 @@
+=== Hermes Agent 基础操作 — 进阶工作流与生产部署 ===
+
+== 1. 多 Profile 隔离 ==
+
+Profile 是 Hermes 的「分身」功能。每个 profile 有独立的配置、会话、技能、记忆。
+
+hermes profile list             # 查看所有 profiles
+hermes profile create work      # 创建名为 work 的新 profile（从头开始）
+hermes profile create dev --clone  # 从当前 profile 克隆
+hermes profile use work         # 设置为默认 profile
+
+hermes --profile dev            # 启动时指定 profile
+
+Profile 存储在 ~/.hermes/profiles/<name>/，目录结构同主 ~/.hermes/ 一致。
+
+典型用法：
+  - default：日常通用
+  - work：工作项目（只加载项目相关技能）
+  - dev：内部开发调试
+  - finance：基金/ETF 监控专用
+
+hermes profile export work /tmp/work-profile.tar.gz    # 导出 profile
+hermes profile import /tmp/work-profile.tar.gz          # 导入 profile
+
+== 2. 消息平台网关（Gateway）===
+
+Hermes 可以部署到多个消息平台，同一个 Agent 跨平台可用：
+
+hermes gateway setup            # 交互式配置平台
+hermes gateway run              # 前台启动网关
+hermes gateway install          # 安装为系统服务
+hermes gateway start/stop       # 控制服务
+hermes gateway restart          # 重启
+hermes gateway status           # 查看状态
+
+支持的平台（共 16+）：Telegram、Discord、Slack、WhatsApp、Signal、Email、Matrix、Mattermost、Home Assistant、钉钉、飞书、企业微信、API Server、Webhooks、Open WebUI。
+
+平台配置在 config.yaml 的对应 section。例如飞书：
+
+feishu:
+  app_id: "cli_xxxxx"
+  app_secret: "${FEISHU_APP_SECRET}"
+  require_mention: false
+  allowed_users: ""
+  group_sessions_per_user: false
+
+网关故障排查：
+  grep -i "failed to send\|error" ~/.hermes/logs/gateway.log | tail -20
+
+== 3. 定时任务（Cron Jobs）===
+
+hermes cron create --schedule "0 9 * * *" --prompt "生成今日ETF快报" --name morning-report
+hermes cron list                # 查看所有定时任务
+hermes cron pause morning       # 暂停
+hermes cron resume morning      # 恢复
+hermes cron edit morning --schedule "0 10 * * *"  # 修改
+hermes cron run morning         # 立即触发一次
+hermes cron remove morning      # 删除
+
+Cron 任务运行在隔离会话中，需要自包含的 prompt。支持脚本模式：
+
+hermes cron create --schedule "*/30 9-15 * * 1-5" --script etf-alert.py --no-agent --name etf-monitor
+
+脚本模式（--no-agent）：直接运行脚本，把 stdout 作为消息推送。脚本无输出则静默。
+Agent 模式（默认）：LLM 分析数据后推送给用户。
+
+定时任务支持技能预加载、模型覆盖、deliver 目标配置。
+
+== 4. MCP 服务器集成 ==
+
+Hermes 既可以连接外部 MCP 服务器，也可以把自己作为 MCP 服务器提供给其他客户端：
+
+作为客户端：
+  hermes mcp add filesystem --command "npx @anthropic/mcp-filesystem /path"
+  hermes mcp list              # 查看已配置的 MCP 服务器
+  hermes mcp test filesystem   # 测试连接
+  hermes mcp remove filesystem # 移除
+
+作为服务端：
+  hermes mcp serve             # 将 Hermes 作为 MCP 服务器启动
+  # 其他 MCP 客户端（如 Claude Desktop）可以连接到 Hermes 的工具
+
+MCP 服务器可在 config.yaml 中配置：
+  mcp:
+    servers:
+      filesystem:
+        command: npx
+        args: ["@anthropic/mcp-filesystem", "/path"]
+
+== 5. 多 Agent 协同 ==
+
+Hermes 可以同时运行多个独立的 Agent 进程，互不干扰：
+
+方式一：子进程（简单任务）
+  terminal(command="hermes chat -q '调研 GRPO 论文并保存到 ~/research/grpo.md'", timeout=300)
+
+方式二：tmux 交互代理（复杂任务）
+  启动：
+  tmux new-session -d -s agent1 -x 120 -y 40 'hermes'
+  发送指令：
+  tmux send-keys -t agent1 '编写一个 FastAPI 认证服务' Enter
+  查看输出：
+  tmux capture-pane -t agent1 -p | tail -30
+
+方式三：worktree 模式（多 Agent 并行开发）
+  hermes -w  # --worktree 模式，自动创建隔离的 git worktree
+
+Heremes 内置的 cronjob 工具和 gateway 平台本身也是多 Agent 的经典应用——一个运行在后台的 Agent 实例处理定时推送，另一个在终端交互。
+
+== 6. Webhook 和 API ==
+
+hermes webhook subscribe /build-notify    # 创建 webhook 端点
+hermes webhook list                       # 查看所有订阅
+hermes webhook remove build-notify        # 删除
+hermes webhook test build-notify          # 测试发送 POST
+
+Webhook 端点：http://localhost:7575/webhooks/<name>
+
+== 7. 文件系统检查点 ==
+
+Checkpoints 类似 git 的快照功能——Agent 修改文件前自动备份，可回退：
+
+config.yaml 配置：
+  checkpoints:
+    enabled: true
+    max_snapshots: 50
+
+对话中使用：
+  /rollback           # 回退到上一个检查点
+  /rollback 2         # 回退到前 2 个检查点
+
+== 8. 上下文压缩（Context Compression）===
+
+长期对话中，Agent 自动压缩历史上下文以节省 token：
+
+config.yaml:
+  compression:
+    enabled: true          # 开启自动压缩
+    threshold: 0.50        # 上下文占用超过 50% 时触发
+    target_ratio: 0.20     # 压缩到原始大小的 20%
+
+或在对话中手动执行 /compress 立即压缩。
+
+== 9. 安全性最佳实践 ==
+
+1. 敏感命令审批：默认开启，/yolo 临时跳过
+2. 凭证池轮换：多个 API Key 自动轮换，单一 Key 耗尽不影响服务
+3. 网站黑名单：security.website_blocklist 配置不可访问的域名
+4. Profile 隔离：不同项目使用不同 profile，配置和凭证互不干扰
+5. 日志监控：gateway.log 记录所有平台交互，便于审计
+6. 文件检查点：checkpoints.enabled 开启后，关键操作可回退
+
+== 10. 生产部署 Checklist ==
+
+  启动前：
+  □ 运行 hermes doctor 确认无依赖缺失
+  □ hermes config check 确认配置无遗漏
+  □ 检查 .env 包含所有必需的 API Key
+
+  日常维护：
+  □ hermes sessions prune --older-than 7 定期清理会话
+  □ wc -m ~/.hermes/memories/MEMORY.md 检查记忆容量
+  □ grep -i "error" ~/.hermes/logs/gateway.log 检查异常
+
+  版本更新：
+  □ hermes update 升级到最新版
+  □ hermes config migrate 更新配置格式
+
+完

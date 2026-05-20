@@ -1,0 +1,149 @@
+=== Hermes Agent 基础操作 — 每日核心操作 ===
+
+== 1. 对话（Chat）===
+
+hermes                      # 进入交互模式
+hermes chat -q "帮我把这个目录下的 Python 文件整理成文档"  # 单次任务
+
+交互模式中，直接输入问题即可，Agent 会调用工具完成。效果等同于有一个能操作终端的 AI 同事。
+
+== 2. 会话管理（Sessions）===
+
+每次对话就是一个 session，自动保存到 ~/.hermes/sessions/（SQLite 存储）。
+
+hermes sessions list        # 列出最近会话
+hermes sessions browse      # 交互式浏览选择
+
+恢复会话：
+hermes --continue           # 恢复最近一次会话
+hermes --continue work      # 恢复名为 "work" 的会话
+hermes -r 20260225_143052   # 按 session ID 恢复（用 --resume）
+
+会话管理命令：
+hermes sessions export /tmp/backup.jsonl    # 导出为 JSONL 格式
+hermes sessions rename 20260225_143052 "调研报告"  # 重命名
+hermes sessions delete 20260225_143052      # 删除
+hermes sessions prune --older-than 30       # 清理 30 天前的会话
+
+== 3. 记忆系统（Memory）===
+
+Hermes 有跨会话持久记忆。它记录用户偏好、环境信息、项目约定等。
+
+hermes memory status        # 查看记忆状态
+hermes memory setup         # 配置记忆供应商（内置/Honcho/Mem0）
+
+记忆分为两个文件：
+  ~/.hermes/memories/USER.md      # 用户画像（偏好、习惯）— 上限约 1375 字符
+  ~/.hermes/memories/MEMORY.md    # 环境笔记（项目结构、API 地址）— 上限约 2200 字符
+
+记忆自动注入每次对话的系统提示词中，所以 Agent 会记得你之前的配置偏好。
+
+容量管理：接近上限时 Agent 会自动合并陈旧条目。也可手动：
+  wc -m ~/.hermes/memories/MEMORY.md    # 检查字符数
+
+== 4. 技能系统（Skills）===
+
+Skills 是 Hermes 最独特的功能——Agent 可以把解决复杂问题的工作流保存为可复用的知识包。
+
+hermes skills list          # 列出所有已安装技能
+hermes skills browse        # 浏览公共技能商店
+hermes skills search "ffmpeg"   # 搜索技能
+hermes skills install ffmpeg-video-pipeline  # 安装
+
+在会话中加载技能：
+/skill etf-monitoring-system    # 在对话中加载技能
+hermes -s etf-monitoring-system  # 启动时预加载
+
+创建自己的技能：当 Agent 完成复杂任务（5+ 次工具调用）、解决了一个棘手的错误、或者用户纠正了某个做法时，Hermes 会自动询问是否保存为 skill。保存后下次遇到同类任务直接复用。
+
+技能文件存储在 ~/.hermes/skills/<category>/<name>/SKILL.md，格式为 YAML 前置元数据 + Markdown 正文。
+
+== 5. 工具系统（Tools）===
+
+Hermes 通过工具调用操作系统。每个工具属于一个工具集（toolset）。
+
+hermes tools list           # 列出所有工具及当前状态
+hermes tools enable web     # 启用 web 工具集
+hermes tools disable browser  # 禁用浏览器工具集
+
+常用工具集：
+  工具集            | 功能
+  web               | 网络搜索和内容提取
+  browser           | 浏览器自动化
+  terminal          | Shell 命令执行
+  file              | 文件读写搜索
+  code_execution    | 沙箱 Python 执行
+  vision            | 图像分析
+  memory            | 跨会话记忆
+  session_search    | 搜索历史会话
+  delegation        | 子任务委派
+  cronjob           | 定时任务管理
+  tts               | 语音合成
+  image_gen         | AI 图像生成
+
+修改工具配置后需执行 /reset 生效，因为工具变更不能打断正在进行的对话（为了保持 prompt cache 的稳定性）。
+
+== 6. 斜杠命令（Slash Commands）===
+
+交互模式中输入 / 前缀的命令：
+
+=== 会话控制 ===
+/new                 # 新会话
+/retry               # 重发上一条消息
+/undo                # 撤销上次对话
+/title 项目分析      # 命名当前会话
+/compress            # 手动压缩上下文
+/stop                # 终止后台进程
+/rollback 2          # 回退到第 2 个文件检查点
+
+=== 配置 ===
+/model claude-sonnet-4    # 切换模型
+/provider openrouter      # 切换供应商
+/voice on                 # 语音模式
+/yolo                     # 切换危险命令审批开关
+/reasoning low            # 设置推理深度
+
+=== 工具与技能 ===
+/skill etf-monitor        # 加载技能到当前会话
+/tools                    # 管理工具
+/cron                     # 管理定时任务
+
+=== 信息 ===
+/help                     # 查看命令列表
+/usage                    # 查看 token 用量
+/status                   # 会话信息
+/profile                  # 当前 profile 信息
+
+== 7. 子任务委派（Delegation）===
+
+对于大型任务，Hermes 可以派出子 Agent 并行执行：
+
+delegate_task 工具支持两种模式：
+  1. 单任务: 传入 goal + context，得到一个独立子 Agent 的总结
+  2. 批量并行: 传入 tasks 数组，最多 3 个同时运行
+
+适用场景：并行调研、同时调试多个错误、多文件批量修改。子 Agent 有独立的对话和终端，不会污染主 Agent 的上下文。
+
+最大并发数可通过 config.yaml 的 delegation.max_concurrent_children 调整。
+
+== 8. 危险命令审批（Safety）===
+
+默认模式下，执行风险操作（rm -rf、curl | bash、写 /etc 等）会弹出确认提示：
+
+hermes --yolo           # 启动时全局跳过确认（严格模式）
+/yolo                   # 对话中临时切换
+
+安全策略引擎 tirith 通过正则规则检测危险命令。可在 config.yaml 的 security 段自定义规则。
+
+配置网站黑名单：
+security:
+  website_blocklist:
+    - "malicious-site.com"
+    - "unknown-downloader.xyz"
+
+== 9. 更新 ==
+
+hermes update           # 更新到最新版本
+hermes uninstall        # 卸载 Hermes
+
+完
