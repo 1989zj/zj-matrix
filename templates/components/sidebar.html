@@ -38,6 +38,13 @@
       <span class="font-label-md text-label-md">故事时间线</span>
     </a>
   </nav>
+  <!-- CLI Console - novel context -->
+  <div class="mt-auto px-2 border-t border-outline-variant pt-2 flex flex-col gap-1">
+    <a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant rounded-lg cursor-pointer transition-all duration-200 no-underline" href="{{ url_for('novel.cli_console') }}">
+      <span class="material-symbols-outlined">terminal</span>
+      <span class="font-label-md text-label-md">CLI 控制台</span>
+    </a>
+  </div>
   {% else %}
   <!-- Global Admin Sidebar -->
   <div class="px-4 py-6 border-b border-outline-variant mb-2">
@@ -56,6 +63,10 @@
     <a class="flex items-center gap-3 px-3 py-2 {% if 'downloads' in request.path %}bg-primary/10 text-primary font-bold{% else %}text-on-surface-variant hover:bg-surface-variant{% endif %} rounded-lg cursor-pointer transition-all duration-200 no-underline" href="{{ url_for('novel.download_index') }}">
       <span class="material-symbols-outlined {% if 'downloads' in request.path %}fill{% endif %}">download</span>
       <span class="font-label-md text-label-md">下载中心</span>
+    </a>
+    <a class="flex items-center gap-3 px-3 py-2 {% if 'novel/cli' in request.path %}bg-primary/10 text-primary font-bold{% else %}text-on-surface-variant hover:bg-surface-variant{% endif %} rounded-lg cursor-pointer transition-all duration-200 no-underline" href="{{ url_for('novel.cli_console') }}">
+      <span class="material-symbols-outlined {% if 'novel/cli' in request.path %}fill{% endif %}">terminal</span>
+      <span class="font-label-md text-label-md">CLI 控制台</span>
     </a>
   </nav>
   {% endif %}

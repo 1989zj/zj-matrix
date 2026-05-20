@@ -92,7 +92,204 @@
                     <span class="font-headline-lg text-headline-lg-mobile text-primary">{{ pct }}%</span>
                 </div>
             </div>
+
+            <!-- AI 创作工具 -->
+            <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant shadow-sm">
+                <h4 class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-4 font-bold tracking-widest flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">auto_awesome</span> AI 创作工具
+                </h4>
+                <div class="flex flex-col gap-2">
+                    <button onclick="runNovelAction('audit')" class="w-full bg-surface-container text-on-surface font-label-md text-label-md py-2.5 px-4 rounded-xl hover:bg-surface-variant transition-all flex items-center gap-3 border border-outline-variant/50 group">
+                        <span class="material-symbols-outlined text-primary text-sm">fact_check</span>
+                        <span class="flex-1 text-left">全量审核修复</span>
+                        <span class="material-symbols-outlined text-on-surface-variant/40 text-sm opacity-0 group-hover:opacity-100 transition-opacity">play_arrow</span>
+                    </button>
+                    <button onclick="runNovelAction('reconstruct-diagnose')" class="w-full bg-surface-container text-on-surface font-label-md text-label-md py-2.5 px-4 rounded-xl hover:bg-surface-variant transition-all flex items-center gap-3 border border-outline-variant/50 group">
+                        <span class="material-symbols-outlined text-secondary text-sm">diagnosis</span>
+                        <span class="flex-1 text-left">数据诊断</span>
+                        <span class="material-symbols-outlined text-on-surface-variant/40 text-sm opacity-0 group-hover:opacity-100 transition-opacity">play_arrow</span>
+                    </button>
+                    <button onclick="runNovelAction('reconstruct-run')" class="w-full bg-surface-container text-on-surface font-label-md text-label-md py-2.5 px-4 rounded-xl hover:bg-surface-variant transition-all flex items-center gap-3 border border-outline-variant/50 group">
+                        <span class="material-symbols-outlined text-warning text-sm">healing</span>
+                        <span class="flex-1 text-left">数据修复</span>
+                        <span class="material-symbols-outlined text-on-surface-variant/40 text-sm opacity-0 group-hover:opacity-100 transition-opacity">play_arrow</span>
+                    </button>
+                    <div class="border-t border-outline-variant/30 my-1"></div>
+                    <button onclick="runNovelAction('judge-review')" class="w-full bg-surface-container text-on-surface font-label-md text-label-md py-2.5 px-4 rounded-xl hover:bg-surface-variant transition-all flex items-center gap-3 border border-outline-variant/50 group">
+                        <span class="material-symbols-outlined text-primary text-sm">rate_review</span>
+                        <span class="flex-1 text-left">质检评审</span>
+                        <span class="material-symbols-outlined text-on-surface-variant/40 text-sm opacity-0 group-hover:opacity-100 transition-opacity">play_arrow</span>
+                    </button>
+                    <div class="border-t border-outline-variant/30 my-1"></div>
+                    <button onclick="runNovelAction('refine-analyze')" class="w-full bg-surface-container text-on-surface font-label-md text-label-md py-2.5 px-4 rounded-xl hover:bg-surface-variant transition-all flex items-center gap-3 border border-outline-variant/50 group">
+                        <span class="material-symbols-outlined text-secondary text-sm">tune</span>
+                        <span class="flex-1 text-left">精修分析</span>
+                        <span class="material-symbols-outlined text-on-surface-variant/40 text-sm opacity-0 group-hover:opacity-100 transition-opacity">play_arrow</span>
+                    </button>
+                    <button onclick="runNovelAction('voice-refine')" class="w-full bg-surface-container text-on-surface font-label-md text-label-md py-2.5 px-4 rounded-xl hover:bg-surface-variant transition-all flex items-center gap-3 border border-outline-variant/50 group">
+                        <span class="material-symbols-outlined text-warning text-sm">record_voice_over</span>
+                        <span class="flex-1 text-left">对话声音精修</span>
+                        <span class="material-symbols-outlined text-on-surface-variant/40 text-sm opacity-0 group-hover:opacity-100 transition-opacity">play_arrow</span>
+                    </button>
+                    <div class="border-t border-outline-variant/30 my-1"></div>
+                    <button onclick="runNovelAction('lore-scan')" class="w-full bg-surface-container text-on-surface font-label-md text-label-md py-2.5 px-4 rounded-xl hover:bg-surface-variant transition-all flex items-center gap-3 border border-outline-variant/50 group">
+                        <span class="material-symbols-outlined text-primary text-sm">search_insights</span>
+                        <span class="flex-1 text-left">设定一致性检测</span>
+                        <span class="material-symbols-outlined text-on-surface-variant/40 text-sm opacity-0 group-hover:opacity-100 transition-opacity">play_arrow</span>
+                    </button>
+                    <button onclick="runNovelAction('state-verify')" class="w-full bg-surface-container text-on-surface font-label-md text-label-md py-2.5 px-4 rounded-xl hover:bg-surface-variant transition-all flex items-center gap-3 border border-outline-variant/50 group">
+                        <span class="material-symbols-outlined text-secondary text-sm">verified</span>
+                        <span class="flex-1 text-left">状态校验</span>
+                        <span class="material-symbols-outlined text-on-surface-variant/40 text-sm opacity-0 group-hover:opacity-100 transition-opacity">play_arrow</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- 执行结果弹窗 -->
+<div id="action-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40 backdrop-blur-sm" onclick="closeModal(event)">
+    <div class="bg-surface-container-lowest rounded-2xl shadow-2xl w-[680px] max-w-[90vw] max-h-[80vh] flex flex-col border border-outline-variant/30" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/30">
+            <div class="flex items-center gap-3">
+                <span id="modal-icon" class="material-symbols-outlined text-primary">auto_awesome</span>
+                <h3 id="modal-title" class="font-title-md text-title-md text-on-surface">执行中...</h3>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="modal-status-badge" class="px-3 py-1 rounded-full font-label-sm text-label-sm bg-primary/10 text-primary">运行中</span>
+                <button onclick="closeModal()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-variant text-on-surface-variant transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+        </div>
+        <div class="px-6 py-4">
+            <div class="flex items-center gap-2 text-sm text-on-surface-variant font-label-md">
+                <span class="material-symbols-outlined text-sm">terminal</span>
+                <code id="modal-command" class="bg-surface-container px-2 py-1 rounded text-xs"></code>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto px-6 pb-4 min-h-[200px]">
+            <pre id="modal-output" class="bg-surface-container-high text-xs leading-relaxed rounded-xl p-4 whitespace-pre-wrap font-mono text-on-surface min-h-[180px] overflow-x-auto"></pre>
+        </div>
+        <div class="flex items-center justify-between px-6 py-4 border-t border-outline-variant/30 bg-surface">
+            <span id="modal-result" class="font-label-sm text-label-sm text-on-surface-variant"></span>
+            <div class="flex gap-2">
+                <button onclick="copyModalOutput()" class="flex items-center gap-2 px-4 py-2 border border-outline-variant rounded-lg hover:bg-surface-variant text-on-surface-variant font-label-md transition-colors">
+                    <span class="material-symbols-outlined text-sm">content_copy</span> 复制输出
+                </button>
+                <button onclick="closeModal()" class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md hover:opacity-90 transition-opacity">
+                    <span class="material-symbols-outlined text-sm">close</span> 关闭
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SLUG = '{{ slug }}';
+const NOVEL_NAME = '{{ novel_name }}';
+
+async function runNovelAction(action) {
+    const modal = document.getElementById('action-modal');
+    const title = document.getElementById('modal-title');
+    const icon = document.getElementById('modal-icon');
+    const badge = document.getElementById('modal-status-badge');
+    const cmd = document.getElementById('modal-command');
+    const output = document.getElementById('modal-output');
+    const result = document.getElementById('modal-result');
+
+    // 按钮文字映射
+    const actionNames = {
+        'audit': '全量审核修复',
+        'reconstruct-diagnose': '数据诊断',
+        'reconstruct-run': '数据修复',
+        'judge-review': '质检评审',
+        'refine-analyze': '精修分析',
+        'voice-refine': '对话声音精修',
+        'lore-scan': '设定一致性检测',
+        'state-verify': '状态校验'
+    };
+    const actionIcons = {
+        'audit': 'fact_check',
+        'reconstruct-diagnose': 'diagnosis',
+        'reconstruct-run': 'healing',
+        'judge-review': 'rate_review',
+        'refine-analyze': 'tune',
+        'voice-refine': 'record_voice_over',
+        'lore-scan': 'search_insights',
+        'state-verify': 'verified'
+    };
+
+    // 对危险操作弹确认框
+    const dangerous = ['audit', 'reconstruct-run', 'voice-refine'];
+    if (dangerous.includes(action)) {
+        const warnings = {
+            'audit': '全量审核修复会修改章节内容（修复角色出场、时间线、伏笔等），确定执行？',
+            'reconstruct-run': '数据修复会修改数据库内容（重建摘要、补全角色登场等），确定执行？',
+            'voice-refine': '对话声音精修会修改对白内容，建议先备份。确定执行？'
+        };
+        if (!confirm(warnings[action])) return;
+    }
+
+    // 初始化弹窗
+    modal.classList.remove('hidden');
+    icon.textContent = actionIcons[action] || 'auto_awesome';
+    title.textContent = actionNames[action] || action;
+    badge.textContent = '运行中...';
+    badge.className = 'px-3 py-1 rounded-full font-label-sm text-label-sm bg-primary/10 text-primary';
+    cmd.textContent = '';
+    output.textContent = '正在执行，请稍候...\n\n（长任务可能需要数分钟）';
+    result.textContent = '';
+
+    try {
+        const resp = await fetch(`/api/novel/${SLUG}/action/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action })
+        });
+        const data = await resp.json();
+
+        cmd.textContent = data.command || '';
+        output.textContent = data.stdout || data.stderr || '(无输出)';
+
+        if (data.success) {
+            badge.textContent = '✅ 完成';
+            badge.className = 'px-3 py-1 rounded-full font-label-sm text-label-sm bg-success/10 text-success';
+            result.textContent = '命令执行成功，返回值: ' + data.returncode;
+        } else if (data.timed_out) {
+            badge.textContent = '⏱ 超时';
+            badge.className = 'px-3 py-1 rounded-full font-label-sm text-label-sm bg-warning/10 text-warning';
+            result.textContent = '命令执行超时，建议在 CLI 控制台手动执行';
+        } else {
+            badge.textContent = '❌ 失败';
+            badge.className = 'px-3 py-1 rounded-full font-label-sm text-label-sm bg-error/10 text-error';
+            result.textContent = '命令执行失败，返回值: ' + data.returncode;
+        }
+    } catch (e) {
+        output.textContent = '网络请求失败: ' + e.message;
+        badge.textContent = '❌ 错误';
+        badge.className = 'px-3 py-1 rounded-full font-label-sm text-label-sm bg-error/10 text-error';
+        result.textContent = '请检查网络连接';
+    }
+}
+
+function closeModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('action-modal').classList.add('hidden');
+}
+
+function copyModalOutput() {
+    const text = document.getElementById('modal-output').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = event.currentTarget;
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<span class="material-symbols-outlined text-sm">check</span> 已复制';
+        setTimeout(() => btn.innerHTML = orig, 2000);
+    }).catch(() => {});
+}
+</script>
 {% endblock %}

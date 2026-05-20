@@ -133,6 +133,347 @@ LENGTH_MAP = {
     'long': '长篇（20-100万字）', 'epic': '超长篇（100万字以上）'
 }
 
+# ── CLI 命令接口 ──
+
+@novel_bp.route('/api/novel/cli/', methods=['GET'])
+@admin_required
+def api_cli_list():
+    """返回所有可用 CLI 命令的列表（JSON）"""
+    commands = {
+        "factory": {
+            "description": "小说工厂 V3 — 创作管理",
+            "subcommands": {
+                "new": "novel factory new '<需求描述>'",
+                "continue": "novel factory continue <项目名> [章节号]",
+                "status": "novel factory status <项目名>",
+                "snapshot": "novel factory snapshot <项目名> <章节>",
+                "validate": "novel factory validate <项目名> <章节>",
+                "event": "novel factory event <项目名> <类型> <章节> [--data JSON]",
+                "arc": "novel factory arc <项目名> <arc_id>",
+                "refresh": "novel factory refresh <项目名>"
+            }
+        },
+        "reconstruct": {
+            "description": "Phase 0 重建 — 诊断和重建数据",
+            "subcommands": {
+                "diagnose": "novel reconstruct diagnose <项目名>",
+                "run": "novel reconstruct run <项目名> [--module MODULE] [--dry-run]"
+            }
+        },
+        "judge": {
+            "description": "质检评审 — AI 小说质检系统",
+            "subcommands": {
+                "review": "novel judge review <小说名> [--chapters RANGE] [--golden] [--dimension] [--verdict-only]",
+                "patch": "novel judge patch <小说名> --chapter N --issue TYPE",
+                "history": "novel judge history"
+            }
+        },
+        "refine": {
+            "description": "精修分支 — 分析/重试/同步",
+            "subcommands": {
+                "analyze": "novel refine analyze <项目名> [--chapters RANGE] [--types TYPE] [--full] [--dry-run]",
+                "status": "novel refine status <项目名>",
+                "retry": "novel refine retry <小说名> [--chapters N,N] [--auto-detect]",
+                "sync": "novel refine sync <小说名> --chapters RANGE [--merge] [--dry-run]"
+            }
+        },
+        "voice": {
+            "description": "对话声音精修",
+            "subcommands": {
+                "refine": "novel voice refine <小说名> --chapters RANGE [--dry-run] [--max-per-chapter N]",
+                "retry": "novel voice retry <小说名> --chapters 12,14,15"
+            }
+        },
+        "lore": {
+            "description": "设定同步检测",
+            "subcommands": {
+                "scan": "novel lore scan <项目名> [--chapters RANGE]",
+                "bible-diff": "novel lore bible-diff <项目名>"
+            }
+        },
+        "state": {
+            "description": "状态差异记录",
+            "subcommands": {
+                "diff": "novel state diff <项目名> --chapter N",
+                "verify": "novel state verify <项目名> --chapter N"
+            }
+        },
+        "audit": {
+            "description": "全量审核修复",
+            "subcommands": {
+                "run": "novel audit <项目名> [--report-only] [--skip-steps N,N]"
+            }
+        },
+        "validate": {
+            "description": "V3 章节校验",
+            "subcommands": {
+                "check": "novel validate check <项目名> <章节> [--content-file PATH]"
+            }
+        },
+        "utility": {
+            "description": "工具命令",
+            "subcommands": {
+                "count": "novel count <file.md>",
+                "init-db": "novel init-db"
+            }
+        }
+    }
+    return jsonify(commands)
+
+
+@novel_bp.route('/api/novel/cli/', methods=['POST'])
+@admin_required
+def api_cli_execute():
+    """执行 CLI 命令并返回输出"""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "请求体为空"}), 400
+
+    # 支持两种模式:
+    # 1) full_command: 完整命令字符串，如 "novel judge review '诡异游戏' --chapters 1-10"
+    # 2) command + args 分开，如 {command: "judge", args: ["review", "诡异游戏", "--chapters", "1-10"]}
+    full_command = data.get('full_command', '')
+    command = data.get('command', '')
+    args = data.get('args', [])
+
+    if full_command:
+        # 直接执行完整命令
+        cmd_parts = full_command.split()
+        executable = cmd_parts[0] if cmd_parts else 'novel'
+        cmd_args = cmd_parts[1:]
+    elif command:
+        executable = 'novel'
+        # 将 command 和 args 拼接
+        if isinstance(args, list):
+            cmd_args = [command] + args
+        elif isinstance(args, str):
+            cmd_args = [command] + args.split()
+        else:
+            cmd_args = [command]
+    else:
+        return jsonify({"error": "请提供 full_command 或 command+args"}), 400
+
+    # 超时设置：factory new 需要 600s，其他默认 180s
+    timeout = data.get('timeout', 180)
+    if command == 'factory' and (args and (isinstance(args, list) and args[0] == 'new' or isinstance(args, str) and args.startswith('new'))):
+        timeout = 600
+    if full_command and 'factory new' in full_command:
+        timeout = 600
+
+    try:
+        result = subprocess.run(
+            [executable] + cmd_args,
+            capture_output=True, text=True, timeout=timeout,
+            cwd=os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        )
+        return jsonify({
+            "success": result.returncode == 0,
+            "returncode": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "timed_out": False
+        })
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            "success": False,
+            "returncode": -1,
+            "stdout": "",
+            "stderr": f"命令执行超时（{timeout}秒）",
+            "timed_out": True
+        })
+    except FileNotFoundError:
+        return jsonify({
+            "success": False,
+            "returncode": -2,
+            "stdout": "",
+            "stderr": f"可执行文件未找到: {executable}。请确认 novel CLI 已安装。",
+            "timed_out": False
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "returncode": -3,
+            "stdout": "",
+            "stderr": f"系统错误: {str(e)}",
+            "timed_out": False
+        }), 500
+
+
+@novel_bp.route('/novel/cli/')
+@admin_required
+def cli_console():
+    """CLI 控制台页面"""
+    return render_template('novel_cli.html')
+
+
+# ── 小说级快捷操作 ──
+
+NOVEL_ACTIONS = {
+    "audit": {
+        "label": "全量审核修复",
+        "icon": "fact_check",
+        "desc": "扫描全书一致性、角色出场、时间线、伏笔等，自动修复",
+        "command": "novel audit {name}",
+        "timeout": 300,
+        "warning": "耗时较长，会修改章节内容"
+    },
+    "reconstruct-diagnose": {
+        "label": "数据诊断",
+        "icon": "diagnosis",
+        "desc": "检查 MongoDB 数据完整性，发现缺失/异常",
+        "command": "novel reconstruct diagnose {name}",
+        "timeout": 120,
+        "warning": None
+    },
+    "reconstruct-run": {
+        "label": "数据修复",
+        "icon": "healing",
+        "desc": "重建缺失元数据、修复摘要、补全角色登场",
+        "command": "novel reconstruct run {name}",
+        "timeout": 600,
+        "warning": "会修改数据库数据"
+    },
+    "judge-review": {
+        "label": "质检评审",
+        "icon": "rate_review",
+        "desc": "AI 八维评审（情节、设定、角色、节奏等）",
+        "command": "novel judge review {name}",
+        "timeout": 300,
+        "warning": None
+    },
+    "refine-analyze": {
+        "label": "精修分析",
+        "icon": "tune",
+        "desc": "分析所有章节，标记节奏/对话/描写等问题",
+        "command": "novel refine analyze {name}",
+        "timeout": 300,
+        "warning": None
+    },
+    "voice-refine": {
+        "label": "对话声音精修",
+        "icon": "record_voice_over",
+        "desc": "批量修改对话，使角色台词声线差异化",
+        "command": "novel voice refine {name} --chapters all",
+        "timeout": 600,
+        "warning": "会修改对白内容，建议先备份"
+    },
+    "lore-scan": {
+        "label": "设定一致性检测",
+        "icon": "search_insights",
+        "desc": "扫描章节，检测与世界设定矛盾之处",
+        "command": "novel lore scan {name}",
+        "timeout": 300,
+        "warning": None
+    },
+    "state-verify": {
+        "label": "状态校验",
+        "icon": "verified",
+        "desc": "验证各章节的状态一致性",
+        "command": "novel state verify {name} --chapter 1",
+        "timeout": 60,
+        "warning": None
+    }
+}
+
+
+@novel_bp.route('/api/novel/<slug>/action/', methods=['POST'])
+@admin_required
+def novel_action(slug):
+    """执行针对当前小说的操作命令"""
+    name = slug_to_name(slug)
+    if not name:
+        return jsonify({"error": "小说未找到"}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "请求体为空"}), 400
+
+    action = data.get('action', '')
+    params = data.get('params', {})
+
+    if action not in NOVEL_ACTIONS:
+        return jsonify({"error": f"未知操作: {action}"}), 400
+
+    action_def = NOVEL_ACTIONS[action]
+    cmd_template = action_def['command']
+    timeout = data.get('timeout', action_def['timeout'])
+
+    # 替换 {name} 为小说名
+    cmd_str = cmd_template.replace('{name}', name)
+
+    # 支持 params 中的额外参数注入
+    chapter_range = params.get('chapters', '')
+    if chapter_range:
+        cmd_str += f" --chapters {chapter_range}"
+    if params.get('dry_run'):
+        cmd_str += ' --dry-run'
+    if params.get('report_only'):
+        cmd_str += ' --report-only'
+
+    try:
+        # 解析完整命令
+        import shlex
+        cmd_parts = shlex.split(cmd_str)
+        result = subprocess.run(
+            cmd_parts,
+            capture_output=True, text=True, timeout=timeout,
+            cwd=os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        )
+        return jsonify({
+            "success": result.returncode == 0,
+            "returncode": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "command": cmd_str,
+            "action": action,
+            "novel_name": name,
+            "timed_out": False
+        })
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            "success": False,
+            "returncode": -1,
+            "stdout": "",
+            "stderr": f"命令执行超时（{timeout}秒）",
+            "command": cmd_str,
+            "timed_out": True
+        })
+    except FileNotFoundError:
+        return jsonify({
+            "success": False,
+            "returncode": -2,
+            "stdout": "",
+            "stderr": "novel CLI 未找到，请确认已安装",
+            "command": cmd_str,
+            "timed_out": False
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "returncode": -3,
+            "stdout": "",
+            "stderr": f"系统错误: {str(e)}",
+            "command": cmd_str,
+            "timed_out": False
+        }), 500
+
+
+@novel_bp.route('/api/novel/<slug>/actions/')
+@admin_required
+def list_novel_actions(slug):
+    """返回当前小说可用的操作列表（含配置描述）"""
+    name = slug_to_name(slug)
+    if not name:
+        return jsonify({"error": "小说未找到"}), 404
+    return jsonify({
+        "novel_name": name,
+        "slug": slug,
+        "actions": NOVEL_ACTIONS
+    })
+
+
+# ── 创建小说 ──
+
 @novel_bp.route('/api/novel/create/', methods=['POST'])
 @admin_required
 def api_create_novel():
