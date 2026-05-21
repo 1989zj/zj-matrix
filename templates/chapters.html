@@ -2,12 +2,76 @@
 {% block title %}{{ meta.title }} - 管理中心 - NovelStudio{% endblock %}
 
 {% block main_extra_class %}overflow-hidden{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 移动端阅读最大化模式 */
+@media (max-width: 768px) {
+  body.reader-maximized header,
+  body.reader-maximized aside.h-full.w-64,
+  body.reader-maximized #chapter-sidebar,
+  body.reader-maximized aside.w-80,
+  body.reader-maximized aside.border-l {
+    display: none !important;
+  }
+  body.reader-maximized #reader-area {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 999 !important;
+    background: var(--surface-container-lowest, #fff) !important;
+    overflow-y: auto !important;
+  }
+  body.reader-maximized #editor-paper {
+    max-width: 100% !important;
+    padding: 16px 20px !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    width: 100% !important;
+  }
+  #reader-maximize-btn {
+    display: flex !important;
+  }
+}
+@media (min-width: 769px) {
+  #reader-maximize-btn {
+    display: none !important;
+  }
+}
+#reader-maximize-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--primary, #7c4dff);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+#reader-maximize-btn:active {
+  transform: scale(0.92);
+}
+body.reader-maximized #reader-maximize-btn {
+  background: var(--surface-container-high, #e8e6e1);
+  color: var(--on-surface, #1c1b1f);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+</style>
+{% endblock %}
 {% block content_container_class %}h-full{% endblock %}
 
 {% block content %}
 <div class="h-full flex overflow-hidden">
     <!-- Chapter List Sidebar -->
-    <nav class="w-64 border-r border-outline-variant bg-surface flex flex-col h-full flex-shrink-0 relative">
+    <nav id="chapter-sidebar" class="w-64 border-r border-outline-variant bg-surface flex flex-col h-full flex-shrink-0 relative">
         <div class="p-4 border-b border-outline-variant bg-surface-container-lowest flex justify-between items-center sticky top-0">
             <h3 class="font-label-md text-label-md text-on-surface font-bold tracking-wider">章节目录</h3>
             <button class="text-on-surface-variant hover:text-primary transition-colors">
@@ -56,6 +120,9 @@
 
     <!-- Reader/Editor Area -->
     <div id="reader-area" class="flex-1 overflow-y-auto bg-surface-variant">
+        <button id="reader-maximize-btn" onclick="toggleReaderMaximize()" aria-label="最大化阅读">
+            <span class="material-symbols-outlined" id="maximize-icon">expand_content</span>
+        </button>
         <div class="min-h-full w-full flex justify-center py-8">
             <article id="editor-paper" class="w-editor-width bg-surface-container-lowest shadow-[0px_4px_24px_rgba(0,0,0,0.02)] mx-4 px-16 py-24 flex flex-col focus:outline-none">
         <div id="chapter-nav" class="hidden flex justify-between items-center mb-8 pb-4 border-b border-outline-variant">
@@ -538,6 +605,14 @@ function copyModalOutput() {
         btn.innerHTML = '<span class="material-symbols-outlined text-sm">check</span> 已复制';
         setTimeout(() => btn.innerHTML = orig, 2000);
     }).catch(() => {});
+}
+
+// 移动端阅读最大化切换
+function toggleReaderMaximize() {
+    const body = document.body;
+    const icon = document.getElementById('maximize-icon');
+    const isMaximized = body.classList.toggle('reader-maximized');
+    icon.textContent = isMaximized ? 'collapse_content' : 'expand_content';
 }
 </script>
 
