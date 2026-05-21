@@ -1,0 +1,268 @@
+Hermes Agent — Overlooked Features Cheat Sheet
+=================================================
+
+A condensed reference of Hermes Agent features that beginners most commonly miss,
+organized by category.
+
+1. SESSION MANAGEMENT (beyond basic chat)
+===========================================
+
+— Resume any past session by ID or title: hermes --resume <session_id>
+  or hermes --continue (resumes most recent). Sessions are NOT lost on exit.
+— Rename sessions: hermes sessions rename <id> "New Title"
+— Export sessions as JSONL: hermes sessions export <path>
+— Prune old sessions: hermes sessions prune --older-than 30
+— Session source tagging: hermes chat --source tag_name (for filtering later)
+— /compress slash command: manually trigger context compression mid-session
+  when you feel the model forgetting early instructions.
+— /undo and /retry: undo last exchange, or resend last message.
+— /title: name a session without leaving chat.
+
+2. SLASH COMMANDS MOST USERS NEVER TYPE
+=========================================
+
+— /model <name>: switch the LLM model MID-SESSION without /reset.
+— /provider: show current provider info.
+— /reasoning <level>: set reasoning effort (none|minimal|low|medium|high|xhigh).
+  On supported models, this controls Chain-of-Thought depth.
+— /voice on|off|tts: toggle voice mode on the fly.
+— /yolo: bypass dangerous command approval for current session.
+— /rollback <N>: restore filesystem to the Nth checkpoint snapshot.
+— /background <prompt>: run a task in the background while you continue chatting.
+— /queue <prompt>: queue a task for the next turn.
+— /skill <name>: dynamically load a skill mid-session.
+— /cron: manage cron jobs from inside a chat session.
+— /tools: toggle tool availability interactively.
+— /compress: force context compression now.
+— /insights <days>: usage analytics.
+— /status: show session info (turns elapsed, model, tokens used).
+— /profile: show active profile info.
+— /reload-mcp: reload MCP servers without restart.
+
+3. CONFIG GEMS
+=========================================
+
+— max_turns (default 90): the hard limit on tool-calling loops per session.
+  Increase for long autonomous workflows via agent.max_turns in config.yaml.
+— tool_use_enforcement: when enabled, forces the model to use tools when
+  appropriate. Prevents "I'll just tell you how" responses.
+— compression.threshold (0.50): when context usage hits 50% of limit,
+  auto-compression kicks in to stay within target_ratio (0.20).
+— smart_model_routing: set enabled: true + cheap_model: "openrouter/gpt-4o-mini"
+  and Hermes automatically uses the cheap model for simple queries and the
+  main model for complex ones. Transparent to the user.
+— display.show_cost: set to false to hide token/cost info from responses.
+— security.tirith_enabled: enable TIRITH security scanning for prompt injection.
+— security.website_blocklist: URLs the agent will refuse to browse.
+
+4. CRON JOBS — THE SLEEPING GIANT
+=========================================
+
+Most users think Hermes is only interactive. Cron jobs let it run autonomously:
+
+— Schedule: human-readable ('30m', 'every 2h') or cron syntax ('0 9 * * *').
+— Multi-mode delivery: auto-sends results back to the same chat, or to
+  a specific platform/chat_id, or saves locally only.
+— Skill loading: attach skills to a cron job so it loads context automatically.
+— Per-job model override: different cron jobs can use different LLM providers
+  and models. E.g., cheap model for daily summaries, premium for weekly reports.
+— NO_AGENT mode (--no-agent): run a pure shell/Python script on schedule
+  with ZERO LLM token cost. Output is delivered verbatim. Output is sent
+  only when there's something to report — scripts that produce empty stdout
+  stay silent. Perfect for: disk usage watchers, process health checks,
+  price monitors, log tail grep alerts.
+— Context chaining: cron_job A's output can be injected as context into
+  cron_job B. Chain data collection → analysis → delivery.
+— Workdir isolation: set a specific working directory for a cron job to
+  load project-level AGENTS.md / CLAUDE.md context files.
+— Restricted toolsets: limit a cron job to only the tools it needs
+  (e.g., only 'web' for a news scraper) to save input tokens.
+
+5. DELEGATE_TASK — PARALLEL SUBAGENTS
+=========================================
+
+— Spawn subagents that run in isolated contexts with their own terminal
+  sessions and tool configurations.
+— Three roles: 'leaf' (default, works independently), 'orchestrator'
+  (can spawn its own subagents for recursive decomposition).
+— Batch mode: pass a 'tasks' array for true parallel execution (up to 3
+  concurrently by default, configurable via delegation.max_concurrent_children).
+— Per-task toolset isolation: give subagent A 'terminal+file', subagent B
+  'web+browser', subagent C 'cronjob' — each only has its assigned tools.
+— Language-aware delegation: pass context telling the subagent what language
+  to respond in, preventing language contamination in the summary.
+— IMPORTANT LIMITATION: delegate_task runs SYNCHRONOUSLY inside the parent
+  session. If the parent is interrupted (user sends new message, /stop, /new),
+  child subagents are CANCELLED. For truly durable background work, use cron jobs
+  or spawned hermes processes (see hermes-agent skill → Spawning Additional
+  Hermes Instances).
+
+6. MEMORY — MORE THAN JUST REMEMBERING
+=========================================
+
+— Two stores: MEMORY.md (environment notes, project conventions, tool quirks)
+  and USER.md (who the user is, preferences, communication style).
+— Pluggable backends: built-in (default), Honcho, Mem0, and custom providers.
+— Memory is INJECTED into every session's system prompt. It's not a retrieval
+  — it's always there, consuming context. Keep it compact.
+— Best practice: save facts (declarative) not instructions (imperative).
+  "User prefers concise responses" ✓ vs "Always respond concisely" ✗.
+  Imperative phrasing gets re-read as a directive in later sessions and
+  causes repeated work or overrides the user's current request.
+— Procedural/step-by-step knowledge belongs in SKILLS, not memory.
+— Auto-compaction: set up a daily cron with --no-agent to monitor memory
+  file size and compact when approaching the char limit (MEMORY.md: 2200 chars,
+  USER.md: 1375 chars). Full implementation in hermes-agent skill references.
+
+7. SKILLS — THE SELF-IMPROVING AGENT
+=========================================
+
+— Skills are NOT just documentation. They act as procedural memory loaded
+  into the system prompt of every session where they're active.
+— Skill auto-loading: the agent scans skills BEFORE replying. If any skill
+  matches or is even partially relevant, it MUST load it. "Err on the side
+  of loading" is a core rule.
+— Categories: skills are organized into ~25 categories (content-creation,
+  devops, finance, mlops, research, software-development, etc.)
+— Three tiers of non-builtin skills:
+  * Custom-created: manually authored via skill_manage create
+  * Customized/patched: hub skills heavily modified for a specific setup
+  * Hub-installed: standard skills from the catalog
+— Pinned skills: protected from deletion (not modification). Useful for
+  critical workflow skills.
+— Linked files: skills can carry references/ templates/ scripts/ assets/
+  subdirectories for code, templates, and configuration files.
+— Skill hub discovery: hermes skills search <query>
+  hermes skills browse
+  hermes skills tap add <github_repo>  (add a repo as skill source)
+
+8. GATEWAY — HERMES ON EVERY PLATFORM
+=========================================
+
+— Supported: Telegram, Discord, Slack, WhatsApp, Signal, Email, SMS,
+  Matrix, Mattermost, Home Assistant, DingTalk, Feishu, WeCom,
+  API Server, Webhooks, Open WebUI.
+— Per-platform tool restriction: ENABLE/DISABLE specific tools per platform.
+  E.g., disable terminal tool on Telegram for safety, keep it on CLI.
+— Session isolation per platform: conversations on Telegram don't leak into
+  CLI sessions. group_sessions_per_user flag controls group chat behavior.
+— Gateway logs: ~/.hermes/logs/gateway.log for debugging delivery failures.
+— Platform-specific quirks: Feishu does NOT render markdown tables or headers
+  even when sent with tag: "md". Telegram supports voice messages natively.
+— Home channel: set a default delivery destination for cron job outputs.
+
+9. PROFILES — MULTIPLE HERMES INSTANCES
+=========================================
+
+— Each profile has isolated config, sessions, skills, memory, and credentials.
+— Clone from existing: hermes profile create work --clone (bare config)
+  or --clone-all (full copy including sessions/skills).
+— Alias management: hermes profile alias NAME creates shell wrapper scripts
+  (hermes-work, hermes-personal) that auto-load the right profile.
+— Export/import: tar.gz archives for sharing between machines.
+— Use cases: separate personal/freelance/team profiles; dev/production splits;
+  per-client isolation for consultants.
+
+10. CREDENTIAL POOLS
+=========================================
+
+— Store multiple API keys for the same provider. Hermes auto-rotates on
+  rate-limit or quota exhaustion.
+— Managed via: hermes auth add | list | remove | reset
+— Exhaustion-aware: when one key hits rate limit, Hermes transparently
+  fails over to the next key in the pool.
+— Useful for: OpenRouter keys with different credit balances, multiple
+  OpenAI org keys, redundancy on free-tier services.
+
+11. MCP — MODEL CONTEXT PROTOCOL
+=========================================
+
+— Hermes can both CONNECT to external MCP servers AND SERVE as an MCP server.
+— As client: hermes mcp add <name> --url <url> or --command <cmd>
+  Adding MCP servers exposes their tools directly to the agent.
+— As server: hermes mcp serve — other MCP clients (like Claude Desktop)
+  can connect to Hermes and use its tools.
+— Configure per-server tool selection: hermes mcp configure <name>
+  toggles which tools from that MCP server are visible.
+— /reload-mcp: reload all MCP connections without restarting the session.
+
+12. CHECKPOINTS — FILESYSTEM ROLLBACK
+=========================================
+
+— Enabled via --checkpoints flag on startup or checkpoints.enabled in config.
+— Automatically snapshots the filesystem before dangerous operations.
+— Up to 50 snapshots by default (configurable via max_snapshots).
+— /rollback N restores to the Nth most recent checkpoint.
+— Useful for: experimentation without fear of breaking things.
+
+13. ACP SERVER — IDE INTEGRATION
+=========================================
+
+— hermes acp starts an Anthropic Code Protocol server.
+— Allows IDEs (like Cursor, VS Code with Continue plugin) to use Hermes
+  as their backend agent.
+— Think of it as "Hermes, but inside your editor".
+
+14. PLUGINS
+=========================================
+
+— hermes plugins list/install/remove
+— Extend Hermes functionality without modifying core code.
+— Community plugins available via the hub.
+
+15. WEBHOOKS — EVENT-DRIVEN HERMES
+=========================================
+
+— hermes webhook subscribe <name>: creates a webhook endpoint at
+  /webhooks/<name> that accepts POST requests.
+— When triggered, Hermes processes the payload as a task.
+— Perfect for: GitHub webhooks, CI/CD notifications, incoming SMS triggers.
+
+16. TOOLSETS — FINE-GRAINED TOOL CONTROL
+=========================================
+
+— 16+ named toolsets (web, browser, terminal, file, code_execution, vision,
+  image_gen, tts, skills, memory, session_search, delegation, cronjob,
+  clarify, moa, homeassistant).
+— Each can be enabled/disabled independently per platform.
+— hermes chat -t web,terminal: start a session with only these two toolsets.
+— Changes require /reset (new session) to take effect — they don't apply
+  mid-conversation to preserve prompt caching.
+
+17. SMART MODEL ROUTING
+=========================================
+
+— Config: smart_model_routing.enabled + cheap_model specification.
+— Automatically classifies incoming queries as "simple" or "complex".
+— Simple queries (greetings, file reads, quick lookups) use the cheap model.
+— Complex queries (multi-step tasks, code generation, analysis) use the
+  primary model.
+— Transparent to the user — only the cost difference is visible in logs.
+
+18. BACKGROUND PROCESS MANAGEMENT
+=========================================
+
+— terminal(background=true, notify_on_complete=true): run long tasks and
+  get auto-notified when they finish without polling.
+— process(action="poll"): check progress of background tasks.
+— process(action="wait"): block until a background task completes.
+— process(action="write"|"submit"): interact with running processes
+  (send stdin, answer prompts).
+— watch_patterns: get mid-process signals (e.g., "Server started") before
+  the process fully completes.
+— NOT mutually exclusive with other work — you can keep chatting while
+  a build or test runs in background.
+
+19. REMOTE BACKENDS
+=========================================
+
+— terminal.backend: local (default), docker, ssh, modal.
+— Run Hermes locally but execute commands on remote servers.
+— Security: all tools respect the remote's access controls.
+
+20. PERSONALITIES
+=========================================
+
+— /personality <name>: apply a personality overlay mid-session.
+— Different from skills — personalities modify tone/style, not capability.
+— Useful for: customer-facing vs internal-use tone switching.

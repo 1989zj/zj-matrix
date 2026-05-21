@@ -1,0 +1,198 @@
+Hermes Agent Production Deployment & Advanced Patterns
+=======================================================
+
+Multi-platform Gateway, Profiles, Credential Pools, MCP, Checkpoints,
+and Real-world Deployment Topologies.
+
+1. MULTI-PLATFORM GATEWAY ARCHITECTURE
+=========================================
+
+Hermes Gateway is NOT a simple bot framework. It's a unified message routing
+layer that lets a SINGLE agent instance serve multiple platforms simultaneously
+with per-platform tool restriction.
+
+Supported platforms (16+):
+  Telegram, Discord, Slack, WhatsApp, Signal, Email (IMAP/SMTP), SMS,
+  Matrix, Mattermost, Home Assistant, DingTalk, Feishu/Lark, WeCom,
+  API Server (HTTP), Webhooks, Open WebUI.
+
+How it works:
+
+— The gateway process (hermes gateway run) connects to each configured
+  platform via its native API (Telegram Bot API, Discord Gateway Intents,
+  Feishu Event API, etc.)
+— When a user sends a message on any platform, the gateway creates a
+  session context (isolated per conversation) and routes it to the agent.
+— Session isolation: a conversation on Telegram is completely separate from
+  one on Discord. Different session IDs, different context windows.
+  group_sessions_per_user config controls whether group chats merge or stay
+  separate per-group.
+— Tool restriction per platform: configured via hermes skills config or
+  directly in config.yaml. Example: disable 'terminal' tool on Telegram
+  (security), keep it on Discord (developer team). Enables different
+  permission levels for different channels.
+
+Platform-specific considerations:
+
+  — Feishu: does NOT support markdown tables or headers in message rendering.
+    Sending with tag:"md" works for bold/code/links but tables are silently
+    dropped. Logs won't show the rejection unless the API explicitly errors.
+    Workaround: use code blocks or line-by-line formatting.
+  — Telegram: native voice message support via MEDIA: path in responses.
+    Audio files auto-render as voice bubbles.
+  — WhatsApp: media handling has file size limits (16MB for documents).
+    Business API vs Cloud API have different feature sets.
+  — Signal: requires signal-cli as a bridge. No native image analysis.
+  — Email: IMAP polling interval matters — too frequent gets flagged as spam.
+    Use IDLE mode where supported.
+
+Gateway lifecycle management:
+  — hermes gateway install: systemd service
+  — hermes gateway start/stop/restart/status
+  — Config changes require gateway restart (or at minimum, the relevant
+    platform section restart) — simple config.yaml changes are picked up
+    on restart, not dynamically.
+  — Logging: ~/.hermes/logs/gateway.log. Grep for "failed to send|error"
+    for first-pass debugging.
+
+2. PROFILES — TRUE MULTI-TENANCY
+=========================================
+
+Profiles give Hermes complete isolation at the filesystem level. Each profile
+has its own:
+  — config.yaml (different model, provider, toolsets)
+  — .env (different API keys, credentials)
+  — sessions/ (no cross-profile context leakage)
+  — skills/ (different skill sets per profile)
+  — memories/ (different MEMORY.md and USER.md)
+  — logs/ (separate debugging)
+
+Profile commands:
+  — hermes profile create work --clone: creates with bare config
+  — hermes profile create work --clone-all: full copy including sessions/skills
+  — hermes profile create work --clone-from personal: clone from specific profile
+  — hermes profile use work: set as sticky default
+  — hermes profile alias work: creates hermes-work shell wrapper script
+  — hermes profile export work: tar.gz for sharing
+  — hermes profile import work.tar.gz: restore from archive
+
+Use cases:
+  — Personal vs work: different API keys (personal: cheap models; work: premium)
+  — Per-client: each client gets isolated skills, memory, credentials
+  — Dev vs production: dev profile uses OpenRouter, prod uses Anthropic direct
+  — Team roles: editor profile has content-creation skills; sysadmin has terminal
+
+3. CREDENTIAL POOLS — API KEY RESILIENCE
+===========================================
+
+Hermes supports storing MULTIPLE API keys per provider. When one key hits its
+rate limit or quota is exhausted, Hermes transparently rotates to the next.
+
+Commands:
+  — hermes auth add: interactive wizard to add a key to a pool
+  — hermes auth list <provider>: show all keys and their exhaustion status
+  — hermes auth remove <provider> <index>: remove by provider + numeric index
+  — hermes auth reset <provider>: clear exhaustion status on all keys
+
+How rotation works:
+  1. Provider call fails with 429 (rate limit) or 401 (expired)
+  2. Hermes marks that key as "exhausted" in auth.json
+  3. Next request uses the next key in the pool
+  4. Reset clears the exhaustion marker (for time-based quotas)
+  This is invisible to the user — they just see the request succeed on retry.
+
+Strategic use: pool 5+ OpenRouter keys with small credit balances, rotate
+naturally. Pool free-tier keys from different providers for different models.
+
+4. MCP — MODEL CONTEXT PROTOCOL INTEGRATION
+=============================================
+
+Hermes supports MCP in TWO directions:
+
+As a CLIENT (consuming external MCP servers):
+  — hermes mcp add <name> --url <mcp-server-url>
+  — hermes mcp add <name> --command "python3 /path/to/mcp-server.py"
+  — Once added, the MCP server's tools appear in Hermes's tool list
+  — Per-server tool selection: hermes mcp configure <name> lets you toggle
+    which tools from that MCP server are visible to the agent
+  — /reload-mcp: reload all connections without restarting the session
+  — Useful for: database query tools, file system tools, third-party API
+    connectors that are implemented as MCP servers
+
+As a SERVER (exposing Hermes tools to other MCP clients):
+  — hermes mcp serve starts an MCP server endpoint
+  — Other MCP clients (Claude Desktop, Continue plugin, Cursor) can connect
+    and use Hermes's full tool suite
+  — This effectively makes Hermes a "tool backend" for any MCP-compatible UI
+
+5. CHECKPOINTS — FILESYSTEM SAFETY NET
+=========================================
+
+Checkpoints auto-snapshot the filesystem state before dangerous operations.
+
+— Enabled via: hermes chat --checkpoints or checkpoints.enabled: true in config
+— Max snapshots: 50 (checkpoints.max_snapshots config)
+— Rollback: /rollback N restores to Nth most recent snapshot
+— Scope: captures files modified during the session, not entire filesystem
+— Use case: code experimentation, config changes, batch edits
+  "Try something risky, rollback cleanly if it fails"
+
+6. REAL-WORLD DEPLOYMENT TOPOLOGIES
+=========================================
+
+SINGLE-USER, SINGLE-MACHINE (most common):
+  - Install Hermes on a Linux server
+  - Gateway connects to Telegram/Feishu for mobile access
+  - CLI for complex tasks from workstation
+  - Cron jobs for scheduled operations (daily summaries, price checks, backups)
+  - One profile, one model provider
+
+MULTI-AGENT TEAM (advanced):
+  - Profile per team member (different skills, memory, credentials)
+  - Gateway to team Slack/Discord
+  - Shared cron jobs for team notification (e.g., "deploy status every 30 min")
+  - Credential pools for shared API access
+  - Delegated tasks for parallel code review across projects
+
+PRODUCTION SERVICE (enterprise):
+  - Hermes behind API Gateway (via hermes webhook or Open WebUI)
+  - Multiple profiles for different environments (dev/staging/prod)
+  - Checkpoints enabled on all sessions
+  - Gateway logs shipped to central logging (ELK/DataDog via file tail)
+  - Cron jobs with no_agent mode for zero-cost operational monitoring
+  - MCP servers for database and infrastructure access
+  - Strict per-platform tool restriction (terminal only on CLI, read-only on chat)
+
+7. COST OPTIMIZATION PATTERNS
+=========================================
+
+  — Smart model routing: cheap model for 70% of queries, premium for 30%
+  — Cron no_agent mode: zero LLM cost for monitoring tasks
+  — Toolset restriction on cron: only load tools the job actually needs
+  — Context compression: auto-triggers at 50% threshold, targets 20%
+  — Credential pools: use multiple free-tier keys instead of one paid key
+  — Background terminal processes: keep server processes running across sessions
+    instead of restarting them each time (saves setup tokens)
+  — Session pruning: hermes sessions prune --older-than 30 to reclaim disk space
+
+8. SECURITY CONSIDERATIONS
+=========================================
+
+  — TIRITH: built-in prompt injection detection (tirith_enabled config)
+  — Website blocklist: prevent the agent from browsing known malicious domains
+  — Per-platform tool restriction: don't expose terminal on public channels
+  — Credential pool exhaustion: prevent unintended key usage after quota
+  — Checkpoint rollback: recover from accidental file modifications
+  — .env files: API keys never in config.yaml, always in .env
+  — Memory content: sensitive info should NOT be stored in memory
+    (memory is injected into every system prompt — anyone who can see the
+    agent's output can infer memory contents)
+
+PUNCHLINE
+==========
+
+"Hermes is not a chatbot you configure once and forget — it's a runtime
+that compounds in value as you invest in its memory, skills, and automation
+pipeline. The gateway makes it omnipresent, profiles make it multi-tenant,
+and cron makes it self-sustaining. The initial setup is the smallest part
+of the journey."

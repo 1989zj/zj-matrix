@@ -1,0 +1,187 @@
+Hermes Agent's Four Hidden Superpowers: Skills, Memory, Cron, Delegation
+==========================================================================
+
+A deep-dive into the architectural foundations that make Hermes Agent
+fundamentally different from "just another LLM chat wrapper."
+
+1. SKILLS — PROCEDURAL MEMORY
+===============================
+
+Hermes Agent's skill system is its most differentiating feature and its most
+overlooked. New users treat skills as "documentation" — they might browse the
+catalog, install a few, and stop there. The real power is that skills act as
+PROCEDURAL MEMORY: executable knowledge that loads into every session.
+
+How skills work architecturally:
+
+— When a session starts, the agent loads ALL configured skills (via -s flag,
+  cron skill attachment, or the skills toolset).
+— The agent scans available skills BEFORE replying to any user message.
+— The matching rule: "If a skill matches or is even partially relevant, load
+  it. Err on the side of loading."
+— Loaded skill content is injected into the system prompt as a specialized
+  knowledge section alongside regular context and memory.
+— Skills have access to linked files (references/, templates/, scripts/,
+  assets/) that the agent can read and execute.
+
+The self-improving loop:
+  1. Agent encounters a complex task (5+ tool calls, tricky error, new workflow)
+  2. Solves it, records the approach
+  3. Saves it as a skill: skill_manage(action='create')
+  4. Next session, skill auto-loads → agent doesn't start from zero
+
+This is why Hermes gets BETTER over time. Each session's lessons persist.
+Compounding knowledge.
+
+Classification of non-builtin skills:
+  - Custom-created: authored via skill_manage from scratch
+  - Customized/patched: hub skills modified for local environment
+  - Hub-installed: standard skills from the catalog
+
+Skill maintenance: When a skill is found to be outdated, incomplete, or wrong
+during use, the agent patches it IMMEDIATELY. "Skills that aren't maintained
+become liabilities." This is a hard rule — no waiting to be asked.
+
+Common pitfalls:
+  — Loading too many skills per session: each skill consumes input token budget.
+    The agent's system prompt includes all loaded skill content.
+  — Skills with stale commands: OS-specific paths, depreced APIs, renamed
+    tools. These must be patched on discovery.
+  — Skills that are too broad: a skill about "everything Linux" is worse
+    than 5 focused skills about specific subsystems. Granularity matters.
+
+2. MEMORY — PERSISTENT CROSS-SESSION STATE
+=============================================
+
+Hermes has TWO memory stores, not one:
+
+  — MEMORY.md (2200 char limit): environment facts, project conventions,
+    tool quirks, lessons learned. "Your notes."
+  — USER.md (1375 char limit): who the user is, their preferences, role,
+    communication style, pet peeves. "User profile."
+
+Memory is injected into EVERY session's system prompt. It's not a retrieval-
+augmented lookup — it's always there, consuming context window space. This
+design choice means:
+
+  — Memory must be compact. Every character matters.
+  — Stale entries waste space. Proactive cleanup is essential.
+  — Format matters: save DECLARATIVE facts, not INSTRUCTIONS.
+    "User prefers concise responses" ✓ — "Always respond concisely" ✗.
+    Imperative phrasing gets re-read as a directive in later sessions and
+    causes repeated work.
+
+Memory vs Skills boundary:
+  — MEMORY captures: "who the user is and environment state"
+  — SKILLS capture: "how to do things"
+  — When memory fills up (approaching 2200/1375 chars), procedural details
+    migrate to skills. Memory becomes a pointer: "see skill X for the workflow."
+
+Pluggable backends: built-in (default SQLite-backed files), Honcho (managed
+memory service), Mem0 (semantic memory with retrieval), and custom providers.
+Each has different tradeoffs between context quality, searchability, and cost.
+
+Proactive compaction: the agent is expected to monitor memory utilization at
+session end (wc -m ~/.hermes/memories/MEMORY.md). If either file is above ~85%,
+consolidate BEFORE writes fail. Waiting for writes to fail and fixing reactively
+is explicitly considered unacceptable.
+
+3. CRON — AUTONOMOUS SCHEDULED OPERATIONS
+===========================================
+
+The cron system transforms Hermes from a "chat when asked" tool into a
+"works while you sleep" autonomous operator.
+
+Architectural highlights:
+
+— Two modes of operation:
+  * AGENT mode (default): the LLM runs the prompt on schedule, with full
+    tool access, skills, and reasoning. Produces nuanced output.
+  * NO_AGENT mode (--no-agent): the scheduler runs a shell/Python script
+    on schedule and delivers stdout verbatim. ZERO LLM token cost.
+    Output semantics: empty stdout = silent (nothing sent to user).
+    Non-empty stdout = delivered as-is. Non-zero exit = error alert sent.
+
+— Per-job delivery: auto-detects the current chat (for replies in the same
+  thread), or explicit platform:chat_id:thread_id targeting. Cron jobs
+  maintain topic context when replying to the same conversation.
+
+— Per-job model override: different jobs can use different providers/models.
+  The provider is pinned at creation time so jobs stay stable across restarts.
+
+— Skill attachment: skills are loaded in order before the cron prompt runs.
+  This lets cron jobs benefit from accumulated procedures.
+
+— Context chaining: cron_job A's last completed output injects into
+  cron_job B's prompt as context. Enables pipelines: data collection →
+  analysis → delivery, each on its own schedule.
+
+— Workdir isolation: setting a workdir for a cron job makes project-level
+  AGENTS.md / CLAUDE.md / .cursorrules available as context. Also isolates
+  file operations per-project.
+
+— Toolset restriction: limit a cron job to only the tools it needs.
+  A news scraper only needs 'web' — don't load terminal/file/browser.
+  Saves significant input tokens per run.
+
+— Restrictions: cron-run sessions cannot recursively schedule more cron jobs
+  (safety rule). They also cannot ask the user questions — they run with no
+  user present.
+
+4. DELEGATE_TASK — STRUCTURED PARALLELISM
+===========================================
+
+delegate_task is Hermes's built-in mechanism for spawning child agents.
+It's NOT the same as background terminal processes or tmux sessions.
+
+Architecture:
+
+— Three roles in the spawning hierarchy:
+  * 'leaf' (default): focused worker. Cannot delegate further, cannot
+    use clarify/memory/send_message/execute_code.
+  * 'orchestrator': can use delegate_task to spawn its own workers. Bounded
+    by delegation.max_spawn_depth (default 2) and
+    delegation.orchestrator_enabled config.
+  * Parent agent: full capabilities, bounded by max_turns (default 90).
+
+— Two modes:
+  * Single: pass 'goal' + optional 'context' + 'toolsets'
+  * Batch: pass 'tasks' array with up to delegation.max_concurrent_children
+    (default 3, configurable, no hard ceiling). All run concurrently.
+
+— Each subagent gets an ISOLATED environment: separate terminal session,
+  separate working directory, separate tool configuration. No shared state.
+
+— Language contamination: subagents have NO memory of the parent conversation.
+  All context must be passed explicitly. If the parent speaks Chinese and
+  the subagent defaults to English, the summary comes back in English.
+  Solution: include "respond in Chinese" in the context field.
+
+— SYNCHRONOUS execution: delegate_task runs INSIDE the parent turn. If the
+  parent is interrupted (user sends /stop, /new, or a new message that
+  triggers context compaction), ALL child agents are CANCELLED with
+  status='interrupted'. Work is discarded. This is the most common
+  "why did my parallel tasks disappear?" failure mode.
+
+— When to use delegate_task vs spawned hermes process:
+  * delegate_task: quick parallel subtasks (seconds to minutes), needs
+    parent context, bounded by session lifetime
+  * Spawned hermes process (via terminal + tmux): hours-long autonomous
+    missions, fully independent, survives parent exit
+  * Cron job: recurring tasks, survives everything
+
+— Verifiability requirement: Subagent summaries are SELF-REPORTS, not
+  verified facts. For operations with external side-effects (HTTP POST,
+  remote writes, file creation), the parent must VERIFY: fetch the URL,
+  stat the file, read back the content. The agent is instructed to do this
+  rather than trust the subagent's claim of success.
+
+DESIGN PHILOSOPHY PUNCHLINE
+=============================
+
+Hermes Agent's core insight: "An agent that cannot learn from experience is
+just an expensive REPL." The entire architecture — skills as procedural memory,
+persistent user/memory stores, cron for autonomous operation, delegation for
+parallelism, and mandatory verification of side-effects — serves a single goal:
+each session should make the next one more effective. The system is designed
+not for one-shot perfection, but for compounding improvement through use.
