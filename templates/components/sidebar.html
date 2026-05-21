@@ -37,6 +37,10 @@
       <span class="material-symbols-outlined {% if 'timeline' in request.path %}fill{% endif %}">calendar_month</span>
       <span class="font-label-md text-label-md">故事时间线</span>
     </a>
+    <a class="flex items-center gap-3 px-3 py-2 {% if '/data/' in request.path %}bg-primary/10 text-primary font-bold{% else %}text-on-surface-variant hover:bg-surface-variant{% endif %} rounded-lg cursor-pointer transition-all duration-200 no-underline" href="{{ url_for('novel.data_center', slug=slug) }}">
+      <span class="material-symbols-outlined {% if '/data/' in request.path %}fill{% endif %}">insights</span>
+      <span class="font-label-md text-label-md">数据中心</span>
+    </a>
   </nav>
   <!-- CLI Console - novel context -->
   <div class="mt-auto px-2 border-t border-outline-variant pt-2 flex flex-col gap-1">

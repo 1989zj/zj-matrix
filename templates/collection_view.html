@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ coll_name }} - 数据查看 - NovelStudio{% endblock %}
+
+{% block content %}
+<div class="max-w-container-max mx-auto px-margin-desktop py-12">
+    <nav class="flex items-center gap-2 text-on-surface-variant font-label-md mb-8">
+        <a href="{{ url_for('novel.data_center', slug=slug) }}" class="hover:text-primary no-underline flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">insights</span> 数据中心
+        </a>
+        <span class="material-symbols-outlined text-sm">chevron_right</span>
+        <span class="text-on-surface font-bold">{{ coll_name }}</span>
+    </nav>
+
+    <div class="flex justify-between items-end mb-8">
+        <div>
+            <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">{{ coll_name }}</h1>
+            <p class="font-body-md text-body-md text-on-surface-variant">正在查看近 100 条记录 (Project: {{ meta.title }})</p>
+        </div>
+        <button onclick="location.reload()" class="flex items-center gap-2 px-4 py-2 bg-surface-container border border-outline-variant rounded-lg hover:bg-surface-variant transition-colors">
+            <span class="material-symbols-outlined text-sm">refresh</span> 刷新数据
+        </button>
+    </div>
+
+    {% if not data %}
+    <div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-20 text-center">
+        <span class="material-symbols-outlined text-6xl text-on-surface-variant/20 mb-4">database_off</span>
+        <p class="text-on-surface-variant">该集合中暂无针对本作品的数据记录</p>
+    </div>
+    {% else %}
+    <div class="space-y-4">
+        {% for doc in data %}
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            <div class="bg-surface-container-low px-6 py-3 border-b border-outline-variant flex justify-between items-center cursor-pointer" onclick="toggleDoc('{{ loop.index }}')">
+                <div class="flex items-center gap-4">
+                    <span class="font-mono text-xs text-primary font-bold">#{{ loop.index }}</span>
+                    <span class="text-xs text-on-surface-variant font-mono">ID: {{ doc._id }}</span>
+                    {% if doc.chapter or doc.num or doc.chapter_num %}
+                    <span class="px-2 py-0.5 bg-secondary/10 text-secondary rounded text-[10px] font-bold">Ch: {{ doc.chapter or doc.num or doc.chapter_num }}</span>
+                    {% endif %}
+                    {% if doc.type %}
+                    <span class="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-bold">{{ doc.type|upper }}</span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-[10px] text-on-surface-variant/60 font-mono">{{ doc.created_at or doc.timestamp or doc.at or '' }}</span>
+                    <span id="icon-{{ loop.index }}" class="material-symbols-outlined text-on-surface-variant transition-transform">expand_more</span>
+                </div>
+            </div>
+            <div id="content-{{ loop.index }}" class="p-6 hidden bg-surface-container-lowest">
+                <div class="flex flex-col gap-4">
+                    <!-- Key Field Summary if available -->
+                    {% if doc.title or doc.content or doc.message or doc.summary %}
+                    <div class="p-4 bg-primary-container/5 rounded-xl border border-primary/10">
+                        {% if doc.title %}<h4 class="font-title-md text-on-surface mb-2">{{ doc.title }}</h4>{% endif %}
+                        {% if doc.message %}<p class="text-sm text-on-surface-variant">{{ doc.message }}</p>{% endif %}
+                        {% if doc.summary %}<p class="text-sm text-on-surface-variant">{{ doc.summary }}</p>{% endif %}
+                        {% if doc.content %}
+                        <div class="mt-4 p-3 bg-surface rounded border border-outline-variant/30 text-xs text-on-surface leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap">
+                            {{ doc.content }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Raw JSON Viewer -->
+                    <div class="relative group">
+                        <div class="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="copyJson('json-{{ loop.index }}')" class="p-2 bg-surface-container rounded-lg hover:bg-primary-container text-on-surface-variant hover:text-primary transition-all">
+                                <span class="material-symbols-outlined text-sm">content_copy</span>
+                            </button>
+                        </div>
+                        <pre id="json-{{ loop.index }}" class="bg-surface-container-high p-4 rounded-xl text-xs font-mono text-on-surface overflow-x-auto">{{ doc | tojson(indent=2) }}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleDoc(id) {
+    const content = document.getElementById(`content-${id}`);
+    const icon = document.getElementById(`icon-${id}`);
+    const isHidden = content.classList.contains('hidden');
+    
+    // Close all others maybe? (Optional)
+    
+    if (isHidden) {
+        content.classList.remove('hidden');
+        icon.style.transform = 'rotate(180deg)';
+    } else {
+        content.classList.add('hidden');
+        icon.style.transform = 'rotate(0deg)';
+    }
+}
+
+function copyJson(id) {
+    const text = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('JSON 已复制', 'content_copy');
+    });
+}
+</script>
+{% endblock %}

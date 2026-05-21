@@ -63,9 +63,18 @@
         <!-- Right: Actions -->
         <div class="space-y-6">
             <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant shadow-sm flex flex-col gap-3">
-                <a href="{{ url_for('novel.chapter_list', slug=slug) }}" class="w-full bg-primary text-on-primary font-label-md text-label-md py-4 rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-3 no-underline shadow-md">
-                    <span class="material-symbols-outlined">book_2</span> 章节管理 / 续写
+                {% if meta.stats.chapters > 0 %}
+                <a href="{{ url_for('novel.chapter_read', slug=slug, num=1) }}" class="w-full bg-primary text-on-primary font-label-md text-label-md py-4 rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-3 no-underline shadow-md">
+                    <span class="material-symbols-outlined">auto_stories</span> 开始阅读 (阅读模式)
                 </a>
+                <a href="{{ url_for('novel.chapter_list', slug=slug) }}" class="w-full bg-surface-container text-on-surface font-label-md text-label-md py-3 px-4 rounded-xl hover:bg-surface-variant transition-all flex items-center gap-3 no-underline border border-outline-variant/50">
+                    <span class="material-symbols-outlined text-primary">edit_note</span> 章节管理 / 续写
+                </a>
+                {% else %}
+                <a href="{{ url_for('novel.chapter_list', slug=slug) }}" class="w-full bg-primary text-on-primary font-label-md text-label-md py-4 rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-3 no-underline shadow-md">
+                    <span class="material-symbols-outlined">add</span> 开始创作第一章
+                </a>
+                {% endif %}
                 <a href="{{ url_for('novel.characters', slug=slug) }}" class="w-full bg-surface-container text-on-surface font-label-md text-label-md py-3 px-4 rounded-xl hover:bg-surface-variant transition-all flex items-center gap-3 no-underline border border-outline-variant/50">
                     <span class="material-symbols-outlined text-primary">group</span> 角色档案
                 </a>

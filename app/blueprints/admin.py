@@ -14,16 +14,20 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 def index():
     novels = []
     for doc in novels_col.find({}, {'_id': 0}):
-        name = doc['name']
-        ch_count = chapters_col.count_documents({"novelName": name})
+        project_id = doc['project_id']
+        ch_count = chapters_col.count_documents({"project_id": project_id})
         if ch_count == 0:
             continue
-        stats = get_novel_stats(name)
-        doc['stats']['words'] = stats['words']
-        doc['stats']['chapters'] = stats['count']
-        doc['title'] = doc.get('title', name)
+        stats = get_novel_stats(project_id)
+        # Compatibility fields for templates
+        doc['name'] = project_id
+        doc['stats'] = {
+            'words': stats['words'],
+            'chapters': stats['count']
+        }
+        doc['title'] = doc.get('title', project_id)
         novels.append({
-            'name': name,
+            'name': project_id,
             'meta': doc,
             'slug': doc['slug']
         })

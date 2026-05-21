@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}数据中心 - {{ meta.title }} - NovelStudio{% endblock %}
+
+{% block content %}
+<div class="max-w-container-max mx-auto px-margin-desktop py-12">
+    <div class="mb-12">
+        <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">📊 数据中心</h1>
+        <p class="font-body-md text-body-md text-on-surface-variant">深入洞察底层数据，监控创作引擎运行状态</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {% for group in groups %}
+        <div class="space-y-4">
+            <h3 class="font-title-lg text-title-lg text-on-surface-variant flex items-center gap-2 px-2">
+                <span class="w-1.5 h-6 bg-primary rounded-full"></span>
+                {{ group.title }}
+            </h3>
+            <div class="grid grid-cols-1 gap-3">
+                {% for coll in group.collections %}
+                <a href="{{ url_for('novel.collection_view', slug=slug, coll_name=coll.name) }}" 
+                   class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5 flex items-center justify-between hover:bg-primary-container/10 hover:border-primary transition-all group no-underline">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-surface-container-low flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-[28px]">{{ coll.icon }}</span>
+                        </div>
+                        <div>
+                            <div class="font-label-lg text-label-lg text-on-surface">{{ coll.label }}</div>
+                            <div class="text-xs text-on-surface-variant mt-1">Collection: {{ coll.name }}</div>
+                        </div>
+                    </div>
+                    <span class="material-symbols-outlined text-on-surface-variant/30 group-hover:text-primary transition-colors">chevron_right</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

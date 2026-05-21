@@ -5,13 +5,14 @@ from pymongo import MongoClient
 # In a real production app, these should be in environment variables or a config file.
 MONGO_URI = os.environ.get('MONGO_URI', "mongodb://mongo_8F6dTZ:mongo_dxx8nA@192.168.2.30:27017/")
 client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=10000)
-db = client['novel']
+db = client['novel_factory']
 
-novels_col = db['novels']
-chapters_col = db['chapters']
-reports_col = db['reports']
+novels_col = db['projects']
+chapters_col = db['chapter_memory']
+reports_col = db['legacy_reports']
 orders_col = db['orders']
 settings_col = db['settings']
-users_col = db['users']  # New collection for Phase 2
-notifications_col = db['notifications']  # New collection for Phase 4
-sms_codes_col = db['sms_codes'] # Collection for SMS verification codes
+users_col = db['users']
+notifications_col = db['notifications']
+sms_codes_col = db['sms_codes']
+drafts_col = db['drafts']

@@ -5,46 +5,53 @@
 
 {% block extra_css %}
 <style>
-/* 移动端阅读最大化模式 */
+/* 阅读最大化模式 (全平台) */
+body.reader-maximized header,
+body.reader-maximized aside.h-full.w-64,
+body.reader-maximized #chapter-sidebar,
+body.reader-maximized aside.w-80,
+body.reader-maximized aside.border-l {
+  display: none !important;
+}
+
+body.reader-maximized #reader-area {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 999 !important;
+  background: var(--surface-container-lowest, #fff) !important;
+  overflow-y: auto !important;
+}
+
+body.reader-maximized #editor-paper {
+  max-width: 900px !important;
+  padding: 40px 60px !important;
+  margin: 0 auto !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  width: 100% !important;
+}
+
+/* 最大化状态下顶部条保留但变色 */
+body.reader-maximized #reader-topbar-mobile {
+  display: flex !important;
+  background: var(--surface-container-lowest, #fff) !important;
+  color: var(--on-surface, #1c1b1f) !important;
+  border-bottom: 1px solid var(--outline-variant, #cac4d0) !important;
+}
+
+/* 顶部条：默认仅在移动端显示，除非在最大化模式下 */
+#reader-topbar-mobile {
+  display: none;
+}
+
 @media (max-width: 768px) {
-  /* 隐藏非正文元素 */
-  body.reader-maximized header,
-  body.reader-maximized aside.h-full.w-64,
-  body.reader-maximized #chapter-sidebar,
-  body.reader-maximized aside.w-80,
-  body.reader-maximized aside.border-l {
-    display: none !important;
-  }
-  /* 阅读区全屏 */
-  body.reader-maximized #reader-area {
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 999 !important;
-    background: var(--surface-container-lowest, #fff) !important;
-    overflow-y: auto !important;
-  }
-  body.reader-maximized #editor-paper {
-    max-width: 100% !important;
-    padding: 16px 20px !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    width: 100% !important;
-  }
-  /* 最大化状态下顶部条保留但变色 */
-  body.reader-maximized #reader-topbar-mobile {
-    background: var(--surface-container-lowest, #fff) !important;
-    color: var(--on-surface, #1c1b1f) !important;
-    border-bottom: 1px solid var(--outline-variant, #cac4d0) !important;
-  }
-  /* 顶部固定条 - 默认显示 */
   #reader-topbar-mobile {
     display: flex !important;
   }
-}
-@media (min-width: 769px) {
-  #reader-topbar-mobile {
-    display: none !important;
+  
+  body.reader-maximized #editor-paper {
+    max-width: 100% !important;
+    padding: 16px 20px !important;
   }
 }
 </style>
@@ -103,11 +110,11 @@
 
     <!-- Reader/Editor Area -->
     <div id="reader-area" class="flex-1 overflow-y-auto bg-surface-variant">
-        <div id="reader-topbar-mobile" class="hidden fixed top-0 left-0 right-0 z-50 bg-primary text-on-primary px-4 py-2.5 flex items-center justify-between shadow-lg">
+        <div id="reader-topbar-mobile" class="fixed top-0 left-0 right-0 z-50 bg-primary text-on-primary px-4 py-2.5 flex items-center justify-between shadow-lg">
             <span class="font-label-md text-label-md font-bold truncate flex-1">NovelStudio</span>
             <button onclick="toggleReaderMaximize()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-on-primary/20 hover:bg-on-primary/30 active:scale-95 transition-all font-label-md text-label-md whitespace-nowrap">
-                <span class="material-symbols-outlined text-[18px]" id="maximize-icon">expand_content</span>
-                <span id="maximize-label">阅读模式</span>
+                <span class="material-symbols-outlined text-[18px] maximize-icon">expand_content</span>
+                <span class="maximize-label">阅读模式</span>
             </button>
         </div>
         <div class="min-h-full w-full flex justify-center py-8">
@@ -124,9 +131,13 @@
                     </button>
                 </div>
 
-                <div id="copy-action-wrapper" class="hidden flex justify-center mb-8">
+                <div id="copy-action-wrapper" class="hidden flex justify-center mb-8 gap-4">
                     <button onclick="copyChapterContent()" class="bg-surface-container text-on-surface-variant hover:bg-primary-container hover:text-primary px-4 py-2 rounded-full flex items-center gap-2 font-label-md transition-all">
                         <span class="material-symbols-outlined text-[18px]">content_copy</span> 复制本章正文
+                    </button>
+                    <button onclick="toggleReaderMaximize()" class="bg-surface-container text-on-surface-variant hover:bg-primary-container hover:text-primary px-4 py-2 rounded-full flex items-center gap-2 font-label-md transition-all">
+                        <span class="material-symbols-outlined text-[18px] maximize-icon">expand_content</span> 
+                        <span class="maximize-label">阅读模式</span>
                     </button>
                 </div>
 
@@ -594,14 +605,26 @@ function copyModalOutput() {
     }).catch(() => {});
 }
 
-// 移动端阅读最大化切换
+// 阅读最大化切换
 function toggleReaderMaximize() {
     const body = document.body;
-    const icon = document.getElementById('maximize-icon');
-    const label = document.getElementById('maximize-label');
     const isMaximized = body.classList.toggle('reader-maximized');
-    icon.textContent = isMaximized ? 'close_fullscreen' : 'expand_content';
-    label.textContent = isMaximized ? '退出阅读' : '阅读模式';
+    
+    // 如果进入阅读模式且未加载章节，自动加载第一章
+    if (isMaximized && currentNum === 0 && totalChapters > 0) {
+        loadChapter(currentSlug, 1);
+    }
+    
+    // 同步所有最大化按钮的状态
+    const icons = document.querySelectorAll('.maximize-icon');
+    const labels = document.querySelectorAll('.maximize-label');
+    
+    icons.forEach(icon => {
+        icon.textContent = isMaximized ? 'close_fullscreen' : 'expand_content';
+    });
+    labels.forEach(label => {
+        label.textContent = isMaximized ? '退出阅读' : '阅读模式';
+    });
 }
 </script>
 

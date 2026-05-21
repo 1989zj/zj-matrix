@@ -1,7 +1,7 @@
 import os
 from flask import Blueprint, render_template, abort, send_from_directory, request, session, redirect, url_for, jsonify
 from app.decorators import admin_required, login_required
-from app.db import novels_col, chapters_col
+from app.db import db, novels_col, chapters_col
 from app.services import get_novel_meta, slug_to_name, get_novel_stats, get_chapter_content
 
 novel_bp = Blueprint('novel', __name__)
@@ -27,15 +27,19 @@ def index():
         return redirect(url_for('admin.index'))
     novels = []
     for doc in novels_col.find({}, {'_id': 0}):
-        name = doc['name']
-        ch_count = chapters_col.count_documents({"novelName": name})
+        project_id = doc['project_id']
+        ch_count = chapters_col.count_documents({"project_id": project_id})
         if ch_count == 0:
             continue
-        stats = get_novel_stats(name)
-        doc['stats']['words'] = stats['words']
-        doc['stats']['chapters'] = stats['count']
+        stats = get_novel_stats(project_id)
+        # Compatibility fields for templates
+        doc['name'] = project_id
+        doc['stats'] = {
+            'words': stats['words'],
+            'chapters': stats['count']
+        }
         novels.append({
-            'name': name,
+            'name': project_id,
             'meta': doc,
             'slug': doc['slug']
         })
@@ -45,16 +49,20 @@ def index():
 @login_required
 def upload_chapter():
     data = request.get_json()
-    if not data or 'novelName' not in data or 'chapterNumber' not in data or 'content' not in data:
+    # Support both old and new field names
+    novel_name = data.get('project_id') or data.get('novelName')
+    chapter_num_raw = data.get('chapter') or data.get('chapterNumber')
+    content = data.get('content')
+    
+    if not novel_name or chapter_num_raw is None or content is None:
         return {"error": "missing fields"}, 400
-    novel_name = data['novelName']
-    chapter_num = int(data['chapterNumber'])
-    content = data['content']
+        
+    chapter_num = int(chapter_num_raw)
     title = data.get('title', '')
     filename = data.get('filename', '')
-    chapter_end_notes = data.get('chapterEndNotes', '')
+    chapter_end_notes = data.get('chapter_end_notes') or data.get('chapterEndNotes', '')
     version = data.get('version', 'v1')
-    word_count = data.get('wordCount', len(content.replace(' ', '').replace('\n', '')))
+    word_count = data.get('word_count') or data.get('wordCount') or len(content.replace(' ', '').replace('\n', ''))
 
     # ── 自动分离章尾说明 ──
     if not chapter_end_notes:
@@ -76,16 +84,18 @@ def upload_chapter():
                               for stripped in [s.strip() for s in sep_lines]):
             chapter_end_notes = '\n'.join(sep_lines).strip()
             content = '\n'.join(lines[:len(lines) - len(sep_lines)]).strip()
-    chapters_col.delete_many({"novelName": novel_name, "chapterNumber": chapter_num})
+            
+    chapters_col.delete_many({"project_id": novel_name, "chapter": chapter_num})
     doc = {
-        "novelName": novel_name,
-        "chapterNumber": chapter_num,
+        "project_id": novel_name,
+        "chapter": chapter_num,
         "title": title,
         "filename": filename,
         "content": content,
-        "chapterEndNotes": chapter_end_notes,
+        "chapter_end_notes": chapter_end_notes,
         "version": version,
-        "wordCount": word_count
+        "word_count": word_count,
+        "status": "merged" # Default status for uploaded chapters
     }
     chapters_col.insert_one(doc)
     return {"success": True, "chapter": chapter_num, "words": word_count}
@@ -95,21 +105,22 @@ def upload_chapter():
 @admin_required
 def update_chapter_content():
     data = request.get_json()
-    if not data or 'novelName' not in data or 'chapterNumber' not in data or 'content' not in data:
+    novel_name = data.get('project_id') or data.get('novelName')
+    chapter_num_raw = data.get('chapter') or data.get('chapterNumber')
+    content = data.get('content')
+
+    if not novel_name or chapter_num_raw is None or content is None:
         return {"error": "missing fields"}, 400
 
-    novel_name = data['novelName']
-    chapter_num = int(data['chapterNumber'])
-    content = data['content']
-
+    chapter_num = int(chapter_num_raw)
     # 计算字数（剔除HTML标签和空白符）
     import re
     text_only = re.sub('<[^<]+?>', '', content)
     word_count = len(text_only.replace(' ', '').replace('\n', '').replace('\r', ''))
 
     chapters_col.update_one(
-        {"novelName": novel_name, "chapterNumber": chapter_num},
-        {"$set": {"content": content, "wordCount": word_count}}
+        {"project_id": novel_name, "chapter": chapter_num},
+        {"$set": {"content": content, "word_count": word_count}}
     )
     return {"success": True, "wordCount": word_count}
 
@@ -662,6 +673,101 @@ def timeline(slug):
     if not meta:
         abort(404)
     return render_template('timeline.html', novel_name=name, meta=meta, slug=slug)
+
+@novel_bp.route('/novel/<slug>/data/')
+@admin_required
+def data_center(slug):
+    name = slug_to_name(slug)
+    if not name:
+        abort(404)
+    meta = get_novel_meta(name)
+    if not meta:
+        abort(404)
+    
+    # 定义要展示的集合及其分类
+    groups = [
+        {
+            "title": "剧情规划",
+            "collections": [
+                {"name": "arcs", "label": "故事卷章 (Arcs)", "icon": "Account_Tree"},
+                {"name": "arc_plans", "label": "大纲规划 (Plans)", "icon": "Schema"},
+                {"name": "foreshadow", "label": "伏笔埋设 (Foreshadow)", "icon": "Hiking"},
+                {"name": "foreshadow_queue", "label": "伏笔队列", "icon": "Format_List_Numbered"},
+                {"name": "drafts", "label": "章节草稿", "icon": "Description"}
+            ]
+        },
+        {
+            "title": "质量与评审",
+            "collections": [
+                {"name": "review_reports", "label": "评审报告 (Review)", "icon": "Rate_Review"},
+                {"name": "refinement_log", "label": "精修记录", "icon": "Tune"},
+                {"name": "refinement_patches", "label": "精修补丁", "icon": "Build"},
+                {"name": "anti_repetition", "label": "防重复检测", "icon": "Repeat"},
+                {"name": "legacy_reports", "label": "历史报告", "icon": "History"}
+            ]
+        },
+        {
+            "title": "状态与世界",
+            "collections": [
+                {"name": "world_state", "label": "动态世界状态", "icon": "Language"},
+                {"name": "character_states", "label": "角色当前状态", "icon": "Recent_Actors"},
+                {"name": "canonical_bible", "label": "正典设定集", "icon": "Auto_Stories"},
+                {"name": "snapshot_store", "label": "项目快照 (Snapshots)", "icon": "Camera"}
+            ]
+        },
+        {
+            "title": "运行日志",
+            "collections": [
+                {"name": "event_log", "label": "系统执行日志", "icon": "Terminal"},
+                {"name": "event_counters", "label": "计数器统计", "icon": "Functions"},
+                {"name": "anti_fatigue", "label": "防疲劳系统数据", "icon": "Bedtime"}
+            ]
+        }
+    ]
+    
+    return render_template('data_center.html', slug=slug, meta=meta, groups=groups)
+
+@novel_bp.route('/novel/<slug>/data/<coll_name>/')
+@admin_required
+def collection_view(slug, coll_name):
+    name = slug_to_name(slug)
+    if not name:
+        abort(404)
+    meta = get_novel_meta(name)
+    if not meta:
+        abort(404)
+    
+    # 限制只能查看允许的集合
+    allowed_colls = [
+        'arcs', 'arc_plans', 'foreshadow', 'foreshadow_queue', 'drafts',
+        'review_reports', 'refinement_log', 'refinement_patches', 'anti_repetition', 'legacy_reports',
+        'world_state', 'character_states', 'canonical_bible', 'snapshot_store',
+        'event_log', 'event_counters', 'anti_fatigue'
+    ]
+    
+    if coll_name not in allowed_colls:
+        abort(403)
+        
+    # 获取数据，根据 project_id 过滤
+    coll = db[coll_name]
+    raw_data = list(coll.find({"project_id": name}).sort("_id", -1).limit(100))
+    
+    # 递归处理数据以便 JSON 展示 (处理 ObjectId 和 datetime)
+    def json_serializable(obj):
+        if isinstance(obj, list):
+            return [json_serializable(item) for item in obj]
+        if isinstance(obj, dict):
+            return {k: json_serializable(v) for k, v in obj.items()}
+        if hasattr(obj, '__str__') and 'ObjectId' in str(type(obj)):
+            return str(obj)
+        if hasattr(obj, 'isoformat'):
+            return obj.isoformat()
+        return obj
+
+    data = json_serializable(raw_data)
+            
+    return render_template('collection_view.html', slug=slug, meta=meta, 
+                           coll_name=coll_name, data=data)
 
 @novel_bp.route('/downloads/')
 @admin_required

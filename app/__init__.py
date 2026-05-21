@@ -29,9 +29,11 @@ def create_app():
             'has_ai_access': session.get('role') == 'admin' or session.get('has_ai_access', False)
         }
         if session.get('role') == 'admin':
-            # 只加载基础信息用于切换
-            novels = list(novels_col.find({}, {'name': 1, 'slug': 1, 'title': 1}))
+            # 只加载基础信息用于切换 (novel_factory 结构)
+            novels = list(novels_col.find({}, {'project_id': 1, 'slug': 1, 'title': 1}))
             for n in novels:
+                # 兼容旧代码，将 project_id 映射为 name
+                n['name'] = n['project_id']
                 n['title'] = n.get('title', n['name'])
             res['all_novels'] = novels
         return res

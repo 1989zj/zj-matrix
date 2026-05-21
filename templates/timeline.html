@@ -13,16 +13,23 @@
         <div class="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-gradient-to-b from-primary/10 via-primary/30 to-primary/10 rounded-full"></div>
 
         <div class="space-y-16 relative z-10">
-            {% set tl = meta.world.timeline if meta.world and meta.world.timeline else {} %}
-            {% for key, val in tl|dictsort %}
+            {% for item in meta.timeline %}
             <div class="flex items-center w-full {% if loop.index is odd %}flex-row-reverse{% endif %}">
                 <!-- Content Side -->
                 <div class="w-1/2 {% if loop.index is odd %}pl-12 text-left{% else %}pr-12 text-right{% endif %}">
                     <div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant shadow-sm hover:shadow-md transition-all group">
                         <div class="font-headline-lg text-headline-lg-mobile text-primary mb-2 group-hover:scale-105 transition-transform origin-left">
-                            {{ key.replace('_', ' → ') }}
+                            {% if item.chapter %}第 {{ item.chapter }} 章：{% endif %}
+                            {{ item.date or '关键节点' }}
                         </div>
-                        <p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">{{ val }}</p>
+                        <p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">{{ item.event }}</p>
+                        {% if item.affected_characters %}
+                        <div class="mt-4 flex flex-wrap gap-2 justify-{{ 'start' if loop.index is odd else 'end' }}">
+                            {% for char in item.affected_characters %}
+                            <span class="px-2 py-0.5 bg-surface-variant rounded text-[10px] text-on-surface-variant uppercase font-bold tracking-wider">{{ char }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 

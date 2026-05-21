@@ -40,15 +40,28 @@ def order_page():
         all_orders = list(orders_col.find({}).sort('createdAt', DESCENDING))
     else:
         all_orders = list(orders_col.find({'customerName': user}).sort('createdAt', DESCENDING))
+    
     for o in all_orders:
         o['_id'] = str(o['_id'])
         o['statusLabel'] = ORDER_STATUSES.get(o['status'], o['status'])
-        # 确保是 datetime 对象供模板 strftime 使用
-        if isinstance(o.get('createdAt'), str):
-            try:
-                o['createdAt'] = datetime.fromisoformat(o['createdAt'].replace('Z', '+00:00'))
-            except: pass
-    return render_template('orders.html', orders=all_orders)
+        
+        # Mapping for template compatibility
+        o['description'] = o.get('detail', '')
+        o['target_words'] = o.get('targetWords', 0)
+        o['price'] = o.get('cost', 0)
+        
+        # Ensure datetime objects for strftime
+        for field in ['createdAt', 'updatedAt']:
+            val = o.get(field)
+            if isinstance(val, str):
+                try:
+                    o[field] = datetime.fromisoformat(val.replace('Z', '+00:00'))
+                except:
+                    o[field] = datetime.now() # Fallback
+            elif not isinstance(val, datetime):
+                o[field] = datetime.now() # Fallback
+                
+    return render_template('orders.html', orders=all_orders, order_types=get_order_prices())
 
 @customer_bp.route('/dashboard/')
 @login_required
@@ -59,56 +72,81 @@ def dashboard():
         all_orders = list(orders_col.find({}).sort('createdAt', DESCENDING))
     else:
         all_orders = list(orders_col.find({'customerName': user}).sort('createdAt', DESCENDING))
+        
     for o in all_orders:
         o['_id'] = str(o['_id'])
         o['statusLabel'] = ORDER_STATUSES.get(o['status'], o['status'])
-        # 确保是 datetime 对象供模板 strftime 使用
+        
+        # Ensure datetime objects for strftime
         for field in ['createdAt', 'updatedAt']:
-            if isinstance(o.get(field), str):
+            val = o.get(field)
+            if isinstance(val, str):
                 try:
-                    o[field] = datetime.fromisoformat(o[field].replace('Z', '+00:00'))
-                except: pass
+                    o[field] = datetime.fromisoformat(val.replace('Z', '+00:00'))
+                except:
+                    o[field] = datetime.now()
+            elif not isinstance(val, datetime):
+                o[field] = datetime.now()
+                
     stats = {
         'total': len(all_orders),
         'pending': sum(1 for o in all_orders if o['status'] == 'pending'),
         'writing': sum(1 for o in all_orders if o['status'] in ('writing', 'confirmed')),
         'completed': sum(1 for o in all_orders if o['status'] == 'completed'),
-        'totalWords': sum(o.get('deliveredWords', 0) for o in all_orders),
-        'totalChapters': sum(o.get('deliveredChapters', 0) for o in all_orders)
+        'totalWords': sum(int(o.get('deliveredWords', 0) or 0) for o in all_orders),
+        'totalChapters': sum(int(o.get('deliveredChapters', 0) or 0) for o in all_orders)
     }
     return render_template('dashboard.html', orders=all_orders, stats=stats,
                            ORDER_STATUSES=ORDER_STATUSES)
 
-# API routes for customers
-@customer_bp.route('/api/orders', methods=['POST'])
+# API and Form routes for customers
+@customer_bp.route('/orders/create', methods=['POST'])
 @login_required
-def api_create_order():
-    data = request.get_json()
+def create_order():
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form.to_dict()
+        
     if not data:
         return jsonify({"error": "no data"}), 400
-    if 'projectName' not in data or not data['projectName'].strip():
-        return jsonify({"error": "missing field: projectName"}), 400
-    if 'contact' not in data or not data['contact'].strip():
-        return jsonify({"error": "missing field: contact"}), 400
+        
+    project_name = data.get('projectName', '').strip()
+    # Support both old/new field names for description/detail
+    detail = data.get('detail') or data.get('description', '').strip()
+    contact = data.get('contact', '').strip() or session.get('user', '')
+    
+    if not project_name:
+        if request.is_json:
+            return jsonify({"error": "missing field: projectName"}), 400
+        return redirect(url_for('customer.order_page'))
+
     now = datetime.now()
     order_type = data.get('orderType', '全本新小说')
+    from app.constants import ORDER_TYPES
     if order_type not in ORDER_TYPES:
         order_type = '全本新小说'
+        
     prices = get_order_prices()
     type_price = prices.get(order_type, 15)
-    chapters = int(data.get('chapters', 60))
-    target_words = int(data.get('targetWords', 100000))
+    chapters = int(data.get('chapters') or 60)
+    
+    # Support both old/new field names for target words
+    target_words_val = data.get('targetWords') or data.get('target_words') or 100000
+    target_words = int(target_words_val)
+    
     cost = chapters * type_price
+    
     order = {
         'customerName': session['user'],
-        'projectName': data['projectName'].strip(),
-        'contact': data['contact'].strip(),
+        'projectName': project_name,
+        'contact': contact,
         'cost': cost,
         'orderType': order_type,
         'genre': data.get('genre', '玄幻').strip(),
-        'detail': data.get('detail', '').strip(),
-        'targetWords': int(data.get('targetWords', 100000)),
-        'chapters': int(data.get('chapters', 60)),
+        'detail': detail,
+        'targetWords': target_words,
+        'chapters': chapters,
         'style': data.get('style', '').strip(),
         'reference': data.get('reference', '').strip(),
         'status': 'pending',
@@ -121,7 +159,10 @@ def api_create_order():
         'updatedAt': now
     }
     result = orders_col.insert_one(order)
-    return jsonify({"success": True, "id": str(result.inserted_id)})
+    
+    if request.is_json:
+        return jsonify({"success": True, "id": str(result.inserted_id)})
+    return redirect(url_for('customer.order_page'))
 
 @customer_bp.route('/api/orders/<oid>', methods=['PUT'])
 @login_required
