@@ -1,0 +1,193 @@
+#!/bin/bash
+# 小说工厂 V3 — Hermes Novel Factory CLI (World State Machine + Event Sourcing)
+# 安装: cp this ~/.local/bin/novel-factory && chmod +x ~/.local/bin/novel-factory
+#
+# 用法:
+#   novel-factory new <需求描述>              → 启动新项目 + 初始化 V3 集合
+#   novel-factory continue <项目名> [章节号]   → 中断恢复 + Context Packet 注入
+#   novel-factory status <项目名>              → 显示项目状态和 V3 metrics
+#   novel-factory snapshot <项目名> <章节>     → 手动保存快照
+#   novel-factory validate <项目名> <章节>     → 手动运行校验
+#   novel-factory event <项目名> <类型> <章节>  → 手动写入事件日志
+#   novel-factory refresh <项目名>             → 触发全量刷新
+#   novel-factory arc <项目名> <arc_id>        → 写入指定 ARC
+#   novel-factory '<需求描述>'                 → 向后兼容
+
+SCRIPTS_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+export NOVEL_FACTORY_V3=true
+
+show_usage() {
+    echo "小说工厂 V3 — Hermes Novel Factory (World State Machine + Event Sourcing)"
+    echo ""
+    echo "用法:"
+    echo "  novel-factory new '<需求描述>'"
+    echo "    启动新项目 + 自动初始化 V3 MongoDB 集合"
+    echo ""
+    echo "  novel-factory continue <项目名> [章节号]"
+    echo "    中断恢复模式: 先运行 resume-project.py 获取 Context Packet"
+    echo "    自动决定恢复策略 (snapshot / clean_continue / edit)"
+    echo ""
+    echo "  novel-factory status <项目名>"
+    echo "    显示项目状态、最新 Context Packet 摘要"
+    echo ""
+    echo "  novel-factory snapshot <项目名> <章节>"
+    echo "    手动调用 snapshot-manager.py 保存快照"
+    echo ""
+    echo "  novel-factory validate <项目名> <章节>"
+    echo "    手动调用 validate-chapter.py 校验指定章节"
+    echo ""
+    echo "  novel-factory event <项目名> <事件类型> <章节> [--data JSON]"
+    echo "    手动写入事件日志"
+    echo "    示例: novel-factory event '诡异游戏' chapter_generated 136 --data '{\"word_count\":2800}'"
+    echo ""
+    echo "  novel-factory arc <项目名> <arc_id>"
+    echo "    直接写入指定 ARC 的内容"
+    echo ""
+    echo "  novel-factory refresh <项目名>"
+    echo "    触发全量数据刷新/重整理"
+    echo ""
+    echo "V3 新增 agent profiles:"
+    echo "  hermes -p arc-manager | character-state-agent | world-simulator"
+    echo "  hermes -p foreshadow-manager | live-validator"
+}
+
+MODE="${1:-}"
+
+case "$MODE" in
+    new)
+        if [ $# -lt 2 ]; then
+            echo "错误: 请提供新项目的需求描述"
+            echo "用法: novel-factory new '<需求描述>'"
+            exit 1
+        fi
+        shift
+        PROJECT_REQ="$*"
+        echo "[V3] 初始化 MongoDB V3 集合..."
+        python3 "$SCRIPTS_DIR/../mongodb/init_collections.py" 2>&1 | grep -v DeprecationWarning
+        echo "[V3] 启动新项目 — 在 novel_factory 数据库中初始化..."
+        hermes -p orchestrator chat -q "NEW_PROJECT (V3): $PROJECT_REQ
+注意: 创建项目时自动初始化 V3 集合 (world_state, character_state, foreshadow_queue, arc_state, snapshot_store, event_log)。请使用 V3 配置文件 orchestrator-run-walkthrough.md 的流程。"
+        ;;
+    continue)
+        if [ $# -lt 2 ]; then
+            echo "错误: 请提供要续写的项目名"
+            echo "用法: novel-factory continue <项目名> [章节号]"
+            exit 1
+        fi
+        PROJECT_NAME="$2"
+        CHAPTER_NUM="${3:-}"
+
+        echo "[V3] 中断恢复模式 — 项目: $PROJECT_NAME"
+
+        # Step 1: 运行 resume-project.py 获取恢复上下文
+        RESUME_OUTPUT=$(python3 "$SCRIPTS_DIR/resume-project.py" status "$PROJECT_NAME" $CHAPTER_NUM 2>&1 | grep -v DeprecationWarning)
+        STRATEGY=$(echo "$RESUME_OUTPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('strategy',{}).get('primary','from_scratch'))" 2>/dev/null || echo "from_scratch")
+
+        echo "[V3] 恢复策略: $STRATEGY"
+        echo "[V3] Context Packet 已就绪 — 注入 Orchestrator..."
+
+        export NOVEL_FACTORY_PROJECT="$PROJECT_NAME"
+        export NOVEL_FACTORY_CHAPTER="$CHAPTER_NUM"
+        export NOVEL_FACTORY_STRATEGY="$STRATEGY"
+
+        # Step 2: 传递恢复上下文给 orchestrator
+        PROMPT="CONTINUE_PROJECT (V3): $PROJECT_NAME"
+        [ -n "$CHAPTER_NUM" ] && PROMPT="$PROMPT 从第 $CHAPTER_NUM 章开始"
+        PROMPT="$PROMPT | 恢复策略: $STRATEGY
+先运行 resume-project.py 获取 Context Packet，然后按 V3 流程继续。
+流程: Context Packet → draft → validate → snapshot → event_log"
+
+        hermes -p orchestrator chat -q "$PROMPT"
+        ;;
+    status)
+        if [ $# -lt 2 ]; then
+            echo "错误: 请提供项目名"
+            echo "用法: novel-factory status <项目名>"
+            exit 1
+        fi
+        PROJECT_NAME="$2"
+        echo "[V3] 项目状态: $PROJECT_NAME"
+        python3 "$SCRIPTS_DIR/resume-project.py" status "$PROJECT_NAME" 2>&1 | grep -v DeprecationWarning
+        ;;
+    snapshot)
+        if [ $# -lt 3 ]; then
+            echo "错误: 请提供项目名和章节号"
+            echo "用法: novel-factory snapshot <项目名> <章节号>"
+            exit 1
+        fi
+        PROJECT_NAME="$2"
+        CHAPTER_NUM="$3"
+        echo "[V3] 保存快照 — $PROJECT_NAME 第 $CHAPTER_NUM 章"
+        python3 "$SCRIPTS_DIR/snapshot-manager.py" save "$PROJECT_NAME" "$CHAPTER_NUM" 2>&1 | grep -v DeprecationWarning
+        ;;
+    validate)
+        if [ $# -lt 3 ]; then
+            echo "错误: 请提供项目名和章节号"
+            echo "用法: novel-factory validate <项目名> <章节号>"
+            exit 1
+        fi
+        PROJECT_NAME="$2"
+        CHAPTER_NUM="$3"
+        echo "[V3] 校验 — $PROJECT_NAME 第 $CHAPTER_NUM 章"
+        # 需要从数据库获取章节内容
+        python3 "$SCRIPTS_DIR/validate-chapter.py" "$PROJECT_NAME" "$CHAPTER_NUM" 2>&1 | grep -v DeprecationWarning
+        ;;
+    event)
+        if [ $# -lt 4 ]; then
+            echo "错误: 用法 novel-factory event <项目名> <事件类型> <章节> [--data JSON]"
+            echo "事件类型: chapter_generated, editor_completed, arc_transition, world_update, etc."
+            exit 1
+        fi
+        PROJECT_NAME="$2"
+        EVENT_TYPE="$3"
+        CHAPTER_NUM="$4"
+        shift 4
+        EXTRA_DATA=""
+        if [ "$1" = "--data" ] && [ -n "$2" ]; then
+            EXTRA_DATA="$2"
+            python3 "$SCRIPTS_DIR/event-log-writer.py" log "$PROJECT_NAME" "$EVENT_TYPE" "$CHAPTER_NUM" --data "$EXTRA_DATA" 2>&1 | grep -v DeprecationWarning
+        else
+            python3 "$SCRIPTS_DIR/event-log-writer.py" log "$PROJECT_NAME" "$EVENT_TYPE" "$CHAPTER_NUM" 2>&1 | grep -v DeprecationWarning
+        fi
+        ;;
+    arc)
+        if [ $# -lt 3 ]; then
+            echo "错误: 请提供项目名和 ARC ID"
+            echo "用法: novel-factory arc <项目名> <arc_id>"
+            exit 1
+        fi
+        PROJECT_NAME="$2"
+        ARC_ID="$3"
+        echo "[V3] 写入指定 ARC — 项目: $PROJECT_NAME, ARC: $ARC_ID"
+        export NOVEL_FACTORY_PROJECT="$PROJECT_NAME"
+        export NOVEL_FACTORY_ARC_ID="$ARC_ID"
+        # V3: 先 build context packet 再传
+        CTX=$(python3 "$SCRIPTS_DIR/build-context-packet.py" "$PROJECT_NAME" 2>&1 | grep -v DeprecationWarning)
+        hermes -p orchestrator chat -q "WRITE_ARC (V3): $PROJECT_NAME arc: $ARC_ID
+Context packet available via build-context-packet.py. 按 V3 ARC lifecycle 流程执行。"
+        ;;
+    refresh)
+        if [ $# -lt 2 ]; then
+            echo "错误: 请提供要刷新的项目名"
+            echo "用法: novel-factory refresh <项目名>"
+            exit 1
+        fi
+        PROJECT_NAME="$2"
+        echo "[V3] 触发全量刷新 — 项目: $PROJECT_NAME"
+        export NOVEL_FACTORY_PROJECT="$PROJECT_NAME"
+        hermes -p orchestrator chat -q "REFRESH_PROJECT (V3): $PROJECT_NAME
+使用 V3 参考资料中的上下文包 + 事件溯源流程执行全量刷新。"
+        ;;
+    -h|--help)
+        show_usage
+        ;;
+    "")
+        show_usage
+        exit 1
+        ;;
+    *)
+        # 向后兼容模式
+        echo "[V3] 向后兼容模式 — 路由到 orchestrator"
+        hermes -p orchestrator chat -q "$*"
+        ;;
+esac

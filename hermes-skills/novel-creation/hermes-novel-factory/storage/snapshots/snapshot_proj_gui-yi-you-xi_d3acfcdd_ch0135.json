@@ -1,0 +1,67 @@
+{
+  "project_id": "proj_gui-yi-you-xi_d3acfcdd",
+  "chapter": 135,
+  "timestamp": "2026-05-18T08:41:03.966791",
+  "world_state": {},
+  "character_states": {},
+  "active_arcs": [],
+  "foreshadow_queue": [],
+  "timeline": [
+    {
+      "chapter": 146,
+      "event": "林远手指触碰到空白冷却区",
+      "importance": 3
+    },
+    {
+      "chapter": 146,
+      "event": "R1第三层墙壁上的规则文本开始自行消失",
+      "importance": 4
+    },
+    {
+      "chapter": 148,
+      "event": "逐字人首次以行走轨迹的形式被观测到",
+      "importance": 5
+    },
+    {
+      "chapter": 149,
+      "event": "江漓解读逐字人擦除路径有选择模式",
+      "importance": 3
+    },
+    {
+      "chapter": 150,
+      "event": "回溯公约层下呼叫救命的旧规则",
+      "importance": 4
+    },
+    {
+      "chapter": 151,
+      "event": "江漓手臂浮现规则文本被逐字人感染",
+      "importance": 5
+    },
+    {
+      "chapter": 152,
+      "event": "在R1外围发现老钱开设的地下补给站",
+      "importance": 3
+    },
+    {
+      "chapter": 153,
+      "event": "发现江漓的规则聆听频率与逐字人擦除频率相同",
+      "importance": 4
+    },
+    {
+      "chapter": 154,
+      "event": "到达R1第四层的巨大空心空间发现stars原始定义文字",
+      "importance": 5
+    },
+    {
+      "chapter": 155,
+      "event": "逐字人回头看向林远的方向意识到有人类在跟踪",
+      "importance": 5
+    }
+  ],
+  "project_meta": {
+    "title": "诡异游戏：我的规则别人看不见",
+    "total_chapters": 135,
+    "total_words": 344786,
+    "current_arc": 4
+  }
+}
