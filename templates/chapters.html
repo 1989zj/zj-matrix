@@ -7,6 +7,7 @@
 <style>
 /* 移动端阅读最大化模式 */
 @media (max-width: 768px) {
+  /* 隐藏非正文元素 */
   body.reader-maximized header,
   body.reader-maximized aside.h-full.w-64,
   body.reader-maximized #chapter-sidebar,
@@ -14,6 +15,7 @@
   body.reader-maximized aside.border-l {
     display: none !important;
   }
+  /* 阅读区全屏 */
   body.reader-maximized #reader-area {
     position: fixed !important;
     inset: 0 !important;
@@ -29,40 +31,21 @@
     border-radius: 0 !important;
     width: 100% !important;
   }
-  #reader-maximize-btn {
+  /* 最大化状态下顶部条保留但变色 */
+  body.reader-maximized #reader-topbar-mobile {
+    background: var(--surface-container-lowest, #fff) !important;
+    color: var(--on-surface, #1c1b1f) !important;
+    border-bottom: 1px solid var(--outline-variant, #cac4d0) !important;
+  }
+  /* 顶部固定条 - 默认显示 */
+  #reader-topbar-mobile {
     display: flex !important;
   }
 }
 @media (min-width: 769px) {
-  #reader-maximize-btn {
+  #reader-topbar-mobile {
     display: none !important;
   }
-}
-#reader-maximize-btn {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 1000;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--primary, #7c4dff);
-  color: white;
-  border: none;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-#reader-maximize-btn:active {
-  transform: scale(0.92);
-}
-body.reader-maximized #reader-maximize-btn {
-  background: var(--surface-container-high, #e8e6e1);
-  color: var(--on-surface, #1c1b1f);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 </style>
 {% endblock %}
@@ -120,9 +103,13 @@ body.reader-maximized #reader-maximize-btn {
 
     <!-- Reader/Editor Area -->
     <div id="reader-area" class="flex-1 overflow-y-auto bg-surface-variant">
-        <button id="reader-maximize-btn" onclick="toggleReaderMaximize()" aria-label="最大化阅读">
-            <span class="material-symbols-outlined" id="maximize-icon">expand_content</span>
-        </button>
+        <div id="reader-topbar-mobile" class="hidden fixed top-0 left-0 right-0 z-50 bg-primary text-on-primary px-4 py-2.5 flex items-center justify-between shadow-lg">
+            <span class="font-label-md text-label-md font-bold truncate flex-1">NovelStudio</span>
+            <button onclick="toggleReaderMaximize()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-on-primary/20 hover:bg-on-primary/30 active:scale-95 transition-all font-label-md text-label-md whitespace-nowrap">
+                <span class="material-symbols-outlined text-[18px]" id="maximize-icon">expand_content</span>
+                <span id="maximize-label">阅读模式</span>
+            </button>
+        </div>
         <div class="min-h-full w-full flex justify-center py-8">
             <article id="editor-paper" class="w-editor-width bg-surface-container-lowest shadow-[0px_4px_24px_rgba(0,0,0,0.02)] mx-4 px-16 py-24 flex flex-col focus:outline-none">
         <div id="chapter-nav" class="hidden flex justify-between items-center mb-8 pb-4 border-b border-outline-variant">
@@ -611,8 +598,10 @@ function copyModalOutput() {
 function toggleReaderMaximize() {
     const body = document.body;
     const icon = document.getElementById('maximize-icon');
+    const label = document.getElementById('maximize-label');
     const isMaximized = body.classList.toggle('reader-maximized');
-    icon.textContent = isMaximized ? 'collapse_content' : 'expand_content';
+    icon.textContent = isMaximized ? 'close_fullscreen' : 'expand_content';
+    label.textContent = isMaximized ? '退出阅读' : '阅读模式';
 }
 </script>
 
