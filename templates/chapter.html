@@ -53,14 +53,38 @@
         </div>
         {% endif %}
 
+        <!-- Bottom Navigation -->
+        <div class="flex justify-between items-center pt-12 pb-4 border-t border-outline-variant">
+            {% if prev %}
+            <a href="{{ url_for('novel.chapter_read', slug=slug, num=prev.num) }}" class="text-on-surface-variant hover:text-primary flex items-center gap-2 font-label-md transition-colors no-underline">
+                <span class="material-symbols-outlined">chevron_left</span> 上一章
+            </a>
+            {% else %}
+            <div class="opacity-20 flex items-center gap-2 font-label-md">
+                <span class="material-symbols-outlined">chevron_left</span> 序幕
+            </div>
+            {% endif %}
+
+            <a href="{{ url_for('novel.chapter_list', slug=slug) }}" class="px-6 py-2 rounded-full bg-surface-container text-on-surface-variant font-label-md hover:bg-surface-variant transition-all no-underline flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">list</span> 目录
+            </a>
+
+            {% if next %}
+            <a href="{{ url_for('novel.chapter_read', slug=slug, num=next.num) }}" class="text-on-surface-variant hover:text-primary flex items-center gap-2 font-label-md transition-colors no-underline">
+                下一章 <span class="material-symbols-outlined">chevron_right</span>
+            </a>
+            {% else %}
+            <div class="opacity-20 flex items-center gap-2 font-label-md">
+                未完待续 <span class="material-symbols-outlined">chevron_right</span>
+            </div>
+            {% endif %}
+        </div>
+
         <!-- Footer Actions -->
-        <div class="flex justify-center gap-4 pt-12 border-t border-outline-variant">
+        <div class="flex justify-center gap-4 pt-6">
             <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-primary-container hover:text-primary transition-all">
                 <span class="material-symbols-outlined">arrow_upward</span>
             </button>
-            <a href="{{ url_for('novel.chapter_list', slug=slug) }}" class="px-8 py-3 rounded-full bg-surface-container text-on-surface-variant font-label-md hover:bg-surface-variant transition-all no-underline flex items-center gap-2">
-                <span class="material-symbols-outlined text-sm">list</span> 返回目录
-            </a>
             {% if current_role == 'admin' %}
             <a href="{{ url_for('novel.chapter_edit', slug=slug, num=chapter.num) }}" class="px-8 py-3 rounded-full bg-primary text-on-primary font-label-md hover:opacity-90 transition-all no-underline flex items-center gap-2 shadow-md">
                 <span class="material-symbols-outlined text-sm">edit</span> 立即修改
