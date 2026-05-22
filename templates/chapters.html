@@ -158,6 +158,20 @@ body.reader-maximized #reader-topbar-mobile {
                         </div>
                     </div>
                 </div>
+
+                <!-- Bottom Nav: 正文底部导航 (上一章/目录/下一章) -->
+                <div id="bottom-chapter-nav" class="hidden flex justify-between items-center pt-8 pb-8 mb-6 border-t border-outline-variant">
+                    <button id="bottom-prev-btn" class="text-on-surface-variant hover:text-primary disabled:opacity-20 flex items-center gap-2 font-label-md transition-colors">
+                        <span class="material-symbols-outlined">chevron_left</span> 上一章
+                    </button>
+                    <a href="/novel/{{ slug }}/chapters/" class="px-6 py-2 rounded-full bg-surface-container text-on-surface-variant font-label-md hover:bg-surface-variant transition-all no-underline flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm">list</span> 目录
+                    </a>
+                    <button id="bottom-next-btn" class="text-on-surface-variant hover:text-primary disabled:opacity-20 flex items-center gap-2 font-label-md transition-colors">
+                        下一章 <span class="material-symbols-outlined">chevron_right</span>
+                    </button>
+                </div>
+
                 <div id="editor-actions" class="hidden mt-12 pt-8 border-t border-outline-variant flex justify-end gap-4">
                     <a id="edit-button" href="#" class="bg-primary text-on-primary font-label-md text-label-md px-6 py-2.5 rounded hover:opacity-90 no-underline">编辑本章</a>
                 </div>
@@ -456,6 +470,18 @@ async function loadChapter(slug, num, el) {
         nextBtn.disabled = (num >= totalChapters);
         prevBtn.onclick = () => loadChapter(slug, num - 1);
         nextBtn.onclick = () => loadChapter(slug, num + 1);
+        
+        // 底部导航同步
+        const bottomNav = document.getElementById('bottom-chapter-nav');
+        const bottomPrev = document.getElementById('bottom-prev-btn');
+        const bottomNext = document.getElementById('bottom-next-btn');
+        if (bottomNav) {
+            bottomNav.classList.remove('hidden');
+            bottomPrev.disabled = (num <= 1);
+            bottomNext.disabled = (num >= totalChapters);
+            bottomPrev.onclick = () => loadChapter(slug, num - 1);
+            bottomNext.onclick = () => loadChapter(slug, num + 1);
+        }
         
         const paragraphs = data.content.split('\n').filter(p => p.trim() !== '');
         contentEl.innerHTML = paragraphs.map(p => `<p class="mb-6">${p}</p>`).join('');
