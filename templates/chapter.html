@@ -36,25 +36,12 @@
         <h1 class="font-headline-lg text-headline-lg text-on-surface mb-12 text-center">{{ chapter.title }}</h1>
 
         <!-- Reading Content -->
-        <div class="font-body-lg text-body-lg text-on-surface leading-loose space-y-8 mb-16">
+        <div class="font-body-lg text-body-lg text-on-surface leading-loose space-y-8 mb-12">
             {{ chapter.content|safe }}
         </div>
 
-        <!-- End Notes -->
-        {% if chapter.chapterEndNotes %}
-        <div class="bg-surface-container-low p-8 rounded-3xl border border-outline-variant/30 mb-16">
-            <h4 class="font-label-sm text-label-sm text-primary uppercase mb-4 font-bold tracking-widest flex items-center gap-2">
-                <span class="material-symbols-outlined text-[16px]">history_edu</span>
-                本章伏笔与钩子
-            </h4>
-            <div class="font-body-md text-body-md text-on-surface-variant leading-relaxed whitespace-pre-wrap italic opacity-80">
-                {{ chapter.chapterEndNotes }}
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Bottom Navigation -->
-        <div class="flex justify-between items-center pt-12 pb-4 border-t border-outline-variant">
+        <!-- Bottom Nav: 紧贴正文结尾 -->
+        <div class="flex justify-between items-center pt-8 pb-8 mb-6 border-t border-outline-variant">
             {% if prev %}
             <a href="{{ url_for('novel.chapter_read', slug=slug, num=prev.num) }}" class="text-on-surface-variant hover:text-primary flex items-center gap-2 font-label-md transition-colors no-underline">
                 <span class="material-symbols-outlined">chevron_left</span> 上一章
@@ -79,6 +66,19 @@
             </div>
             {% endif %}
         </div>
+
+        <!-- End Notes -->
+        {% if chapter.chapterEndNotes %}
+        <div class="bg-surface-container-low p-8 rounded-3xl border border-outline-variant/30 mb-16">
+            <h4 class="font-label-sm text-label-sm text-primary uppercase mb-4 font-bold tracking-widest flex items-center gap-2">
+                <span class="material-symbols-outlined text-[16px]">history_edu</span>
+                本章伏笔与钩子
+            </h4>
+            <div class="font-body-md text-body-md text-on-surface-variant leading-relaxed whitespace-pre-wrap italic opacity-80">
+                {{ chapter.chapterEndNotes }}
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Footer Actions -->
         <div class="flex justify-center gap-4 pt-6">
