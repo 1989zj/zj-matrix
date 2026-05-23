@@ -3,55 +3,74 @@
 
 {% block content %}
 <div class="max-w-container-max mx-auto px-margin-desktop py-12">
-    <div class="mb-12">
-        <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">📚 小说库</h1>
-        <p class="font-body-md text-body-md text-on-surface-variant">发现精彩的故事，沉浸在无限的想象空间中</p>
+    <div class="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+            <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">📚 小说库</h1>
+            <p class="font-body-md text-body-md text-on-surface-variant">发现精彩的故事，沉浸在无限的想象空间中</p>
+        </div>
+        <!-- Type Filter -->
+        <div class="flex items-center bg-surface-container-high p-1 rounded-xl border border-outline-variant">
+            <a href="{{ url_for('novel.index') }}" 
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-all no-underline {{ 'bg-primary text-on-primary shadow-sm' if not current_type else 'text-on-surface-variant hover:bg-surface-container-highest' }}">
+                全部
+            </a>
+            <a href="{{ url_for('novel.index', type='long') }}" 
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-all no-underline {{ 'bg-primary text-on-primary shadow-sm' if current_type == 'long' else 'text-on-surface-variant hover:bg-surface-container-highest' }}">
+                长篇小说
+            </a>
+            <a href="{{ url_for('novel.index', type='short') }}" 
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-all no-underline {{ 'bg-primary text-on-primary shadow-sm' if current_type == 'short' else 'text-on-surface-variant hover:bg-surface-container-highest' }}">
+                短篇小说
+            </a>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-gutter">
         {% for novel in novels %}
-        <article class="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden flex flex-col min-h-[420px] hover:-translate-y-1 hover:shadow-xl transition-all duration-300 relative group">
-            <!-- Cover -->
-            <div class="h-56 relative overflow-hidden bg-surface-variant">
-                {% if novel.meta.cover %}
-                <img alt="{{ novel.meta.title }}封面" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="{{ novel.meta.cover }}"/>
-                {% else %}
-                <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-surface-variant">
-                    <span class="material-symbols-outlined text-6xl text-primary/20">book_5</span>
-                </div>
-                {% endif %}
-                <div class="absolute top-4 left-4 bg-surface-container-lowest/90 backdrop-blur px-3 py-1 rounded-full text-primary font-label-sm text-label-sm border border-outline-variant/30 shadow-sm">
-                    {{ novel.meta.genre or '未分类' }}
-                </div>
-            </div>
-
-            <!-- Content -->
-            <div class="p-6 flex flex-col flex-1">
-                <h3 class="font-title-md text-xl text-on-surface mb-2 group-hover:text-primary transition-colors line-clamp-1">{{ novel.meta.title }}</h3>
-                
-                <div class="flex items-center gap-4 mb-4">
-                    <div class="flex items-center text-on-surface-variant text-sm">
-                        <span class="material-symbols-outlined text-sm mr-1">history_edu</span>
-                        <span>{{ novel.meta.stats.chapters }} 章节</span>
+        <a href="{{ url_for('novel.novel_detail', slug=novel.slug) }}" class="no-underline group">
+            <article class="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden flex flex-col min-h-[420px] hover:-translate-y-1 hover:shadow-xl transition-all duration-300 relative">
+                <!-- Cover -->
+                <div class="h-56 relative overflow-hidden bg-surface-variant">
+                    {% if novel.meta.cover %}
+                    <img alt="{{ novel.meta.title }}封面" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="{{ novel.meta.cover }}"/>
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-surface-variant">
+                        <span class="material-symbols-outlined text-6xl text-primary/20">book_5</span>
                     </div>
-                    <div class="flex items-center text-on-surface-variant text-sm">
-                        <span class="material-symbols-outlined text-sm mr-1">edit_note</span>
-                        <span>{{ '{:,}'.format(novel.meta.stats.words) }} 字</span>
+                    {% endif %}
+                    <div class="absolute top-4 left-4 bg-surface-container-lowest/90 backdrop-blur px-3 py-1 rounded-full text-primary font-label-sm text-label-sm border border-outline-variant/30 shadow-sm">
+                        {{ novel.meta.genre or '未分类' }}
                     </div>
                 </div>
 
-                <p class="font-body-md text-body-md text-on-surface-variant line-clamp-3 mb-6 text-sm italic">
-                    {{ novel.meta.synopsis or novel.meta.description or '暂无简介' }}
-                </p>
+                <!-- Content -->
+                <div class="p-6 flex flex-col flex-1">
+                    <h3 class="font-title-md text-xl text-on-surface mb-2 group-hover:text-primary transition-colors line-clamp-1">{{ novel.meta.title }}</h3>
+                    
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="flex items-center text-on-surface-variant text-sm">
+                            <span class="material-symbols-outlined text-sm mr-1">history_edu</span>
+                            <span>{{ novel.meta.stats.chapters }} 章节</span>
+                        </div>
+                        <div class="flex items-center text-on-surface-variant text-sm">
+                            <span class="material-symbols-outlined text-sm mr-1">edit_note</span>
+                            <span>{{ '{:,}'.format(novel.meta.stats.words) }} 字</span>
+                        </div>
+                    </div>
 
-                <div class="mt-auto pt-4 border-t border-outline-variant/30 flex items-center justify-between">
-                    <span class="text-xs text-on-surface-variant uppercase tracking-widest font-bold">{{ novel.meta.stats.status }}</span>
-                    <a href="{{ url_for('novel.novel_detail', slug=novel.slug) }}" class="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-2 rounded-xl font-label-md text-label-md hover:opacity-90 transition-all no-underline shadow-md shadow-primary/10">
-                        立即阅读 <span class="material-symbols-outlined text-sm">arrow_forward</span>
-                    </a>
+                    <p class="font-body-md text-body-md text-on-surface-variant line-clamp-3 mb-6 text-sm italic">
+                        {{ novel.meta.synopsis or novel.meta.description or '暂无简介' }}
+                    </p>
+
+                    <div class="mt-auto pt-4 border-t border-outline-variant/30 flex items-center justify-between">
+                        <span class="text-xs text-on-surface-variant uppercase tracking-widest font-bold">{{ novel.meta.stats.status }}</span>
+                        <div class="inline-flex items-center gap-1 text-primary font-label-md text-label-md group-hover:gap-2 transition-all">
+                            管理项目 <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </article>
+            </article>
+        </a>
         {% endfor %}
     </div>
 </div>

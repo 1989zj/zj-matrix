@@ -12,6 +12,7 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 @admin_bp.route('/')
 @admin_required
 def index():
+    filter_type = request.args.get('type')
     novels = []
     for doc in novels_col.find({}, {'_id': 0}):
         project_id = doc['project_id']
@@ -26,12 +27,20 @@ def index():
             'chapters': stats['count']
         }
         doc['title'] = doc.get('title', project_id)
+        
+        # Apply filtering
+        is_long = stats['words'] > 50000
+        if filter_type == 'long' and not is_long:
+            continue
+        if filter_type == 'short' and is_long:
+            continue
+            
         novels.append({
             'name': project_id,
             'meta': doc,
             'slug': doc['slug']
         })
-    return render_template('workspace.html', novels=novels)
+    return render_template('workspace.html', novels=novels, current_type=filter_type)
 
 @admin_bp.route('/orders/')
 @admin_required
