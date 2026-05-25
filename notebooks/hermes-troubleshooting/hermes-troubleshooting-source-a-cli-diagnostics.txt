@@ -1,0 +1,106 @@
+Hermes Agent CLI Troubleshooting Quick Reference
+=================================================
+
+1. DIAGNOSTICS COMMANDS (First Things to Try)
+
+   hermes doctor [--fix]
+     - Checks: Python version, pip packages, API keys, config validity, tool dependencies
+     - --fix flag auto-installs missing pip packages
+     - Always the first command to run when something breaks
+
+   hermes config check
+     - Validates config.yaml for missing/outdated fields
+     - Shows deprecation warnings for old config format
+
+   hermes doctor --fix && hermes config check && grep -i error ~/.hermes/logs/gateway.log | tail -20
+     - The "three-shot" diagnostic sequence for most failures
+
+2. LOG LOCATIONS
+
+   ~/.hermes/logs/gateway.log        Gateway/platform message delivery logs
+   ~/.hermes/logs/cron.log           Scheduler errors
+   ~/.hermes/logs/hermes.log         CLI/general agent logs
+   ~/.hermes/logs/                    All logs directory
+
+   Key log search patterns:
+     grep -i "error\|fail\|exception\|timeout" ~/.hermes/logs/gateway.log | tail -30
+     grep -i "rate limit\|429\|too many" ~/.hermes/logs/hermes.log
+     grep -i "memory.*fail\|write.*fail" ~/.hermes/logs/hermes.log
+
+3. CONFIG FILE LOCATIONS
+
+   ~/.hermes/config.yaml            Main configuration (settings)
+   ~/.hermes/.env                   API keys and secrets
+   ~/.hermes/auth.json              OAuth tokens and credential pools
+   ~/.hermes/memories/MEMORY.md     Agent memory (2,200 char limit)
+   ~/.hermes/memories/USER.md       User profile (1,375 char limit)
+   ~/.hermes/skills/                Installed skills directory
+   ~/.hermes/sessions/              Session transcript storage
+   ~/.hermes/profiles/<name>/       Profile-specific config copies
+
+4. ENVIRONMENT VARIABLE VERIFICATION
+
+   ls ~/.hermes/.env && cat ~/.hermes/.env | grep -v "^#" | grep "=" | cut -d= -f1
+     - Lists all configured env vars without exposing values
+     - Cross-reference against provider requirements:
+       OpenRouter:  OPENROUTER_API_KEY
+       Anthropic:   ANTHROPIC_API_KEY
+       DeepSeek:    DEEPSEEK_API_KEY
+       OpenAI:      OPENAI_API_KEY
+       GitHub:      COPILOT_GITHUB_TOKEN
+
+5. PROVIDER CONNECTION TEST
+
+   hermes model
+     - Interactive model picker; shows available models from configured providers
+   hermes chat -q "hello"
+     - Quick single-shot to test basic LLM connectivity
+   hermes doctor --fix
+     - Diagnoses provider config issues
+
+6. TOOL AVAILABILITY DIAGNOSIS
+
+   hermes tools list
+     - Shows all toolsets and their enabled/disabled status per platform
+   hermes tools
+     - Interactive curses UI to toggle toolsets
+
+   Tool changes require /reset to take effect (never mid-session):
+     /reset                  # New session with updated toolset
+     hermes -s <skill>       # Preload skills from CLI
+
+7. SKILL DIAGNOSTICS
+
+   hermes skills list                     # All installed skills
+   hermes skills config                   # Per-platform skill enablement
+   /skill <name>                          # Load skill in current session
+   hermes skills check                    # Check for updates
+   ls ~/.hermes/skills/<name>/SKILL.md    # Verify skill files exist on disk
+
+8. GATEWAY CONNECTION TEST
+
+   hermes gateway status                  # Check if gateway is running
+   hermes gateway run                     # Start in foreground (watch errors live)
+   grep -i "failed to send\|error\|auth" ~/.hermes/logs/gateway.log | tail -20
+
+9. CRON DIAGNOSTICS
+
+   hermes cron list                        # List all jobs (--all for disabled)
+   hermes cron run <id>                    # Manually trigger a job to test
+   grep -i "error\|fail" ~/.hermes/logs/cron.log | tail -20
+
+10. QUICK-FIX REFERENCE TABLE
+
+    Symptom                              First Action
+    Agent not responding                 hermes doctor --fix
+    Tool X not available                 hermes tools enable X && /reset
+    Model errors / API failures          hermes model (re-pick model)
+    Gateway messages not sending         hermes gateway status
+    Memory write fails                   wc -m ~/.hermes/memories/MEMORY.md
+    Skills not loading                   hermes skills config
+    Config change not taking effect      /reset (CLI) or /restart (gateway)
+    Provider auth errors                 hermes login --provider <name>
+    "Unknown tool" error                 hermes tools list → enable toolset
+    Session can't resume                 hermes sessions list → check ID
+    Cron job not running                 hermes cron run <id> (test trigger)
+    "Rate limit" errors                  Check API key quota or rotate keys

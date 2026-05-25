@@ -1,0 +1,113 @@
+Hermes Agent 命令执行失败：常见故障模式与修复方案
+====================================================
+
+故障模式 1: CLI 启动失败 / 无响应
+---------------------------------
+症状:   hermes 命令回车后卡住、立即退出、或显示"command not found"
+原因:   安装不完整、Python 环境问题、依赖缺失
+修复:
+  1. 运行 hermes doctor --fix → 自动补全依赖
+  2. 检查 Python: python3 --version (需 >=3.10)
+  3. 检查 venv: source ~/.hermes/venv/bin/activate 或 .venv/bin/activate
+  4. 重装: curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+  5. 如果 hermes 不在 PATH: export PATH=$PATH:$HOME/.local/bin
+
+故障模式 2: "Unsupported tool" / "Unknown function call"
+---------------------------------
+症状:   代理在回复中显示"我无法使用XX工具"或直接报错
+原因:   该 toolset 未启用、或被当前平台限制
+修复:
+  1. hermes tools list → 确认 toolset 状态
+  2. hermes tools enable <name> → 启用工具集
+  3. /reset → 新会话加载更新后的工具集
+  4. 检查 config.yaml 中 platform-specific tool 限制
+  5. 某些工具需要额外环境变量: 确认 .env 中已配置
+
+故障模式 3: Model/Provider 连接错误
+---------------------------------
+症状:   "API key not configured"、"Provider returned error"、"401 Unauthorized"
+原因:   未配置 API Key、Key 过期、Provider 不可达
+修复:
+  1. hermes doctor → 检查 Provider 配置
+  2. hermes model → 重新选择模型和 Provider
+  3. cat ~/.hermes/.env → 确认 API Key 已设置
+  4. 测试连通性: curl -s https://api.openrouter.ai/v1/models | head
+  5. 对于 OAuth provider: hermes login --provider nous
+  6. 对于代理环境: 在 .env 中设置 HTTP_PROXY / HTTPS_PROXY
+
+故障模式 4: 工具调用超时
+---------------------------------
+症状:   代理回复"工具执行超时"，terminal 命令无返回
+原因:   命令耗时超过 timeout 限制（默认 180s）、或被挂起等待输入
+修复:
+  1. 增加 timeout: terminal(command="...", timeout=300)
+  2. 后台执行: terminal(command="...", background=true, notify_on_complete=true)
+  3. 检查命令是否等待 stdin 输入（如 vim, python REPL），需要 pty=true
+  4. PTY 模式: terminal(command="...", pty=true)
+  5. 对于长时间构建任务: 用 background=true + notify_on_complete=true
+
+故障模式 5: 内存写入失败
+---------------------------------
+症状:   memory() 工具返回错误，无法保存新记忆
+原因:   内存文件大小超过硬限制（MEMORY.md 2200 字符 / USER.md 1375 字符）
+修复:
+  1. 检查大小: wc -m ~/.hermes/memories/MEMORY.md  → 若 >95% 则触发限制
+  2. 清理过期条目: 移除已取消项目、已过期的环境信息
+  3. 迁移到 Skill: 将"怎么做"类步骤迁移到 ~/.hermes/skills/
+  4. 合并多个短条目为更密集的表述
+  5. 可选: 设置定时自动压缩 cron 任务
+
+故障模式 6: Web 搜索 / 网页抓取失败
+---------------------------------
+症状:   web_search 返回空结果、被 403/429 拦截、提取内容为空
+原因:   反爬虫拦截、搜索 API 限流、User-Agent/Referer 不当
+修复:
+  1. 设置合适的 User-Agent: curl -A "Mozilla/5.0 ..."
+  2. 错峰重试: 指数退避，最大 3 次重试
+  3. 使用浏览器栈: 对反爬严重的站点用 browser_navigate 替代 web_extract
+  4. 检查搜索 API 配额: 免费搜索引擎可能有每日限制
+  5. 使用 Source 标签隔离: 不同用途用不同 User-Agent
+
+故障模式 7: 斜杠命令不生效
+---------------------------------
+症状:   /model 切换后还是旧模型、/skill xx 说未找到、/background 没反应
+原因:   命令只在当前会话上下文生效、或目标不存在
+修复:
+  1. /model 只管当前会话 → 永久改需 hermes model
+  2. /skill 需技能名完全匹配 → hermes skills list 查正确名称
+  3. /background 输出在后台，需等完成后 /agents 查看
+  4. /reset 后配置恢复默认值 → 用 hermes config set 做持久化修改
+  5. 在网关（飞书/微信等）上部分命令不可用 → 官方文档有平台兼容表
+
+故障模式 8: Gateway 消息发送失败
+---------------------------------
+症状:   代理回复了但消息没送达、显示"Failed to send"日志
+原因:   平台 Token 过期、网络问题、消息格式不被支持
+修复:
+  1. hermes gateway status → 检查各平台连接状态
+  2. grep "failed" ~/.hermes/logs/gateway.log | tail -20
+  3. 对于飞书: 检查 app_id/app_secret 是否过期
+  4. 对于 Telegram: 检查 bot token 是否被撤销
+  5. 检查消息长度限制（不同平台限制不同）
+  6. Markdown 渲染问题: 飞书不支持表格头/列表开头的 Markdown
+
+故障模式 9: Cron 任务不触发 / 不交付
+---------------------------------
+症状:   定时任务没执行、没收到结果
+原因:   Scheduler 未运行、交付目标配置错误、任务脚本报错
+修复:
+  1. hermes cron list → 检查任务是否启用了（Paused?）
+  2. hermes cron run <id> → 手动触发测试
+  3. grep "error\|fail" ~/.hermes/logs/cron.log
+  4. 任务交付目标: 默认交付到当前对话，但 cron 是在无会话上下文中执行
+  5. 检查脚本的 exit code: cron 任务脚本必须 exit 0 才算成功
+
+故障模式 10: 会话恢复失败
+---------------------------------
+症状:   hermes --continue 或 --resume 找不到会话
+原因:   会话 ID 错误、会话文件已清理、会话存储后端问题
+修复:
+  1. hermes sessions list → 查看最近会话列表
+  2. hermes sessions browse → 交互式选择
+  3. 会话默认保留 30 天 → hermes sessions prune --older-than 60 可调整
+  4. SQLite 存储: 检查 ~/.hermes/sessions/ 目录权限
