@@ -29,12 +29,12 @@ PROFILE_MAP = {
 
 TIMEOUTS = {
     "orchestrator": 120,
-    "world-builder": 180,
-    "arc-planner": 180,
-    "character-designer": 180,
-    "draft-writer": 300,  # 写正文最慢
-    "editor": 180,
-    "reviewer": 120,
+    "world-builder": 480,         # 完整世界观生成慢
+    "arc-planner": 480,           # ARC 规划输出长
+    "character-designer": 480,    # 角色阵容详细，实测 260s+
+    "draft-writer": 600,          # 写正文最慢
+    "editor": 300,
+    "reviewer": 180,
     "memory-manager": 60,
 }
 
@@ -63,19 +63,18 @@ def run_agent(agent_type: str, prompt: str, context: str = "",
 
     full_prompt = f"{context}\n\n---\n\n{prompt}" if context else prompt
 
-    # 写入临时文件避免 shell 转义问题
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False,
-                                     encoding='utf-8') as f:
-        f.write(full_prompt)
-        tmp_path = f.name
-
     for attempt in range(max_retries + 1):
         try:
-            # 用 subshell 切换 profile 后执行 oneshot
-            cmd = f"(hermes profile use {profile} > /dev/null 2>&1 && hermes -z \"$(cat {tmp_path})\")"
+            # 先切换 profile（持久化到 ~/.hermes/config.yaml）
+            subprocess.run(
+                f"hermes profile use {profile}",
+                shell=True, capture_output=True, text=True, timeout=15,
+                cwd=os.path.expanduser("~"),
+            )
+
+            # 用列表传参，Python subprocess 原生处理特殊字符，无 shell 转义隐患
             result = subprocess.run(
-                cmd,
-                shell=True,
+                ["hermes", "-z", full_prompt],
                 capture_output=True,
                 text=True,
                 timeout=timeout,
@@ -87,13 +86,12 @@ def run_agent(agent_type: str, prompt: str, context: str = "",
 
             # 检查是否产生了有效输出（排除纯初始化信息）
             if _has_meaningful_output(stdout):
-                os.unlink(tmp_path)
                 return stdout, stderr, True
 
             # 重试
             if attempt < max_retries:
                 time.sleep(2 ** attempt)  # 指数退避
-                sys.stderr.write(f"[重试 {attempt+1}/{max_retries}] {agent_type}\n")
+                sys.stderr.write(f"[重试 {attempt+1}/{max_retries}] {agent_type}: 输出无效, stderr={stderr[:100]}\n")
 
         except subprocess.TimeoutExpired:
             stderr = f"超时 ({timeout}s)"
@@ -105,7 +103,6 @@ def run_agent(agent_type: str, prompt: str, context: str = "",
             if attempt < max_retries:
                 sys.stderr.write(f"[重试 {attempt+1}/{max_retries}] {agent_type}: {e}\n")
 
-    os.unlink(tmp_path)
     return "", stderr, False
 
 

@@ -358,7 +358,7 @@ class Orchestrator:
 
         elif card_type == "character_design":
             # 尝试解析角色，简单按段落存
-            self.mem._db.characters.delete_many({"project_id": project_id})
+            self.mem.db.characters.delete_many({"project_id": project_id})
             sections = re.split(r'\n#{1,3}\s+', output)
             for sec in sections:
                 if not sec.strip():
