@@ -19,11 +19,13 @@ import os
 import time
 import json
 from datetime import datetime
+from typing import Tuple
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from memory_service import MemoryService
 from agent_runner import run_agent, build_context_for_agent, parse_draft_output
+from anti_rep import run_anti_rep
 
 # ============================================================
 # 流水线阶段定义
@@ -455,9 +457,24 @@ class Orchestrator:
             print(f"   ❌ 字数过少 ({word_count})，可能失败")
             return False
 
-        # 2. 编辑审校
+        # ---- 反重复检测 ----
+        print(f"   🔬 anti-rep...")
+        prev_chapters = self.mem.get_recent_chapter_contents(project_id, 5)
+        ar_result = run_anti_rep(content, prev_chapters)
+        print(f"   📊 反重复评分: {ar_result['score']}/100", end="")
+        if ar_result["pass"]:
+            print(" ✅")
+        else:
+            print(" ⚠")
+            if ar_result["cliche_details"]:
+                phrases = [d["phrase"] for d in ar_result["cliche_details"][:5]]
+                print(f"      模板用语: {', '.join(phrases)}")
+            if ar_result["advice"]:
+                print(f"      建议: {ar_result['advice']}")
+
+        # 2. 编辑审校（传入反重复报告）
         print(f"   🔍 editing...")
-        edit_prompt = self._build_edit_prompt(chapter, content)
+        edit_prompt = self._build_edit_prompt(chapter, content, ar_result)
         edit_stdout, _, edit_ok = run_agent("editor", edit_prompt, timeout=180)
 
         edited_content = content
@@ -502,7 +519,86 @@ class Orchestrator:
                                "success", f"第{chapter}章 完成 ({word_count}字)")
 
         print(f"   💾 已存储")
+
+        # 5. 伏笔追踪
+        n_saved, n_resolved = self._track_foreshadows(project_id, chapter, parsed, content)
+        if n_saved > 0:
+            print(f"   📌 伏笔: +{n_saved} 新埋", end="")
+        if n_resolved > 0:
+            print(f" / {n_resolved} 已回收", end="")
+        if n_saved + n_resolved > 0:
+            print()
+
         return True
+
+    # ---- 伏笔追踪 ----
+    def _track_foreshadows(self, project_id: str, chapter: int,
+                           parsed: dict, content: str) -> Tuple[int, int]:
+        """追踪本章伏笔：保存新埋的，检测回收的。返回 (新埋数, 回收数)"""
+        import re
+
+        # A. 保存新伏笔
+        foreshadow_text = parsed.get("foreshadow", "")
+        n_saved = 0
+        if foreshadow_text:
+            # 尝试按 "内容：" 分割多个伏笔
+            items = re.split(r'[-•]\s*内容[：:]', foreshadow_text)
+            if len(items) > 1:
+                items = items[1:]  # 去掉第一个空白段
+            else:
+                items = [foreshadow_text]
+
+            for item in items:
+                item = item.strip()
+                if len(item) < 5:
+                    continue
+                # 提取内容和类型
+                content_match = re.search(r'^(.+?)(?=\s*[-•]\s*类型)', item, re.DOTALL)
+                f_content = content_match.group(1).strip()[:300] if content_match else item[:300]
+
+                type_match = re.search(r'类型[：:]\s*(.+?)(?:\s*[-•]|$)', item)
+                f_type = type_match.group(1).strip()[:50] if type_match else ""
+
+                plan_match = re.search(r'计划回收章号[：:]\s*(.+?)$', item)
+                planned_ch = int(plan_match.group(1).strip()) if plan_match and plan_match.group(1).strip().isdigit() else 0
+
+                self.mem.create_foreshadow(project_id, {
+                    "setup_chapter": chapter,
+                    "content": f_content,
+                    "type": f_type,
+                    "planned_payoff": planned_ch,
+                })
+                n_saved += 1
+
+        # B. 检测伏笔回收（关键词匹配）
+        n_resolved = 0
+        active_fs = self.mem.get_active_foreshadows(project_id)
+        payoff_signals = ["终于", "真相大白", "原来是", "揭开了", "明白了",
+                         "原来如此", "难怪", "果然", "竟是"]
+
+        for fs in active_fs:
+            fs_content = fs.get("content", "")
+            if not fs_content or len(fs_content) < 3:
+                continue
+
+            # 取伏笔内容的关键词（前10个汉字）
+            keywords = re.findall(r'[\u4e00-\u9fff]{2,}', fs_content)
+            key_phrase = ''.join(keywords[:3]) if keywords else fs_content[:6]
+
+            # 检查本章是否包含该关键词 + 回收信号
+            if key_phrase in content:
+                for signal in payoff_signals:
+                    # 关键词前后20字内出现回收信号
+                    idx = content.find(key_phrase)
+                    window = content[max(0, idx-20):idx+len(key_phrase)+20]
+                    if signal in window:
+                        self.mem.resolve_foreshadow(
+                            project_id, fs["foreshadow_id"], chapter
+                        )
+                        n_resolved += 1
+                        break
+
+        return n_saved, n_resolved
 
     # ---- 提示词构建 ----
     def _build_draft_prompt(self, project_id: str, chapter: int) -> str:
@@ -560,15 +656,24 @@ class Orchestrator:
 - 主角变化：
 - 配角变化："""
 
-    def _build_edit_prompt(self, chapter: int, content: str) -> str:
-        return f"""你是起点小说审校编辑。请修改以下章节正文。
-
+    def _build_edit_prompt(self, chapter: int, content: str, anti_rep_result: dict = None) -> str:
+        # 构建反重复提示
+        ar_section = ""
+        if anti_rep_result and not anti_rep_result.get("pass", True):
+            cliches = [d["phrase"] for d in anti_rep_result.get("cliche_details", [])[:5]]
+            ar_section = f"""
+【反重复检测报告】
+评分: {anti_rep_result['score']}/100
+模板化用语: {', '.join(cliches) if cliches else '无'}
+建议: {anti_rep_result.get('advice', '')}
+"""
+        return f"""你是起点小说审校编辑。请修改以下章节正文。{ar_section}
 【第{chapter}章原文】
 {content[:3000]}
 
 【修改要求】
 1. 修正错别字和语法错误
-2. 消除 AI 模板化表达（替换为自然描写）
+2. 消除 AI 模板化表达（替换为自然描写）。特别注意上述报告中的模板用语
 3. 优化节奏（过慢的地方加速，过快的地方补充细节）
 4. 确保对话使用 ASCII 双引号 ""
 5. 确保角色行为符合人设

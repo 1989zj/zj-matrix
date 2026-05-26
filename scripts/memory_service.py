@@ -173,6 +173,18 @@ class MemoryService:
             .limit(limit)
         )
 
+    def get_recent_chapter_contents(self, project_id: str, limit: int = 5) -> List[str]:
+        """返回最近 N 章的纯正文内容（用于反重复检测）"""
+        docs = list(
+            self.db.chapters.find(
+                {"project_id": project_id},
+                {"content": 1, "chapter": 1, "_id": 0}
+            )
+            .sort("chapter", DESCENDING)
+            .limit(limit)
+        )
+        return [d.get("content", "") for d in sorted(docs, key=lambda x: x["chapter"])]
+
     def get_chapter_count(self, project_id: str) -> int:
         return self.db.chapters.count_documents({"project_id": project_id})
 
