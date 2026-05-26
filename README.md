@@ -1,128 +1,108 @@
-# 起点精品小说工厂 · 多 Agent 工业化创作系统
+# 起点小说工厂 · 自动化调度系统
 
-基于 HermesAgent + MongoDB + Kanban 的 500 万字长篇创作系统。
+基于 HermesAgent V3 + MongoDB + 8 Agent Profile 的工业化长篇小说创作系统。
 
-## 架构概览
-
-8 个 Agent 角色通过 Kanban 看板流转任务，每个角色有独立 profile，运行时通过 `delegate_task` 切换。
+## 架构
 
 ```
-用户 → Orchestrator（看板调度）
-         ├── World Builder（世界观）
-         ├── Character Designer（角色）
-         ├── ARC Planner（剧情架构）
-         ├── Draft Writer（正文）
-         ├── Editor（审校）
-         ├── Reviewer（审核）
-         └── Memory Manager（数据库）
+用户
+  ↓
+orchestrator.py（调度主控）
+  ↓
+agent_runner.py（Agent 调用封装）
+  ↓  hermes -p qidian-<agent>
+8 个独立 Agent Profile
+  ↓
+memory_service.py（MongoDB 读写）
+  ↓
+MongoDB novel_qidian（12 个集合）
 ```
 
-## 目录结构
+## Agent 角色
 
-```
-novel_factory/
-├── profiles/              # 8 个 Agent 的 system prompt
-│   ├── orchestrator.md    # 总调度师
-│   ├── world-builder.md   # 世界架构师
-│   ├── arc-planner.md     # 剧情架构师
-│   ├── character-designer.md  # 角色设计师
-│   ├── draft-writer.md    # 正文写手
-│   ├── editor.md          # 审校编辑
-│   ├── reviewer.md        # 精品审核官
-│   └── memory-manager.md  # 记忆管理器
-├── kanban.py              # Kanban 卡片管理工具
-└── README.md
-```
+| Profile | 角色 | 职责 |
+|---------|------|------|
+| qidian-orchestrator | 总调度师 | 任务分解、Kanban 管理 |
+| qidian-world-builder | 世界架构师 | 世界观、修炼体系、势力 |
+| qidian-arc-planner | ARC 规划师 | 长篇结构、反转、伏笔 |
+| qidian-character-designer | 角色设计师 | 人设、关系、成长线 |
+| qidian-draft-writer | 正文写手 | 唯一写章节的 Agent |
+| qidian-editor | 审校编辑 | 精修、一致性、反重复 |
+| qidian-reviewer | 精品审核官 | 起点风格把关 |
+| qidian-memory-manager | 记忆管理器 | MongoDB 数据管理 |
 
 ## 使用方式
 
-### 1. 启动新书项目
+### 交互模式
 
-对 Hermes 说：
-
-```
-启动新书：书名《XXX》，题材：玄幻/修仙/高武/末世/科幻
-```
-
-Orchestrator 自动：
-- 初始化 projects 记录
-- 创建 Research → World Building → Character Design → ARC Planning 卡片
-- 依次加载 profile 调 Agent，产出世界观、角色、ARC 规划
-
-### 2. 日更生产
-
-对 Hermes 说：
-
-```
-日更 3 章
+```bash
+cd ~/novel_factory/scripts
+python3 orchestrator.py
 ```
 
-Orchestrator 自动：
-- 取出 Draft Queue 卡片 → 调 draft-writer
-- 自动创建 editing 卡片 → 调 editor
-- 自动创建 review 卡片 → 调 reviewer
-- 通过后 → publishing，更新进度
+### 命令行模式
 
-### 3. 新 ARC 启动
+```bash
+# 创建新书（自动跑完准备阶段：研究→世界观→角色→ARC→大纲）
+python3 orchestrator.py new "书名" "类型"
 
-对 Hermes 说：
+# 批量生成章节
+python3 orchestrator.py batch <项目ID> 10
 
-```
-启动 ARC 3
-```
+# 日更（写一章）
+python3 orchestrator.py daily <项目ID>
 
-Orchestrator 自动：
-- 调 world-builder 更新世界状态
-- 调 character-designer 更新角色状态
-- 调 arc-planner 规划新 ARC
-- 创建 Outline 和 Draft 卡片
+# 查看状态
+python3 orchestrator.py status [项目ID]
+python3 orchestrator.py list
 
-### 4. 查看进度
-
-对 Hermes 说：
-
-```
-查看项目进度
+# 恢复中断项目
+python3 orchestrator.py resume <项目ID>
 ```
 
-Orchestrator 返回：
-- 当前字数 / 目标字数
-- 当前 ARC / ARC 总数
-- Kanban 队列概况
-- Reviewer 评分趋势
-
-## Kanban 看板流转
+### 完整流程
 
 ```
-Idea Pool → Research → World Building → Character Design
-→ ARC Planning → Outline → Draft Queue → Editing
-→ Review → Publishing → Archived
+1. python3 orchestrator.py new "修仙模拟器" "修仙"
+   → 自动完成：选题研究 → 世界观 → 角色 → ARC → 大纲
+   
+2. python3 orchestrator.py batch <项目ID> 10
+   → 自动生成 10 章（每章：写→审→改→发布）
+   
+3. python3 orchestrator.py daily <项目ID>
+   → 每天一章
 ```
 
-## Profile 切换机制
-
-Orchestrator 通过 `read_file` 加载目标 Agent 的 profile 文件内容，将其注入 `delegate_task` 的 context 字段：
+## 文件结构
 
 ```
-1. 读 ~/novel_factory/profiles/draft-writer.md
-2. delegate_task(context=profile内容 + 具体任务, ...)
-3. 子 Agent 以 draft-writer 的身份执行任务
-4. 返回产出 → Orchestrator 更新 Kanban
+novel_factory/
+├── scripts/
+│   ├── memory_service.py    # MongoDB 数据服务层
+│   ├── agent_runner.py       # Hermes Agent 调用封装
+│   └── orchestrator.py       # 主调度脚本（入口）
+├── profiles/                 # Agent 提示词（参考用）
+│   ├── orchestrator.md
+│   ├── world-builder.md
+│   ├── arc-planner.md
+│   ├── character-designer.md
+│   ├── draft-writer.md
+│   ├── editor.md
+│   ├── reviewer.md
+│   └── memory-manager.md
+└── README.md
 ```
 
-## MongoDB
+## 依赖
 
-- 数据库：`novel_qidian`
-- 连接：`mongodb://mongo_8F6dTZ:mongo_dxx8nA@192.168.2.30:27017/`
-- 12 个 Collection：projects, world_bible, characters, arcs, chapters, timeline, foreshadows, factions, cultivation_system, kanban_cards, agent_logs, version_history
+- Python 3.8+
+- pymongo
+- Hermes Agent V0.13+（8 个 Profile 已创建）
+- DeepSeek V4 API
 
-## 核心规则
+## 状态
 
-- 所有长期信息必须进入 MongoDB
-- 所有 Agent 通过 Kanban 卡片收发任务
-- 正文生成前必须读取历史记忆
-- 世界观修改必须经 world-builder
-- 战力升级必须受 power_ceiling 约束
-- 每章必须经 editor + reviewer
-- 对话统一使用 ASCII 双引号 ""
-- 禁止模板化表达和 AI 腔
+✅ 8 个 Agent Profile 已创建  
+✅ MongoDB novel_qidian 数据库已初始化  
+✅ 调度脚本已完成  
+🔲 待首次实战测试
