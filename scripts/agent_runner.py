@@ -71,7 +71,8 @@ def run_agent(agent_type: str, prompt: str, context: str = "",
 
     for attempt in range(max_retries + 1):
         try:
-            cmd = f"hermes -p {profile} -z \"$(cat {tmp_path})\""
+            # 用 subshell 切换 profile 后执行 oneshot
+            cmd = f"(hermes profile use {profile} > /dev/null 2>&1 && hermes -z \"$(cat {tmp_path})\")"
             result = subprocess.run(
                 cmd,
                 shell=True,
