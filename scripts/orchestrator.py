@@ -602,25 +602,15 @@ class Orchestrator:
 
     # ---- 提示词构建 ----
     def _build_draft_prompt(self, project_id: str, chapter: int) -> str:
-        """构建章节写作提示词"""
+        """构建章节写作提示词。世界观/大纲/角色等动态约束已由 build_context_for_agent 注入。"""
         proj = self.mem.get_project(project_id)
-
-        # 获取大纲
-        world = self.mem.get_world_bible(project_id)
-        outline_text = ""
-        if world and "outline" in world:
-            outline_text = world["outline"][:2000]
 
         return f"""你是《{proj["title"]}》的作者。请写第{chapter}章正文。
 
-【大纲参考】
-{outline_text}
+【重要】以上「世界观设定」「本卷 ARC 完整规划」「角色列表」是你必须遵循的硬约束。所有设定（修炼体系、世界法则、势力关系、人物性格）必须严格遵守，不得自行创造或修改。
 
-【本卷 ARC 信息】
-第 1 卷，目标：完成主角的初始成长，建立世界观基础。
-
-【要求】
-1. 本章字数：2200-2800 汉字
+【章节要求】
+1. 字数：2200-2800 汉字
 2. 推动至少 2 条线索（成长线/势力线/感情线/世界观线）
 3. 埋设至少 1 个可回收伏笔
 4. 章尾设置强力钩子
@@ -628,6 +618,7 @@ class Orchestrator:
 6. 禁止 AI 模板化表达（眼中闪过、嘴角浮现、瞳孔收缩等）
 7. 禁止低级打脸流水线
 8. 沉浸感优先，用五感描写
+9. 严格遵循上述世界观中的修炼体系、境界划分、世界规则
 
 请按以下格式输出：
 

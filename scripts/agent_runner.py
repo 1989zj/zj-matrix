@@ -123,35 +123,54 @@ def _has_meaningful_output(stdout: str) -> bool:
 
 
 def build_context_for_agent(project_id: str, agent_type: str) -> str:
-    """从 MongoDB 构建 Agent 上下文"""
+    """从 MongoDB 构建 Agent 上下文。draft-writer 获得更丰富的世界观注入。"""
     from memory_service import get_memory
     mem = get_memory()
     project = mem.get_project(project_id)
 
+    genre = project.get('genre', '')
     context_parts = [
-        f"【项目信息】\n标题：{project.get('title', '')}\n类型：{project.get('genre', '')}\n"
+        f"【项目信息】\n标题：{project.get('title', '')}\n类型：{genre}\n"
         f"目标字数：{project.get('target_words', 0)}\n当前进度：第 {project.get('current_chapter', 0)} 章 / "
         f"第 {project.get('current_arc', 1)} ARC\n"
     ]
 
-    # 世界观
+    # 世界观 —— draft-writer 吃大头，其它 Agent 吃摘要
     world = mem.get_world_bible(project_id)
     if world:
-        context_parts.append(f"【世界观摘要】\n{_dict_to_text(world, 500)}")
+        if agent_type == "draft-writer":
+            # 注入完整世界观核心内容（修炼规则、世界法则、境界体系）
+            raw = world.get('raw_output', '')
+            max_chars = 6000
+            context_parts.append(f"【世界观设定（务必遵循以下所有规则）】\n{raw[:max_chars]}")
+        else:
+            context_parts.append(f"【世界观摘要】\n{_dict_to_text(world, 500)}")
 
-    # 角色
+    # 角色 —— draft-writer 看全部
     chars = mem.get_characters(project_id)
     if chars:
-        char_text = "\n".join([f"- {c['name']}（{c.get('role','')}）: {c.get('current_state','')}"
-                               for c in chars[:5]])
-        context_parts.append(f"【角色列表】\n{char_text}")
+        if agent_type == "draft-writer":
+            char_text = "\n".join([
+                f"- {c['name']}（{c.get('role','')}）\n  当前状态: {c.get('current_state','无')}\n"
+                f"  能力: {str(c.get('abilities',''))[:100]}"
+                for c in chars
+            ])
+            context_parts.append(f"【角色列表（{len(chars)} 人）】\n{char_text}")
+        else:
+            char_text = "\n".join([f"- {c['name']}（{c.get('role','')}）: {c.get('current_state','')}"
+                                   for c in chars[:5]])
+            context_parts.append(f"【角色列表】\n{char_text}")
 
-    # ARC
+    # ARC —— draft-writer 看完整规划
     arcs = mem.get_arcs(project_id)
     if arcs:
-        arc_text = "\n".join([f"- ARC{a['arc_id']}: {a['title']} (第{a['start_chapter']}-{a['end_chapter']}章)"
-                              for a in arcs])
-        context_parts.append(f"【ARC 规划】\n{arc_text}")
+        if agent_type == "draft-writer" and arcs[0].get('raw_output'):
+            arc_raw = arcs[0].get('raw_output', '')
+            context_parts.append(f"【本卷 ARC 完整规划】\n{arc_raw[:4000]}")
+        else:
+            arc_text = "\n".join([f"- ARC{a['arc_id']}: {a['title']} (第{a['start_chapter']}-{a['end_chapter']}章)"
+                                  for a in arcs])
+            context_parts.append(f"【ARC 规划】\n{arc_text}")
 
     # 最近章节
     if agent_type == "draft-writer":
@@ -164,9 +183,15 @@ def build_context_for_agent(project_id: str, agent_type: str) -> str:
         # 活跃伏笔
         foreshadows = mem.get_active_foreshadows(project_id)
         if foreshadows:
-            fs_text = "\n".join([f"- {f['content'][:100]} (埋于第{f['setup_chapter']}章)"
-                                 for f in foreshadows[:5]])
+            fs_text = "\n".join([f"- {f['content'][:120]} (埋于第{f['setup_chapter']}章, "
+                                 f"计划回收: 第{f.get('planned_payoff','?')}章)"
+                                 for f in foreshadows[:10]])
             context_parts.append(f"【待回收伏笔】\n{fs_text}")
+
+        # 大纲
+        if world and "outline" in world:
+            outline = world["outline"]
+            context_parts.append(f"【章节大纲参考】\n{outline[:2000]}")
 
     return "\n\n".join(context_parts)
 
