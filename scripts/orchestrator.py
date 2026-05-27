@@ -7,6 +7,7 @@
   python3 orchestrator.py resume <项目ID>       恢复中断的项目
   python3 orchestrator.py daily <项目ID>       日更模式（写下一章）
   python3 orchestrator.py batch <项目ID> <章节数>  批量生成 N 章
+  python3 orchestrator.py review <项目ID>          全局审校（写完后的通读）
   python3 orchestrator.py status [项目ID]      查看项目/看板状态
   python3 orchestrator.py list                 列出所有项目
 
@@ -430,6 +431,249 @@ class Orchestrator:
         print(f"  当前进度: 第 {ch} 章")
         print(f"{'='*60}\n")
 
+    # ---- 批量审校（全写完后的通读） ----
+    def batch_review(self, project_id: str):
+        """6 维度全局审校：剧情走向、世界推演、当前状态、剧情流畅、人物画像、格式检查"""
+        proj = self.mem.get_project(project_id)
+        if not proj:
+            print(f"❌ 项目不存在: {project_id}")
+            return
+
+        chapters = list(self.mem.db.chapters.find(
+            {'project_id': project_id},
+            {'chapter': 1, 'title': 1, 'content': 1, 'word_count': 1, 'foreshadow': 1, 'hook': 1}
+        ).sort('chapter', 1))
+
+        if not chapters:
+            print("❌ 无章节可审校")
+            return
+
+        n_chapters = len(chapters)
+        total_words = sum(len(ch['content']) for ch in chapters)
+        print(f"\n{'='*60}")
+        print(f"  📋 批量审校: 《{proj['title']}》")
+        print(f"  章节: 1-{n_chapters} 章 | 总字数: {total_words}")
+        print(f"{'='*60}\n")
+
+        # ==== Part 1: 格式批量检查（纯脚本）====
+        print("  [1/6] 格式批量检查...")
+        format_issues = []
+        for ch in chapters:
+            issues = self._check_chapter_format(ch['content'])
+            if issues:
+                format_issues.append((ch['chapter'], ch['title'], issues))
+
+        if format_issues:
+            print(f"     ⚠  {len(format_issues)} 章存在格式问题:")
+            for ch_num, ch_title, issues in format_issues[:10]:
+                print(f"       第{ch_num}章 {ch_title}: {', '.join(issues[:3])}")
+        else:
+            print(f"     ✅ 全部 {n_chapters} 章格式通过")
+
+        # ==== Part 2: AI 全局审校 ====
+        print(f"\n  [2/6] AI 全局审校（剧情走向、世界推演、连续性、人物...）")
+
+        review_prompt = self._build_batch_review_prompt(project_id, chapters)
+        review_stdout, _, review_ok = run_agent("reviewer", review_prompt, timeout=480)
+
+        if review_ok and review_stdout:
+            print(f"     ✅ 审校报告产出 {len(review_stdout)} 字符")
+        else:
+            print(f"     ⚠ 审校 Agent 未返回有效产出")
+            review_stdout = ""
+
+        # ==== Part 3: 汇总输出 ====
+        print(f"\n{'='*60}")
+        print(f"  📊 审校汇总")
+        print(f"{'='*60}")
+        print(f"\n  章数: {n_chapters}  总字数: {total_words}")
+        word_dist = ' > '.join([f"第{ch['chapter']}章({len(ch['content'])}字)" for ch in chapters])
+        print(f"  分布: {word_dist}")
+
+        # 伏笔状态
+        active = self.mem.get_active_foreshadows(project_id)
+        resolved = list(self.mem.db.foreshadows.find(
+            {'project_id': project_id, 'status': 'resolved'},
+            {'_id': 0}
+        ))
+        print(f"  伏笔: {len(active)} 条待回收, {len(resolved)} 条已回收")
+
+        # 格式问题汇总
+        if format_issues:
+            print(f"\n  ⚠ 格式问题 ({len(format_issues)}章):")
+            for ch_num, ch_title, issues in format_issues:
+                print(f"     第{ch_num}章 {ch_title}:")
+                for iss in issues:
+                    print(f"       · {iss}")
+
+        # AI 审校报告
+        if review_stdout:
+            print(f"\n  📝 AI 审校报告:")
+            print(f"  {'─'*50}")
+            # 把审校报告缩进展示
+            for line in review_stdout.strip().split('\n'):
+                print(f"  {line}")
+            print(f"  {'─'*50}")
+
+        # 保存审校报告到 project_logs
+        report = {
+            "project_id": project_id,
+            "type": "batch_review",
+            "chapter_count": n_chapters,
+            "total_words": total_words,
+            "format_issues": [{"chapter": c, "title": t, "issues": i} for c, t, i in format_issues],
+            "foreshadows_active": len(active),
+            "foreshadows_resolved": len(resolved),
+            "ai_review": review_stdout[:5000],
+            "created_at": datetime.utcnow().isoformat(),
+        }
+        self.mem.db.project_logs.insert_one(report)
+        print(f"\n  💾 审校报告已保存到 project_logs")
+
+    # ---- 格式检查（脚本侧，不调 AI）----
+    def _check_chapter_format(self, content: str) -> list:
+        """检查单章格式，返回问题列表"""
+        import re
+        issues = []
+
+        # 1. 半角标点
+        half = re.findall(r'[.,:;?!]', content)
+        if half:
+            issues.append(f"{len(half)}处半角标点({','.join(sorted(set(half))[:3])})")
+
+        # 2. 中文弯引号
+        if '\u201c' in content or '\u201d' in content:
+            issues.append("含中文弯引号，需替换为ASCII双引号")
+
+        # 3. 英式省略号
+        if re.search(r'(?<!\.)\.{3}(?!\.)', content):
+            issues.append("含英式省略号...，需替换为……")
+
+        # 4. 破折号密度
+        chars = len(re.sub(r'\s', '', content))
+        dashes = content.count('——')
+        if chars > 0 and dashes / chars * 1000 > 10:
+            issues.append(f"破折号密度{dashes/chars*1000:.1f}/千字(>10)")
+
+        # 5. 段落长度
+        paragraphs = [p for p in content.split('\n\n') if p.strip()]
+        if paragraphs:
+            lengths = [len(p) for p in paragraphs]
+            avg = sum(lengths) / len(lengths)
+            if avg > 35:
+                issues.append(f"段落均值{avg:.0f}字(>35)，偏长")
+            long_paras = [l for l in lengths if l > 80]
+            if long_paras:
+                issues.append(f"{len(long_paras)}段超80字，需拆分")
+
+        # 6. 残留分隔符
+        if content.rstrip().endswith('---'):
+            issues.append("结尾残留---分隔符")
+
+        return issues
+
+    # ---- 构建批量审校提示词 ----
+    def _build_batch_review_prompt(self, project_id: str, chapters: list) -> str:
+        """构建全局审校提示词，涵盖 5 个 AI 审查维度"""
+        proj = self.mem.get_project(project_id)
+
+        # 拼接所有章节（带章节号标记）
+        all_text = ""
+        for ch in chapters:
+            title = ch.get('title', f"第{ch['chapter']}章")
+            all_text += f"\n{'='*40}\n第{ch['chapter']}章 {title}\n{'='*40}\n"
+            # 每章取前 2500 字 + 后 300 字（钩子）
+            content = ch['content']
+            if len(content) > 2800:
+                all_text += content[:2500] + f"\n...（中段 {len(content)-2800} 字省略）...\n" + content[-300:]
+            else:
+                all_text += content
+            all_text += "\n"
+
+        # 伏笔汇总
+        fs_list = list(self.mem.db.foreshadows.find(
+            {'project_id': project_id},
+            {'_id': 0, 'setup_chapter': 1, 'content': 1, 'status': 1, 'planned_payoff': 1}
+        ).sort('setup_chapter', 1))
+        fs_text = "\n".join([
+            f"  [{fs.get('status','active')}] 第{fs['setup_chapter']}章埋 → "
+            f"计划第{fs.get('planned_payoff',0)}章回收: {fs['content'][:120]}"
+            for fs in fs_list
+        ]) if fs_list else "(无伏笔记录)"
+
+        return f"""你是《{proj['title']}》的责任编辑。请对以下已完成的 {len(chapters)} 章进行全局审校。
+
+【审校范围】
+第 1 章 — 第 {chapters[-1]['chapter']} 章, 共计 {sum(len(ch['content']) for ch in chapters)} 字
+
+【全部正文】
+
+{all_text}
+
+【伏笔追踪】
+{fs_text}
+
+─── 请从以下 5 个维度逐一审查 ───
+
+## 一、剧情走向
+- 当前主线是什么？副线有哪些？
+- 剧情推进节奏如何（偏快/偏慢/正常）？
+- 是否有明显的剧情断层或跳跃？
+- 前 6 章的剧情张力曲线是什么样的？
+- 给出一个【剧情走向评分】(1-10分)
+
+## 二、世界推演
+- 世界观设定的利用率如何？哪些设定已展开、哪些还悬着？
+- 修炼体系在第 1-6 章中是否逐步展露，而非一次性信息倾泻？
+- 地理位置/势力的铺设是否自然？
+- 世界逻辑是否有自相矛盾之处？
+- 给出一个【世界推演评分】(1-10分)
+
+## 三、当前状态
+- 主角沈尘当前处于什么状态（修为、处境、目标、心理）？
+- 核心配角（顾长夜等）当前状态如何？
+- 各方势力当前格局？
+- 已埋伏笔的回收/延续状态
+- 用一段话总结「读者读完第 6 章时脑子里应该有什么」
+
+## 四、剧情流畅
+- 章与章之间的过渡是否自然？
+- 有没有前后矛盾的情节（例如第 3 章的伤到第 5 章莫名消失）？
+- 时间线是否清晰可追踪？
+- 对话是否推动剧情而非原地踏步？
+- 给出一个【剧情流畅评分】(1-10分)，并标注最流畅和最卡顿的章节
+
+## 五、人物画像
+- 沈尘的性格/能力是否有成长弧线（非数值膨胀，是性格深度）？
+- 配角（顾长夜、周浑等）是否立体？有没有沦为工具人？
+- 人物对话是否各有辨识度（语气、用词习惯）？
+- 情感线/关系网是否有铺设？
+- 给出一个【人物画像评分】(1-10分)，列出最出彩和最薄弱的角色
+
+─── 输出格式 ───
+
+用以下结构输出，每项不要跳过：
+
+【一、剧情走向】
+（分析 + 评分 X/10）
+
+【二、世界推演】
+（分析 + 评分 X/10）
+
+【三、当前状态】
+（分析）
+
+【四、剧情流畅】
+（分析 + 评分 X/10 + 最流畅/最卡顿章节）
+
+【五、人物画像】
+（分析 + 评分 X/10 + 最出彩/最薄弱角色）
+
+【六、总体建议】
+- 当前最大的 3 个问题
+- 下一章（第 7 章）最应该做什么
+- 是否需要回头修改某章"""
+
     # ---- 单章写作 ----
     def _write_chapter(self, project_id: str, chapter: int) -> bool:
         """写一章（写→审→改 完整流程）"""
@@ -828,6 +1072,12 @@ def main():
         for p in projects:
             print(f"[{p['project_id']}] {p['title']} | {p['genre']} | {p['status']} | 第{p.get('current_chapter',0)}章")
 
+    elif cmd == "review":
+        if len(sys.argv) < 3:
+            print("用法: python3 orchestrator.py review <项目ID>")
+            sys.exit(1)
+        orch.batch_review(sys.argv[2])
+
     elif cmd == "resume":
         if len(sys.argv) < 3:
             print("用法: python3 orchestrator.py resume <项目ID>")
@@ -839,7 +1089,7 @@ def main():
 
     else:
         print(f"未知命令: {cmd}")
-        print("可用: new, batch, daily, status, list, resume")
+        print("可用: new, batch, daily, status, list, review, resume")
 
 
 if __name__ == "__main__":
