@@ -500,9 +500,12 @@ class Orchestrator:
                 print(f"   ⚠ 审核有建议：{review_stdout[:100]}")
 
         # 4. 存储
+        chapter_title = parsed.get("title", "").strip()
+        if not chapter_title:
+            chapter_title = f"第{chapter}章"
         self.mem.create_chapter(project_id, {
             "chapter": chapter,
-            "title": f"第{chapter}章",
+            "title": chapter_title,
             "content": edited_content,
             "raw_content": content,
             "edited_content": edited_content,

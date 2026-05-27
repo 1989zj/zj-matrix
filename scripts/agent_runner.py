@@ -206,11 +206,17 @@ def parse_draft_output(output: str) -> Optional[Dict]:
     """解析 draft-writer 输出，提取章节数据"""
     data = {
         "content": "",
+        "title": "",
         "chapter_goal": "",
         "growth": "",
         "foreshadow": "",
         "hook": "",
     }
+
+    # 提取【章节标题】
+    m = re.search(r'【章节标题】\s*(.+?)(?=\n【|$)', output, re.DOTALL)
+    if m:
+        data["title"] = m.group(1).strip()[:50]
 
     # 提取【本章目标】
     m = re.search(r'【本章目标】\s*(.+?)(?=\n【|$)', output, re.DOTALL)
