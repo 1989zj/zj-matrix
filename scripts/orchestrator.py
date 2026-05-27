@@ -503,10 +503,12 @@ class Orchestrator:
         chapter_title = parsed.get("title", "").strip()
         if not chapter_title:
             chapter_title = f"第{chapter}章"
+        # 清理结尾残留分隔符
+        cleaned_content = re.sub(r'\n*---\s*$', '', edited_content)
         self.mem.create_chapter(project_id, {
             "chapter": chapter,
             "title": chapter_title,
-            "content": edited_content,
+            "content": cleaned_content,
             "raw_content": content,
             "edited_content": edited_content,
             "word_count": word_count,
