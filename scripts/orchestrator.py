@@ -17,10 +17,11 @@
 
 import sys
 import os
+import re
 import time
 import json
 from datetime import datetime
-from typing import Tuple
+from typing import Tuple, Optional
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -924,7 +925,179 @@ class Orchestrator:
         if n_saved + n_resolved > 0:
             print()
 
+        # 6. 世界自动演进（每章完成后回写动态状态）
+        print(f"   🌍 world-evolve...")
+        try:
+            self._run_world_evolver(project_id, chapter, edited_content, edited_content)
+            print(f"   ✅ 世界演进完成")
+        except Exception as e:
+            print(f"   ⚠ 世界演进失败: {e}（不阻塞流程）")
+
         return True
+
+    # ---- 世界自动演进 ----
+    def _run_world_evolver(self, project_id: str, chapter: int,
+                           content: str, raw_content: str = None):
+        """每章写完后自动运行，提取世界状态变化并回写数据库。
+
+        调用 world-evolver Agent，解析其 JSON 输出，将：
+        - 角色状态变化 → characters 集合
+        - 关键事件 → timeline 集合
+        - 势力关系变化 → factions 集合
+        - 世界观新揭示 → world_bible 集合
+        - 修炼突破 → cultivation_system 集合
+        - 章节摘要 → chapters.summary 字段
+        """
+        # 构建当前世界状态上下文
+        world_state = {}
+        chars = self.mem.get_characters(project_id)
+        if chars:
+            # 只发送关键状态，减少 token 消耗
+            world_state["characters"] = [
+                {"name": c["name"], "current_state": c.get("current_state", ""),
+                 "abilities": str(c.get("abilities", ""))[:80]}
+                for c in chars
+            ]
+        factions = self.mem.get_factions(project_id)
+        if factions:
+            world_state["factions"] = [
+                {"name": f.get("name", ""), "status": str(f.get("status", ""))[:80]}
+                for f in factions
+            ]
+        # 最近 5 条时间线
+        timeline = list(self.mem.db.timeline.find(
+            {"project_id": project_id}
+        ).sort("chapter", -1).limit(5))
+        if timeline:
+            world_state["recent_events"] = [
+                {"chapter": t["chapter"], "event": t["event"][:200]}
+                for t in timeline
+            ]
+        # 修炼体系
+        cult = self.mem.get_cultivation_system(project_id)
+        if cult:
+            world_state["cultivation"] = {"raw": str(cult)[:300]}
+        # 世界观
+        wb = self.mem.get_world_bible(project_id)
+        if wb:
+            world_state["world_bible"] = str(wb.get("raw_output", ""))[:500]
+
+        # 构建 prompt（正文内容 + 世界状态）
+        prompt = f"""请读下面的正文，提取本章发生的所有世界状态变化，输出 JSON。
+
+## 第{chapter}章正文
+{content[:8000]}
+
+## 当前世界状态快照
+{json.dumps(world_state, ensure_ascii=False, indent=2)[:3000]}
+
+请严格按照 SOUL.md 定义的 JSON 格式输出。"""
+        context = f"正在处理《{self.mem.get_project(project_id).get('title','')}》第{chapter}章的世界演进。"
+
+        stdout, stderr, ok = run_agent("world-evolver", prompt, context, timeout=300)
+        if not ok:
+            raise RuntimeError(f"world-evolver 调用失败: {stderr[:200]}")
+
+        # 解析 JSON 输出
+        evol = self._parse_world_evolver_output(stdout)
+        if not evol:
+            raise RuntimeError(f"无法解析 world-evolver 输出")
+
+        # ---- 回写数据库 ----
+        # 1. 角色状态更新
+        for cu in evol.get("character_updates", []):
+            name = cu.get("name", "")
+            field = cu.get("field", "current_state")
+            new_val = cu.get("new_value", "")
+            if not name or not new_val:
+                continue
+            # 按 name 匹配角色
+            target = self.mem.db.characters.find_one(
+                {"project_id": project_id, "name": name}
+            )
+            if target:
+                self.mem.update_character(project_id, target["character_id"],
+                                          {field: new_val})
+
+        # 2. 时间线事件
+        for ev in evol.get("new_events", []):
+            self.mem.add_timeline_event(
+                project_id, chapter,
+                event=ev.get("event", ""),
+                affected=ev.get("participants", []),
+                world_changes=ev.get("impact", "").split("。")
+            )
+
+        # 3. 势力变化
+        for fc in evol.get("faction_changes", []):
+            faction_name = fc.get("faction", "")
+            field = fc.get("field", "status")
+            new_val = fc.get("new_value", "")
+            if not faction_name or not new_val:
+                continue
+            target = self.mem.db.factions.find_one(
+                {"project_id": project_id, "name": faction_name}
+            )
+            if target:
+                self.mem.db.factions.update_one(
+                    {"project_id": project_id, "name": faction_name},
+                    {"$set": {field: new_val}}
+                )
+
+        # 4. 世界观新增/更新
+        for wu in evol.get("world_bible_updates", []):
+            if wu.get("is_new_revelation"):
+                # 追加到 world_bible.raw_output
+                existing = self.mem.get_world_bible(project_id)
+                if existing:
+                    raw = existing.get("raw_output", "") or ""
+                    addition = f"\n- {wu.get('key','')}：{wu.get('new_value','')}"
+                    self.mem.upsert_world_bible(project_id,
+                        {"raw_output": raw + addition[:200]})
+
+        # 5. 修炼体系更新
+        for cc in evol.get("cultivation_changes", []):
+            cult_doc = self.mem.get_cultivation_system(project_id)
+            if cult_doc:
+                evolved = str(cult_doc.get("evolved_state", ""))
+                addition = f"\n第{chapter}章: {cc.get('character','')} {cc.get('old_realm','')}→{cc.get('new_realm','')}（{cc.get('method','')}）"
+                self.mem.upsert_cultivation_system(project_id,
+                    {"evolved_state": evolved + addition[:300]})
+
+        # 6. 章节摘要（回写到章节文档）
+        summary = evol.get("chapter_summary", "")
+        if summary:
+            self.mem.db.chapters.update_one(
+                {"project_id": project_id, "chapter": chapter},
+                {"$set": {"summary": summary[:300]}}
+            )
+
+    def _parse_world_evolver_output(self, output: str) -> Optional[dict]:
+        """从 world-evolver 输出中提取 JSON"""
+        # 尝试直接解析（如果输出就是纯 JSON）
+        try:
+            return json.loads(output.strip())
+        except json.JSONDecodeError:
+            pass
+
+        # 从 markdown 代码块中提取
+        m = re.search(r'```(?:json)?\s*\n?(.*?)```', output, re.DOTALL)
+        if m:
+            try:
+                return json.loads(m.group(1).strip())
+            except json.JSONDecodeError:
+                pass
+
+        # 从花括号开始提取
+        start = output.find('{')
+        end = output.rfind('}')
+        if start >= 0 and end > start:
+            try:
+                return json.loads(output[start:end+1])
+            except json.JSONDecodeError:
+                pass
+
+        return None
 
     # ---- 伏笔追踪 ----
     def _track_foreshadows(self, project_id: str, chapter: int,

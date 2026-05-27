@@ -25,6 +25,7 @@ PROFILE_MAP = {
     "editor": "qidian-editor",
     "reviewer": "qidian-reviewer",
     "memory-manager": "qidian-memory-manager",
+    "world-evolver": "qidian-world-evolver",
 }
 
 TIMEOUTS = {
@@ -36,6 +37,7 @@ TIMEOUTS = {
     "editor": 300,
     "reviewer": 180,
     "memory-manager": 60,
+    "world-evolver": 300,
 }
 
 
@@ -172,7 +174,7 @@ def build_context_for_agent(project_id: str, agent_type: str) -> str:
                                   for a in arcs])
             context_parts.append(f"【ARC 规划】\n{arc_text}")
 
-    # 最近章节
+    # 最近章节（含摘要）
     if agent_type == "draft-writer":
         recent = mem.get_recent_chapters(project_id, 3)
         if recent:
@@ -192,6 +194,29 @@ def build_context_for_agent(project_id: str, agent_type: str) -> str:
         if world and "outline" in world:
             outline = world["outline"]
             context_parts.append(f"【章节大纲参考】\n{outline[:2000]}")
+
+        # ---- 动态世界状态（world-evolver 回写的） ----
+        # 时间线事件（最近 10 条）
+        timeline = list(mem.db.timeline.find(
+            {"project_id": project_id}
+        ).sort("chapter", -1).limit(10))
+        if timeline:
+            tl_text = "\n".join([f"第{t['chapter']}章: {t['event'][:150]}"
+                                 for t in reversed(timeline)])
+            context_parts.append(f"【时间线（按章节顺序）】\n{tl_text}")
+
+        # 势力状态
+        factions = mem.get_factions(project_id)
+        if factions:
+            fac_text = "\n".join([f"- {f.get('name','')}：{str(f.get('status',''))[:100]}"
+                                  for f in factions])
+            context_parts.append(f"【势力动态】\n{fac_text}")
+
+        # 修炼体系（最新状态）
+        cultivation = mem.get_cultivation_system(project_id)
+        if cultivation:
+            cult_text = str(cultivation.get('evolved_state', '')) or str(cultivation)[:500]
+            context_parts.append(f"【修炼体系演变】\n{cult_text[:500]}")
 
     return "\n\n".join(context_parts)
 
