@@ -530,6 +530,143 @@ class Orchestrator:
         self.mem.db.project_logs.insert_one(report)
         print(f"\n  💾 审校报告已保存到 project_logs")
 
+    # ---- 批量精修（格式修复 + 内容定点插入）----
+    def batch_polish(self, project_id: str):
+        """按审校报告精修：格式批量修复 + 三个内容定点插入"""
+        proj = self.mem.get_project(project_id)
+        if not proj:
+            print(f"❌ 项目不存在: {project_id}")
+            return
+
+        chapters = list(self.mem.db.chapters.find(
+            {'project_id': project_id},
+            {'chapter': 1, 'title': 1, 'content': 1, 'word_count': 1}
+        ).sort('chapter', 1))
+
+        if not chapters:
+            print("❌ 无章节可精修")
+            return
+
+        n_chapters = len(chapters)
+        total_words = sum(len(ch['content']) for ch in chapters)
+        print(f"\n{'='*60}")
+        print(f"  ✨ 批量精修: 《{proj['title']}》")
+        print(f"  章节: 1-{n_chapters} 章 | 总字数: {total_words}")
+        print(f"  任务: 格式批量修复 + 三处定点内容插入")
+        print(f"{'='*60}\n")
+
+        # 内容插入指令（仅特定章）
+        content_inserts = {
+            2: """【内容插入指令】
+在"火把在跑出三里地后灭了"（或类似的逃出矿场后首次熄火/停歇场景）之前，插入一段 3-5 句的逃出过渡：
+- 沈尘听到矿监谈论石碑和灰袍大人物、意识到自己被盯上
+- 他连夜翻墙逃出矿场
+- 写出仓惶感和紧迫感
+插入的文字必须自然融入原文，不突兀。""",
+            4: """【内容插入指令】
+在暗河矿坑"灵矿母岩"相关段落之后，插入一段沈尘的战力复盘（3-5句）：
+- 沈尘回想自己练气三层为什么能秒杀养气九层的追兵
+- 意识到是石碑的特殊力量绕过了苍玄域的修炼规则——石碑力量不属于这个世界体系
+- 暗示这个秘密不能暴露
+插入的文字必须通过沈尘的内心活动自然呈现，不写成说明文。""",
+            5: """【内容插入指令】
+在峡谷追兵小队初次出场的段落，给追兵中至少一人加入 2-3 句个性化特征：
+- 外貌细节（如独眼、疤痕、特殊兵器）
+- 或者行为习惯（如常年握刀导致的习惯动作）
+- 或者一句有辨识度的台词/口头禅
+让追兵角色立体化，而不是"四个无名追兵"的模糊描述。""",
+        }
+
+        polished_count = 0
+        for ch in chapters:
+            ch_num = ch['chapter']
+            content = ch['content']
+            print(f"  [{ch_num}/{n_chapters}] 第{ch_num}章 {ch.get('title','')} ({len(content)}字)")
+
+            # Step 1: 格式问题检查
+            fmt_issues = self._check_chapter_format(content)
+            if fmt_issues:
+                print(f"     📋 格式问题: {', '.join(fmt_issues[:4])}")
+
+            # Step 2: 构建精修提示词
+            polish_prompt = self._build_polish_prompt(
+                ch_num, ch.get('title',''), content,
+                fmt_issues,
+                content_inserts.get(ch_num, None)
+            )
+
+            # 跳过无需修改的章节
+            if not fmt_issues and ch_num not in content_inserts:
+                print(f"     ✅ 无需修改，跳过")
+                continue
+
+            # Step 3: 调用 editor
+            print(f"     ✍️  精修中...")
+            edit_stdout, _, edit_ok = run_agent("editor", polish_prompt, timeout=180)
+
+            if not edit_ok or not edit_stdout:
+                print(f"     ❌ 精修失败")
+                continue
+
+            # Step 4: 解析修改后正文
+            import re
+            m = re.search(r'【修改后正文】\s*(.+?)(?=\n【|$)', edit_stdout, re.DOTALL)
+            if m and len(m.group(1).strip()) > 100:
+                polished = m.group(1).strip()
+                # 清理结尾残留
+                polished = re.sub(r'\n*---\s*$', '', polished)
+                new_wc = len(polished)
+
+                # 写入数据库
+                self.mem.db.chapters.update_one(
+                    {'project_id': project_id, 'chapter': ch_num},
+                    {'$set': {'content': polished, 'word_count': new_wc}}
+                )
+                print(f"     ✅ 精修完成: {len(content)}字 → {new_wc}字")
+                polished_count += 1
+            else:
+                print(f"     ⚠  解析失败，保留原文")
+
+        # 汇总
+        print(f"\n{'='*60}")
+        print(f"  ✨ 精修汇总: {polished_count}/{n_chapters} 章已处理")
+        print(f"{'='*60}")
+
+    def _build_polish_prompt(self, ch_num: int, ch_title: str, content: str,
+                             fmt_issues: list, insert_instruction: str = None) -> str:
+        """构建单章精修提示词"""
+        segments = []
+        segments.append(f"你是起点小说精修编辑。请对以下章节进行精确修改。")
+        segments.append(f"\n【修改要求】\n**核心原则：只修改指定内容，其余一字不动。保持原文风格和节奏。**")
+
+        # 格式修复指令
+        if fmt_issues:
+            segments.append(f"\n【格式修复】")
+            for issue in fmt_issues:
+                if "半角标点" in issue:
+                    segments.append("- 将所有半角标点（.,:;?!）替换为全角标点（，。：；？！）")
+                if "弯引号" in issue:
+                    segments.append("- 将所有中文弯引号「」''替换为 ASCII 双引号 \"\"")
+                if "省略号" in issue:
+                    segments.append("- 将所有英式省略号...替换为中文省略号……")
+                if "段落" in issue:
+                    segments.append("- 将超过80字的长段落拆分为2-3个短段落")
+                if "破折号" in issue:
+                    segments.append("- 适当减少破折号使用频率")
+                if "分隔符" in issue:
+                    segments.append("- 删除结尾的多余分隔符")
+
+        # 内容插入指令
+        if insert_instruction:
+            segments.append(f"\n{insert_instruction}")
+
+        segments.append(f"\n【第{ch_num}章 {ch_title} 原文】")
+        segments.append(content)
+
+        segments.append(f"\n请输出：\n\n【修改后正文】\n（完整修改后的正文，包含所有修复和插入）")
+
+        return '\n'.join(segments)
+
     # ---- 格式检查（脚本侧，不调 AI）----
     def _check_chapter_format(self, content: str) -> list:
         """检查单章格式，返回问题列表"""
@@ -1078,6 +1215,12 @@ def main():
             sys.exit(1)
         orch.batch_review(sys.argv[2])
 
+    elif cmd == "polish":
+        if len(sys.argv) < 3:
+            print("用法: python3 orchestrator.py polish <项目ID>")
+            sys.exit(1)
+        orch.batch_polish(sys.argv[2])
+
     elif cmd == "resume":
         if len(sys.argv) < 3:
             print("用法: python3 orchestrator.py resume <项目ID>")
@@ -1089,7 +1232,7 @@ def main():
 
     else:
         print(f"未知命令: {cmd}")
-        print("可用: new, batch, daily, status, list, review, resume")
+        print("可用: new, batch, daily, status, list, review, polish, resume")
 
 
 if __name__ == "__main__":
