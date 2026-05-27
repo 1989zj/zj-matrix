@@ -615,6 +615,13 @@ class Orchestrator:
                 polished = m.group(1).strip()
                 # 清理结尾残留
                 polished = re.sub(r'\n*---\s*$', '', polished)
+                # 清理编辑器元注释（修改说明/汇总/内容插入总结等）
+                for marker in ['\n修改说明', '\n修改汇总', '\n---\n\n修改']:
+                    idx = polished.rfind(marker)
+                    if idx > len(polished) * 0.7:
+                        polished = polished[:idx].rstrip()
+                        break
+                polished = polished.strip()
                 new_wc = len(polished)
 
                 # 写入数据库
