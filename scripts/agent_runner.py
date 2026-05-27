@@ -228,6 +228,18 @@ def parse_draft_output(output: str) -> Optional[Dict]:
     if m:
         data["content"] = m.group(1).strip()
 
+    # 兜底：模型经常忽略【正文】标签直接输出纯文本
+    if not data["content"] or len(data["content"]) < 100:
+        content = output
+        # 依次剥离末尾的非小说内容
+        content = re.sub(r'\n*几个写作上的处理[：:].*$', '', content, flags=re.DOTALL)
+        content = re.sub(r'\n*文件路径[：:].*$', '', content, flags=re.DOTALL)
+        content = re.sub(r'\n*---\s*$', '', content)
+        content = re.sub(r'\n*（第\d+章完）\s*$', '', content)
+        content = content.strip()
+        if len(content) >= 100:
+            data["content"] = content
+
     # 提取【章尾钩子】
     m = re.search(r'【章尾钩子】\s*(.+?)(?=\n【|$)', output, re.DOTALL)
     if m:
