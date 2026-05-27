@@ -501,6 +501,8 @@ class Orchestrator:
 
         # 4. 存储
         chapter_title = parsed.get("title", "").strip()
+        # 移除 AI 可能自动添加的"第X章"前缀
+        chapter_title = re.sub(r'^第\d+章\s*', '', chapter_title).strip()
         if not chapter_title:
             chapter_title = f"第{chapter}章"
         # 清理结尾残留分隔符
