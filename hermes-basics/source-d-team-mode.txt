@@ -1,0 +1,63 @@
+# Hermes Agent 团队模式：多智能体并行作战指南
+
+## 什么是团队模式
+
+Hermes Agent 不是单打独斗的 AI。它有五层团队协作机制，覆盖从「简单排队」到「多代理并行开发」的完整光谱。
+
+## 五层团队机制
+
+### 1. /queue — 排队到下一轮
+- 最轻量的方式：/queue 帮我检查Y
+- 不中断当前任务，等当前回复完成后自动处理
+- 零开销（复用同一个 agent loop），但串行执行
+
+### 2. /background — 后台独立运行
+- /background 研究一下X — 在后台启动独立会话
+- 创建全新的 AIAgent 实例（独立模型/工具集）
+- 不阻塞当前对话，完成后打印结果
+- 适合「不急、但要搞定」的副线任务
+
+### 3. delegate_task — 子代理并行执行（编程接口）
+- Agent 内部使用的批量委派工具
+- 支持 batch 模式：一次性派给最多 3 个子代理并行干活
+- Context Firewall 架构：子代理有完全隔离的上下文，父代理只收到 summary
+- 子代理自动限制：不能嵌套委派、不能问用户、不能写记忆
+- 父代理在所有子代理完成前同步等待
+
+### 4. tmux 多实例 — 完全独立的 OS 级并行
+- 通过 hermes -w（worktree 模式）启动多个实例
+- 每个实例有独立会话、工具集、git 工作目录
+- 典型用法：Agent A 写后端 API，Agent B 写前端 React，互相传接口 Schema
+- 持久化级别最高，可跑小时/天级任务
+
+### 5. /agents（别名 /tasks）— 监控中心
+- 查看所有正在运行的后台代理和子任务
+- 显示 session_key、启动时间、状态
+- 可以用 /stop 杀掉所有后台进程
+
+## 核心设计对比
+
+/queue → 同线程串行 → 小任务不着急
+/background → 独立线程并行 → 副线研究任务
+delegate_task → 子进程最多3并行 → API开发数据清洗
+tmux + -w → OS进程不限 → 前后端并行开发
+/agents → 监控层 → 查看进度
+
+## Context Firewall 架构
+
+这是 Hermes 区别于其他 agent 框架的关键设计：
+- 子代理看不到父代理的历史对话
+- 父代理只接收子代理的最终 summary
+- 防止一个任务的信息污染另一个任务
+- 适合多文件重构、独立模块开发、敏感数据隔离
+
+## 实战：前后端并行开发
+
+tmux new-session -d -s backend 'hermes -w'   Agent A: 后端
+tmux new-session -d -s frontend 'hermes -w'  Agent B: 前端
+sleep 8
+tmux send-keys -t backend 'Build user auth API' Enter
+tmux send-keys -t frontend 'Build login page' Enter
+读取后端输出传给前端：
+tmux capture-pane -t backend -p | tail -30
+tmux send-keys -t frontend 'API schema here' Enter
