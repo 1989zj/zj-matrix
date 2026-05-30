@@ -1,0 +1,74 @@
+# Hermes Agent 多Agent分工策略：什么任务该派给谁
+
+## 核心问题
+
+拥有五个团队机制（/queue、/background、delegate_task、tmux多实例、/agents监控），但「能用」不等于「该用」。分工不合理的结果：互相等、改同一文件冲突、context浪费、跑了一半发现缺上下文。
+
+## 分工第一原则：按隔离边界切割
+
+不要按「功能列表」分，要按「可以独立运行、独立测试、独立交付」的边界分。
+
+### 正确切割
+- Agent A 写后端 auth API，Agent B 写前端登录页
+- 输出：各自一个目录，一套 schema 文档做接口
+- 冲突风险：低（不同目录不同语言）
+
+### 错误切割
+- Agent A 写用户注册，Agent B 写用户登录（同一文件，同一路由模块）
+- 输出：两个 agent 改同一个 .py 文件，git conflict
+- 冲突风险：高
+
+## 五层机制的选择决策树
+
+### 问三个问题决定选哪个
+
+问题1：任务依赖当前对话历史吗？
+→ 是 → 用 /queue（排队等下一轮，共享 context）
+→ 否 → 走下一步
+
+问题2：任务需要持续多久？
+→ < 5分钟 → delegate_task（自动隔离，3并行上限）
+→ > 5分钟 → /background 或 tmux
+
+问题3：需要跟其他 agent 协调进度吗？
+→ 是 → tmux（可手动监控、传参、接力）
+→ 否 → /background（fire-and-forget）
+
+### 快速对照
+
+/queue → 依赖当前上下文的小任务 → 注册表核实、单行修改
+/background → 独立研究、不紧急 → 调研竞品、整理文档
+delegate_task → 批量并行、需隔离 → 数据清洗、多API调用、多文件独立重构
+tmux -w → 大型并行工程 → 前后端开发、构建脚本、长流程自动化
+
+## delegate_task 的硬限制
+
+- 最多 3 个子代理同时跑（max_concurrent_children=3）
+- 子代理不能嵌套委派（leaf 模式）
+- 子代理不能问用户、不能写记忆、不能发消息
+- 父代理**同步等待**全部完成才继续
+- 适合 3 个子任务「并行无依赖」的场景
+- 超过 3 个任务要分批
+
+## tmux 分工模式：最「重」但最强
+
+步骤：
+1. tmux new -d -s agent1 'hermes -w' 启动
+2. sleep 8 等启动完成
+3. tmux send-keys 派任务
+4. tmux capture-pane 检查进度
+5. 需要协调时把 Agent A 的输出摘要传给 Agent B
+6. /quit 退出
+
+关键技巧：
+- -w 参数（worktree）让每个 agent 有独立的 git 工作目录，防止冲突
+- 每个 agent 可配不同的 model（便宜模型做调研，贵模型做生成）
+- 适合跨语言项目（Python + React + Dockerfile 各一个 agent）
+
+## 经验法则
+
+1. delegate_task 是「同一份工作拆成 3 块」，tmux 是「三份不同工作并行」
+2. 上下文越少越好——Context Firewall 不是缺陷，是特性
+3. 如果两个 agent 需要频繁通信才能工作，说明切错了边界
+4. 回调任务链优于并行派发——Agent A 完成后再派 Agent B
+5. 长任务用 /background，短任务用 delegate_task
