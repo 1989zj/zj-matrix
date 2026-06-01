@@ -1,0 +1,130 @@
+Hermes Agent 客服自动化 — 核心架构与能力
+
+一、为什么用 Agent 做客服
+传统客服方案要么贵（人工坐席、Zendesk/Salesforce 按座席收费），要么笨（关键词匹配的聊天机器人答非所问）。Hermes Agent 的方案是用 LLM Agent 直接对接客户，把客服变成「一个人工智能同事」——它和你共享工具链（查询订单、查退换货规则、写工单），而不是一个黑盒对话框。
+
+二、Hermes Agent 做客服的五个核心组件
+
+2.1 网关（Gateway）— 客服入口
+Hermes 的 gateway 是一个多协议适配层。它让同一个 Agent 同时接听来自多种渠道的客户请求：
+- HTTP Webhook（网站表单、Shopify/Stripe 回调）
+- Telegram/Discord/Slack/WhatsApp（客户群或私聊）
+- Feishu/Lark（企业内部客服系统）
+- Email（邮件客服）
+- SMS / Signal / Matrix
+
+网关配置在 config.yaml 的 platforms 段，每个平台对应一个适配器（adapter）。客户发来的消息自动格式化为标准 Agent 输入，回复自动转换回目标平台格式。
+
+部署命令：
+  hermes gateway run              # 启动网关（前台）
+  systemctl --user start hermes-gateway  # systemd 后台守护
+
+2.2 Webhook 订阅 — 外部系统接入
+hermes webhook subscribe 命令让外部系统通过 HTTP POST 直接触发 Agent 运行。
+这是客服系统的核心——网站表单提交、订单创建、退款请求等事件驱动 Agent 响应。
+
+关键参数：
+  hermes webhook subscribe <name> \
+    --prompt "客服提示词（支持 {payload.字段} 变量替换）" \
+    --events "事件类型过滤" \
+    --skills "客服技能名称" \
+    --deliver telegram \           # 回复送达目标
+    --deliver-chat-id "12345"
+
+常见客服事件源：
+  - 网站联系表单 → Agent 回复客户邮件
+  - Shopify 订单创建 → Agent 发送欢迎消息
+  - Stripe 付款失败 → Agent 发送提醒并处理
+  - GitHub Issues → Agent 自动分类和回复技术支持
+
+订阅创建后返回一个 URL。把该 URL 配置到第三方系统的 Webhook 设置中。
+
+2.3 技能（Skills）— 客服知识库
+技能是 Hermes 最重要的知识封装方式。每个技能是一个 SKILL.md 文件，包含：
+- YAML 元数据（名称、描述、触发条件）
+- Markdown 正文（知识、流程、规则）
+- 引用文件（FAQ、产品手册、退货策略）
+
+客服技能示例结构：
+  skills/customer-service/
+    SKILL.md          # 客服守则、回应策略、升级标准
+    references/
+      faq.md          # 常见问题库
+      return-policy.md # 退换货规则
+      product-catalog.md # 产品信息
+    scripts/
+      lookup-order.py  # 查订单脚本（Agent 可用终端调用）
+
+加载技能的方式：
+  1. ~/.hermes/config.yaml 中设置 default_skills 自动加载
+  2. 单次对话中 Agent 主动 skill_view() 读取
+  3. Cron/Webhook 任务通过 --skills 参数指定
+
+2.4 定时任务（Cron）— 主动服务
+不是所有客服都是「等客户来找」。有些服务需要主动发起：
+
+典型客服 Cron 场景：
+  - 订单 24h 未确认 → 自动提醒「您的订单还在处理中」
+  - 每周发送「本周常见问题汇总」给运营团队
+  - 每日检查积压工单 → 超过 48h 未回复的自动升级提醒
+  - 定期检查退款申请状态 → 通知客户进度更新
+
+创建命令：
+  hermes cron create "检查未回复工单" \
+    --schedule "0 9,15 * * 1-5" \
+    --prompt "检查超过 24h 未回复的客户工单并生成报告" \
+    --skills "customer-service" \
+    --deliver feishu
+
+2.5 任务委派（Delegate Task）— 并发处理
+客户扎堆问的时候，Agent 要能并行处理。Hermes 的 delegate_task 机制：
+- 最大 3 个子代理并发（可配置）
+- 每个子代理会话/上下文完全隔离
+- 子代理不能嵌套子代理（安全限制）
+- 所有子代理完成后汇总结果
+
+适合场景：
+  - 同时处理多个客户的售后咨询
+  - 一个客户问多个问题 → 并行查订单状态 + 查退换货规则 + 查物流
+  - 高峰时段排队处理
+
+三、客服工作流全景
+
+  客户消息
+    │
+    ▼
+  [渠道层]  Webhook / Telegram / Feishu / Email
+    │
+    ▼
+  [网关层]  Hermes Gateway — 消息标准化 + 身份识别
+    │
+    ▼
+  [识别层]  Profile 匹配（免费客户 vs VIP 客户用不同模型）
+    │
+    ▼
+  [处理层]  Agent 主循环
+    │  ├─ 读取客服技能（SKILL.md）
+    │  ├─ 调用工具（查订单、查库存、发邮件）
+    │  ├─ 调用 delegate_task 并行查资料
+    │  └─ 生成回复
+    │
+    ▼
+  [回复层]  原路返回 / 多平台分发
+
+四、与 SaaS 客服系统的成本对比
+
+项目          Zendesk 月费    Hermes Agent
+基础版         $55/座席       $0（仅 LLM 调用费）
+AI 增强版      +$50/座席     无额外费用
+工单自动化     限制级         完全自定义
+数据本地化     不可控（SaaS）  完全本地
+渠道整合      按渠道付费      全部内置
+
+按每天 200 次客服对话（每次~3000 token）计算，DeepSeek API 月费约 60-80 元人民币。
+如果用本地 LLM（8B GGUF 模型跑在 E5 CPU 上），月费降至电费。
+
+五、局限性
+- 模型幻觉：LLM 可能编造不存在的退换货政策 → 技能里写死规则 + 脚本查实时数据库
+- 需要网络：Webhook 要求服务器有公网 IP 或内网穿透（frp/ngrok/Cloudflare Tunnel）
+- 情绪处理：纯文本 Agent 难以处理愤怒客户 → 升级给人类客服的机制必须有
+- 合规性：金融/医疗客服需要额外合规检查

@@ -1,0 +1,205 @@
+Hermes Agent 客服自动化 — 配置实战：从零搭建客服系统
+
+本文档是一个完整的搭建指南。每步命令均可复制执行，输出示例来自真实环境。
+
+一、前提条件
+- Hermes Agent 已安装（版本 2.0+）
+- 一个可用的 LLM API（DeepSeek / OpenAI / Anthropic / 本地 llama.cpp）
+- 有公网 IP 或内网穿透工具（用于 Webhook）
+
+二、第一步：创建客服技能
+
+创建一个专门处理订单问题的客服技能。
+
+2.1 创建技能目录和 SKILL.md
+
+mkdir -p ~/.hermes/skills/customer-service/references
+
+SKILL.md 示例内容（存储在一个名为 SKILL.md 的文件中）：
+---
+name: customer-service
+description: 标准客服流程，回答订单、退换货、物流问题
+---
+
+# 客服守则
+- 先核实身份，再回答问题
+- 处理退款金额不超过 500 元，超过升级给人工
+- 用中文回复，语气友好专业
+- 不确定时不要编造，说「我帮你查一下」
+
+# 退换货规则
+- 收货 7 天内可退换，商品需完好
+- 退款到原支付渠道，1-3 个工作日到账
+- 运费：质量问题卖家承担，其他买家承担
+
+# 常见问题
+Q: 什么时候发货？
+A: 工作日 16:00 前下单当天发货，之后次日发货
+
+Q: 怎么查物流？
+A: 回复「查物流」+ 订单号
+
+Q: 发票怎么开？
+A: 下单时备注发票信息，电子发票发到注册邮箱
+
+2.2 创建查订单脚本（Agent 可调用的终端工具）
+
+创建一个名为 lookup_order.sh 的文件：
+#!/bin/bash
+# 模拟查订单状态。实际环境替换为 API 或数据库查询
+ORDER_ID=$1
+case $ORDER_ID in
+  "ORD001") echo '{"status":"已发货","tracking":"SF1234567890","eta":"2026-06-03"}';;
+  "ORD002") echo '{"status":"已签收","signed_by":"张先生","signed_at":"2026-06-01 14:30"}';;
+  "ORD003") echo '{"status":"退款中","refund_amount":"299.00","refund_eta":"1-3工作日"}';;
+  *) echo '{"status":"未找到","order_id":"'$ORDER_ID'"}';;
+esac
+
+chmod +x ~/.hermes/skills/customer-service/scripts/lookup_order.sh
+
+三、第二步：设置 Webhook 客服入口
+
+3.1 启用网关
+
+hermes gateway setup
+
+交互式向导会问：
+  是否启用 Webhook？ → 是
+  Webhook 端口？ → 8644
+  HMAC 密钥？ → 自动生成或手动输入
+
+或者手动编辑 ~/.hermes/config.yaml 添加：
+platforms:
+  webhook:
+    enabled: true
+    extra:
+      host: "0.0.0.0"
+      port: 8644
+      secret: "你生成的密钥"
+
+3.2 启动网关
+
+hermes gateway run
+# 或者用 systemd 后台运行：
+systemctl --user restart hermes-gateway
+
+验证：
+curl http://localhost:8644/health
+# 返回: {"status":"ok"}
+
+3.3 创建客服 Webhook 订阅
+
+hermes webhook subscribe cs-inquiry \
+  --prompt "你是一个电商客服。处理以下客户咨询：{payload.message}\n客户名：{payload.customer_name}\n邮箱：{payload.email}\n类型：{payload.type}\n\n请根据 customer-service 技能的知识回答。如果需要查订单，调用 lookup_order.sh 脚本。处理不了的就告诉客户会转人工。" \
+  --events "inquiry" \
+  --skills "customer-service" \
+  --deliver origin
+
+系统返回：
+  Webhook URL: http://your-domain:8644/hooks/cs-inquiry
+  HMAC Secret: 自动生成的密钥
+
+3.4 配置内网穿透（如果服务器在局域网）
+
+推荐方案：frp（自建）或 Cloudflare Tunnel（免费）
+
+Cloudflare Tunnel 示例：
+cloudflared tunnel create hermes-cs
+cloudflared tunnel route dns hermes-cs cs.yourdomain.com
+cloudflared tunnel run hermes-cs
+
+然后将 Webhook URL 改为：https://cs.yourdomain.com/hooks/cs-inquiry
+
+3.5 配置网站表单发送 Webhook
+
+网站联系表单 <form> 的 action 指向 Webhook URL：
+<form action="https://cs.yourdomain.com/hooks/cs-inquiry" method="POST">
+  <input name="customer_name">
+  <input name="email" type="email">
+  <textarea name="message"></textarea>
+  <input type="hidden" name="type" value="inquiry">
+  <button type="submit">发送</button>
+</form>
+
+四、第三步：对接多客服渠道
+
+4.1 Telegram 客服群
+
+在 config.yaml 中：
+platforms:
+  telegram:
+    enabled: true
+    extra:
+      bot_token: "你的 Bot Token"
+      allowed_chats: ["-1001234567890"]  # 客服群 ID
+
+Agent 接到群内的 @bot 消息自动处理。
+
+4.2 Feishu 飞书客服（企业内部）
+
+platforms:
+  feishu:
+    enabled: true
+    extra:
+      app_id: "cli_xxx"
+      app_secret: "your_secret"
+
+五、第四步：配置 Cron 主动服务
+
+5.1 每日未处理工单检查
+
+hermes cron create "检查未回复工单" \
+  --schedule "0 9 * * 1-5" \
+  --prompt "检查过去 24 小时内通过 Webhook 收到的客户咨询，找出 Agent 没有成功回复的（状态码非 200 的），列出它们并给出建议跟进方案。用中文输出。" \
+  --skills "customer-service"
+
+5.2 订单超时提醒
+
+hermes cron create "订单超时预警" \
+  --schedule "0 10,16 * * *" \
+  --prompt "检查状态为「待发货」超过 24 小时的订单，每个订单生成一条提醒消息：订单号、客户名、下单时间。格式为 Markdown 表格。" \
+  --deliver feishu
+
+六、第五步：Profile 分级服务
+
+创建两个 profile 实现免费/付费差异化服务：
+
+~/.hermes/config.yaml 中添加：
+profiles:
+  free-tier:
+    model: deepseek-chat   # 便宜模型
+    max_turns: 5           # 限制对话轮次
+    system_prompt: "你是初级客服，只能回答 FAQ。超出范围的引导客户升级"
+  premium-tier:
+    model: deepseek-reasoner  # 强模型
+    max_turns: 30
+    system_prompt: "你是 VIP 客服专员。可以处理退款、换货、投诉等复杂问题。主动给出补偿方案。"
+
+Webhook 中根据客户等级选择 profile：
+hermes webhook subscribe cs-premium \
+  --prompt "VIP 客服请求: {payload.message}" \
+  --skills "customer-service" \
+  --profile premium-tier \
+  --deliver origin
+
+七、测试验证
+
+7.1 模拟客户咨询
+
+curl -X POST http://localhost:8644/hooks/cs-inquiry \
+  -H "Content-Type: application/json" \
+  -H "X-Hub-Signature-256: sha256=..." \
+  -d '{
+    "customer_name": "王小明",
+    "email": "xm@test.com",
+    "message": "我的订单 ORD001 什么时候到？",
+    "type": "inquiry"
+  }'
+
+7.2 查看 Gateway 日志
+
+grep cs-inquiry ~/.hermes/logs/gateway.log | tail -20
+
+7.3 查看 Agent 回复内容
+
+grep "response:" ~/.hermes/logs/gateway.log | tail -5
