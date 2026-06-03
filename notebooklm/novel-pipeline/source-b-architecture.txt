@@ -1,0 +1,84 @@
+=== Hermes Agent 多Agent自动写小说架构解析 ===
+
+=== 核心设计模式：裁判与修理工分离 ===
+
+整个流水线的核心原则：Review 不改文，Refinement 不判分。创作 Agent 和评审 Agent 是完全独立的角色，由不同的 Hermes Profile（SOUL.md）驱动。这防止了"自己写自己改"的盲区。
+
+=== 五阶段架构 ===
+
+Stage 1: Creation（hermes-novel-factory 技能）
+  入口: novel-factory new 或 novel-factory continue
+  Agent 角色: orchestrator（总控）→ draft-main / draft-action / draft-romance（写作）→ editor（审校）→ memory-manager（持久化）
+  数据流向: Hermes CLI → 磁盘文件 (.md) → sync-novel-to-mongodb.py → MongoDB novel_factory
+  关键约束: 600s 超时限制。>2 章的项目必须 new 跑骨架后用 continue 续写
+
+Stage 2: Reconstruction（novel-reconstruction 技能）
+  一次性后处理。当 MongoDB 数据存在字段映射错误、ARC 元数据缺失、时间线断裂时执行。
+  不修改正文内容，只修复元数据层。
+  修复 8 个模块：chapter_memory、timeline、foreshadow、foreshadow_queue、event_log、arcs、canonical_bible、character_states
+
+Stage 3: Refinement（novel-refinement-branch 技能）
+  内容级修复。三阶段：
+  Phase 1 — 一致性修复（角色名统一、设定矛盾消除、时间线对齐）
+  Phase 2 — 语言润色（AI 味消除：重复句式/空洞描写/机械情绪）
+  Phase 3 — 伏笔回收（foreshadow_queue 冲销）
+  每次修改输出三联：original + patched + diff，确认后回写 MongoDB
+
+Stage 4: Review（novel-review-pipeline 技能）
+  独立评审 Agent，只判不改。
+  8 维度加权评分，纯机械化规则（关键词匹配 + 正则 + 密度计算），不消耗 LLM token。
+  黄金三章（第1-3章）采用更高标准：hook < 4 直接打回。
+
+Stage 5: Feedback Loop
+  评审发现问题 → 生成 Patch 建议 → 精修执行 → 再评审 → 直到 PASS
+  最多 3 轮，3 轮不通过标记"需人工介入"。
+
+=== 多 Agent 通信机制 ===
+
+Hermes Agent 本身是多 Agent 框架。每个技能实际上是一个独立的 Agent（由 skill 目录下的 SOUL.md 定义角色）。通信方式：
+
+  - 同一 Hermes 会话内：Agent 切换 = 加载不同 skill 的 SOUL.md
+  - 跨会话：MongoDB novel_factory 数据库作为唯一真相源
+  - Context Packet：继续写作前从 MongoDB 组装（world_state + character_states + active_plot_threads + last_10_chapters + foreshadow_queue），作为 LLM 上下文的恢复包
+
+=== MongoDB 双库架构 ===
+
+  novel_factory 库 - 创作活跃状态（16 个 Collection）
+    写入路径: sync-novel-to-mongodb.py 或 orchestrator 直接写入
+    读取方: Flask UI (192.168.2.46:5003)、novel-factory continue、analytics
+
+  novel 库 - V1 兼容层（2 个 Collection: novels + chapters）
+    只保存最终成品章节
+    Flask UI 的旧路由依赖此库
+
+  注意：两个库不同步。大部分路由已迁移到 novel_factory。
+
+=== 状态持久化设计 ===
+
+  磁盘文件: /root/novel-factory/<slug>/ 项目目录
+    draft/chapter-NNN.md - 草稿（master）
+    outline.md - 大纲
+    character-cards.md - 角色卡
+    world-bible.md - 世界观
+    ops/ - 发布运营材料
+
+  MongoDB 16 个 Collection:
+    8 个继承自 V2：projects、world_bible、characters、timeline、arcs、foreshadow、chapter_memory、anti_repetition
+    8 个 V3 新增：world_state、character_states、arc_plans、foreshadow_queue、plot_debt、event_log、snapshot_store、anti_fatigue
+
+  版本化: 4 个 _history 集合（characters_history / arcs_history / world_bible_history / chapter_memory_history）
+  事件溯源: event_log 为 append-only 真相源
+
+=== 典型执行链路（一次 continue 会话） ===
+
+  1. Hermes Agent 加载 novel-factory 技能 → SOUL.md 注入系统 prompt
+  2. novel-factory continue '书名' 触发 CLI
+  3. resume-project.py 从 projects 查 project_id / current_arc / total_chapters
+  4. build-context-packet.py 组装 Context Packet（读 world_state + character_states + recent chapter_memory + foreshadow_queue）
+  5. orchestrator 收到 Context Packet → 选择 draft agent
+  6. draft agent 写 3 章（每章读 MongoDB 校验角色/时间线/世界观）
+  7. editor 做微观审校（逐行）+ 宏观一致（跨章验证）
+  8. live-validator 7 维校验（金额/战力/时间线/称呼/人设/地点/物品）
+  9. memory-manager 批量写入 MongoDB（chapter_memory + timeline + characters + event_log）
+  10. event-log-writer.py 记录事件
+  11. snapshot-manager.py 每 100 event 保存快照

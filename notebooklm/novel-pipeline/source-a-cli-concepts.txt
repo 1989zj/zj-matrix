@@ -1,0 +1,93 @@
+=== Hermes Agent 多Agent自动写小说流水线 CLI 参考 ===
+
+=== 核心概念 ===
+
+Hermes Agent 将小说写作拆成 5 个独立阶段，每个阶段由不同的 Agent 执行：
+
+  阶段 1 — Creation（创建）：novel-factory 技能
+  阶段 2 — Reconstruction（重建）：novel-reconstruction 技能
+  阶段 3 — Refinement（精修）：novel-refinement-branch 技能
+  阶段 4 — Review（评审）：novel-review-pipeline 技能
+  阶段 5 — Feedback（反馈循环）：阶段 4 结果驱动阶段 3，闭环
+
+=== CLI 命令大全 ===
+
+1. 创建新项目
+
+  novel-factory new '书名' --genre 玄幻
+  - 产出 Research / Outline / Character / 开头3万字
+  - 写入 MongoDB novel_factory（projects / chapters / characters / arcs 等）
+  - 超时限制 600s，>2 章的项目必超时，用 continue 续写
+  - 时间预算：3万字骨架约 10 分钟
+
+2. 续写章节
+
+  novel-factory continue '书名'
+  - 每轮写 3-5 章，约 4.5 分钟
+  - 自动恢复上次中断位置
+  - 从 MongoDB 加载最新状态（Context Packet）
+
+3. 数据重建（一次性）
+
+  cd ~/.hermes/skills/content-creation/novel-reconstruction/scripts/
+  python3 novel-reconstruct.py run '书名' --module all --dry-run    # 诊断
+  python3 novel-reconstruct.py run '书名' --module all              # 执行
+
+  修复模块：chapter_memory / timeline / foreshadow / arcs / canonical_bible
+
+4. 内容精修
+
+  加载 novel-refinement-branch 技能后执行。
+  - Phase 1：一致性修复（角色名/设定/时间线）
+  - Phase 2：语言润色（AI 味消除）
+  - Phase 3：伏笔回收
+  - 只做局部 Patch，不全文重写
+
+5. 独立评审
+
+  cd ~/.hermes/skills/content-creation/novel-review-pipeline/scripts/
+  python3 novel-judge.py review '书名' --chapters 1-3 --golden        # 黄金三章
+  python3 novel-judge.py review '书名' --chapters 1-136 --verdict-only # 只看裁决
+
+  八维评判维度（权重）：
+  Hook (25%) | Retention (20%) | Pacing (15%) | Emotion (10%)
+  AI Smell (10%) | Character Charm (10%) | Market (5%) | Readability (5%)
+
+  裁决标准：>=8 PASS | 5-7 CONDITIONAL | <5 REJECT
+
+=== 关键数据流 ===
+
+  novel-factory new/continue
+       |
+       v
+  磁盘文件: /root/novel-factory/<slug>/draft/chapter-*.md
+       |
+       v (手动执行 sync-novel-to-mongodb.py)
+       |
+  MongoDB novel_factory: 16 个 Collection
+  - projects / chapter_memory / characters / arcs / timeline
+  - world_bible / foreshadow / foreshadow_queue / world_state
+  - character_states / arc_plans / plot_debt
+  - event_log / snapshot_store / anti_fatigue
+       |
+       v
+  Flask UI (192.168.2.46:5003) 仅读 novel_factory 库
+  - projects / chapter_memory 用于显示
+
+=== 数据规范踩坑 ===
+
+- project_id 格式: proj_<slug>_<uuid[:8]>
+- chapter_memory 按 chapter(int) 排序，key 不叫 chapterNumber
+- updated_at 必须是 ISO 字符串（.isoformat()），不能传 datetime 对象
+- stats.word_counts 的 key 必须是字符串，不是 int
+- 对话引号：必须用英文直引号 U+0022 ("")，禁止中文角括号
+
+=== 时间预算汇总 ===
+
+  操作                          耗时
+  novel-factory new (3万字)     ~10 分钟
+  novel-factory continue (3-5章) ~4.5 分钟
+  数据重建 (136章)               ~2 分钟
+  全量评审 (136章)               ~30 秒
+  单章精修 (LLM)                ~1 分钟
+  反馈循环 (1章: 评+修+再审)    ~3 分钟
