@@ -1,0 +1,91 @@
+=== Hermes Agent 电商运营：部署、安全与故障处理 ===
+
+=== 部署环境 ===
+
+当前 Hermes Agent 运行环境：
+  CPU: Intel Xeon E5-2670 v2（无 GPU）
+  RAM: 8GB
+  OS: Linux
+  框架: Hermes Agent（DeepSeek API 驱动）
+  投递: 飞书（默认 home channel）
+
+所有电商监控脚本存储在 ~/.hermes/scripts/ 目录。
+cronjob 脚本用 .sh / .py 格式，脚本放在 ~/.hermes/scripts/ 下，
+Hermes 自动解析（.sh/bash → bash, 其他 → python）。
+
+=== 安全规则 ===
+
+1. API 调用防封
+   - 每次请求设置 User-Agent + Referer 模拟浏览器
+   - 错峰抓取（同一站点间隔 > 3 秒）
+   - 指数退避重试（最多 3 次）
+   - 选择免费替代 API 优先（如东方财富/新浪财经级接口）
+
+2. 数据安全
+   - 脚本不包含明文凭据（使用环境变量或 .env 文件）
+   - 文件自动上传 GitHub 后删除本地副本
+   - 不通过自然语言修改系统配置
+
+3. cronjob 安全
+   - 脚本输出为空 = 静默（不发送空消息）
+   - 非零退出码自动发送错误告警
+   - 定时任务不递归创建新定时任务
+
+=== 故障模式 ===
+
+1. 抓取被反爬
+   症状：目标网站返回 403/429 或验证码页面
+   恢复：
+   - 增加 User-Agent 轮换
+   - 加长抓取间隔（从 2h → 4h）
+   - 切换数据源（官方 API → 第三方聚合）
+   - 如果目标没有公开 API，考虑使用 browser 自动化 +
+     延时 + 人机验证绕过（合法用途限公开数据）
+
+2. 脚本执行超时
+   默认超时 180s，长任务（如全量报表生成）可能超时
+   恢复：
+   - 后台模式执行：background=True, notify_on_complete=True
+   - 或拆成多步分时执行
+
+3. 飞书投递失败
+   症状：send_message 返回 error
+   恢复：
+   - 检查 target 格式（platform:chat_id）
+   - 回退到本地文件保存（output_local=True）
+   - 查看飞书 Bot Token 是否过期
+
+4. 价格监控漂移
+   症状：目标网站改版，CSS 选择器/正则失效
+   恢复：
+   - 手动检查页面 DOM 结构
+   - 更新 extract_price() 中的选择器
+   - 增加 validate 步骤（检查提取的价格是否在合理范围）
+
+5. API 费用超预期
+   症状：token 消耗比预算多
+   防范：
+   - 定时监控用 no_agent=True（零 token）
+   - 文案生成限制每轮输出 ≤ 2000 tokens
+   - 设置 cronjob 的 repeat 次数防止无限循环
+
+=== 扩展建议 ===
+
+1. 从简单开始
+   第一个自动化：价格监控（零 LLM 成本，纯脚本）
+   第二个：日报生成（pandas 报表）
+   第三个：评价情感分析（snownlp 本地）
+
+2. 数据源优先级
+   官方 API > 公开 JSON 接口 > HTML 解析 > 浏览器自动化
+   每升一级，成本和稳定性风险都在增加
+
+3. 阈值设计
+   价格变动：建议 ±5% 或 ±¥10，太敏感变噪音
+   评价分析：连续 5 条负面再告警，单条不告警
+   退款率：超过近 7 日均值 2 倍才触发
+
+4. 模块化脚本
+   每个监控任务 = 一个独立 .py 文件
+   共用函数抽到 lib/ 目录
+   日志统一写到 ~/.hermes/logs/ecommerce/

@@ -1,0 +1,81 @@
+=== Hermes Agent 电商运营：工具链与核心能力 ===
+
+=== 场景定位 ===
+
+用 Hermes Agent（一个本地部署的多 Agent 框架）来替代电商运营中重复性、
+数据密集型的体力活。不是"AI 自动开店赚大钱"，是"运营工具自动化"。
+
+=== Hermes Agent 核心能力（电商相关） ===
+
+1. 定时任务（cronjob）
+   - 支持秒/分/时/天/周的 cron 表达式
+   - 可绑定技能（skill）组合执行
+   - 支持脚本驱动（no_agent 模式，零 token 消耗）
+   - 输出自动投递到飞书/钉钉/Telegram/微信
+
+2. 多 Agent 协同（delegate_task）
+   - 最多 3 个子 Agent 并行
+   - 每个子 Agent 独立上下文，互不污染
+   - 适用于批量竞品分析、多平台数据抓取
+
+3. 内容生成（text_to_speech / code execution）
+   - 商品文案、短视频脚本、客服回复模板生成
+   - 支持 Python 脚本处理 Excel/CSV 数据
+   - TTS 配音用于短视频
+
+4. 数据采集与处理
+   - 浏览器自动化（browser_navigate / browser_click）
+   - Python 脚本处理（pandas / openpyxl / requests）
+   - 本地文件读写（read_file / write_file / search_files）
+
+5. 多渠道投递
+   - 飞书（当前默认 home channel）
+   - Telegram
+   - 邮件（SMTP/IMAP via himalaya）
+   - 本地文件存储
+
+=== 适用场景清单 ===
+
+1. 竞品价格监控
+   定时抓取竞争对手价格，低于阈值时告警投递到飞书
+   工具链：cronjob → terminal(curl/requests) → send_message
+
+2. 商品批量上架 / 文案优化
+   读取 Excel 商品表，逐条生成 SEO 标题+描述+卖点
+   工具链：read_file(excel) → LLM 生成 → write_file 输出 → send_message
+
+3. 店铺评价情感分析
+   定时抓取最新评价，NLP 情感分类（正面/负面/中性）
+   工具链：cronjob → Python(textblob/snownlp) → 图表 → send_message
+
+4. 日报/周报自动生成
+   汇总昨日订单量、GMV、退款率、退货率等核心指标
+   工具链：cronjob → Python(pandas) → 格式化报告 → send_message
+
+5. 促销活动内容批量生成
+   根据活动主题，一次生成多平台（淘宝/拼多多/京东）适配文案
+   工具链：delegate_task × 3（并行写三平台文案）→ write_file → send_message
+
+6. 短视频带货脚本 + 配音
+   商品亮点 → 脚本生成 → TTS 配音 → 交付
+   工具链：LLM 生成脚本 → text_to_speech → 输出 .mp3
+
+7. 异常订单监控
+   监测退款率突变、发货超时、差评集中涌现
+   工具链：cronjob → Python(threshold detection) → 告警投递
+
+8. 多平台比价
+   对同一商品在淘宝/拼多多/京东/抖音小店的实时比价
+   工具链：delegate_task × 3（并行抓三平台数据）→ 汇总对比表
+
+=== 成本模型 ===
+
+本地 Hermes Agent（CPU only, DeepSeek API）：
+  - 每次 LLM 调用：~2K in / ~500 out tokens = 约 ¥0.002
+  - 定时脚本模式（no_agent）：零 token 成本
+  - 日报自动生成：~30K tokens/次 = 约 ¥0.06
+  - 多 Agent 并行写文案（3个 × 8K tokens）= 约 ¥0.048
+  - 比 cronjob 模式每小时一次监控：24次/天 × 0 token = ¥0
+
+核心设计：定时监控尽量用 no_agent 脚本模式（零成本），
+只有需要 LLM 推理的场景（文案/分析/决策）才走 agent 模式。

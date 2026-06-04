@@ -1,0 +1,130 @@
+=== Hermes Agent 电商运营：实战架构与链路设计 ===
+
+=== 架构原则 ===
+
+  分层设计: 采集层 → 处理层 → 决策层 → 投递层
+  token 节省: 定时任务用 no_agent，只有需要推理才用 LLM
+  无状态: 每次执行独立，不依赖长上下文
+
+=== 链路详解：竞品价格监控（最常用场景） ===
+
+Step 1: 定时触发
+   cronjob(action='create', schedule='0 */2 * * *', no_agent=True,
+            script='~/scripts/monitor-prices.sh')
+   → 每 2 小时执行一次，零 token 成本
+
+Step 2: 数据采集
+   monitor-prices.sh 内部调用 Python：
+   ```
+   import requests, json
+   target_urls = [
+       ('sku_A', 'https://example.com/product/123'),
+       ('sku_B', 'https://example.com/product/456'),
+   ]
+   results = []
+   for sku, url in target_urls:
+       r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
+       price = extract_price(r.text)  # 正则/css 选择器
+       results.append({'sku': sku, 'price': price, 'time': datetime.now()})
+   # 与上次价格对比，发现差异则输出
+   previous = load_last_state()
+   changes = [r for r in results if abs(r['price'] - previous.get(r['sku'], 0)) > threshold]
+   if changes:
+       print(json.dumps(changes))  # 有变化才输出，零输出=静默
+   ```
+
+Step 3: 结果处理
+   no_agent=True 模式下，脚本 stdout 非空则自动投递。
+   输出格式：
+   ```
+   【价格变动告警】
+   SKU A：¥299 → ¥259（降幅 13.4%）
+   SKU B：¥159 → ¥169（涨幅 6.3%）
+   ```
+   直接投递到飞书。
+
+=== 链路详解：日报自动生成 ===
+
+Step 1: cronjob 每日 9:00 触发
+   cronjob(action='create', schedule='0 9 * * *',
+            script='~/scripts/daily-report.py', no_agent=True)
+
+Step 2: Python 脚本执行
+   ```
+   import pandas as pd
+   # 读取数据库/API 获取昨日数据
+   orders = pd.read_sql('SELECT * FROM orders WHERE date=CURDATE()-1', conn)
+   refunds = pd.read_sql('SELECT * FROM refunds WHERE date=CURDATE()-1', conn)
+   # 计算核心指标
+   report = f'''
+   📊 昨日运营日报 ({yesterday})
+   ──────────────────────────
+   GMV：{orders.total:,.2f}（环比 {pct_change:.1%}）
+   订单量：{len(orders)} 单
+   客单价：{orders.total/len(orders):.2f}
+   退款率：{len(refunds)/len(orders):.1%}
+   退款金额：{refunds.total:,.2f}
+   ──────────────────────────
+   热销 TOP3：{top3}
+   异常商品：{anomalies}
+   '''
+   print(report)
+   ```
+
+Step 3: 自动投递到飞书
+
+=== 链路详解：批量文案生成（多 Agent 并行） ===
+
+delegate_task(tasks=[
+    {'goal': '写一篇淘宝详情页文案，商品: ...', 'toolsets': ['terminal', 'file']},
+    {'goal': '写一篇小红书种草笔记，商品: ...', 'toolsets': ['terminal', 'file']},
+    {'goal': '写一篇抖音短视频脚本，商品: ...', 'toolsets': ['terminal', 'file']},
+])
+→ 3 个 Agent 并行工作，互不干扰
+→ 各自完成后汇总到一份 deliverable
+
+=== 链路详解：评价情感分析 ===
+
+cronjob 定时执行 Python 脚本：
+```
+from snownlp import SnowNLP  # 纯本地，无 API 成本
+
+reviews = fetch_latest_reviews(limit=50)
+negative = []
+for r in reviews:
+    s = SnowNLP(r['content'])
+    if s.sentiments < 0.3:  # 负面
+        negative.append(r)
+
+if len(negative) > 5:  # 负面评价 > 5 条则告警
+    print(f'⚠️ 负面评价集中出现（{len(negative)}条）')
+    for n in negative[:5]:
+        print(f'  - {n["content"][:50]}...')
+```
+
+=== Cronjob 配置最佳实践 ===
+
+| 场景 | schedule | no_agent | 模式说明 |
+|------|----------|----------|----------|
+| 价格监控 | 0 */2 * * * | True | 纯脚本，有变化才出声 |
+| 日报 | 0 9 * * * | True | 每日固定报告 |
+| 评价分析 | 0 */6 * * * | True | 每6小时扫描一次 |
+| 促销文案 | 手动触发 | False | 需要 LLM 推理 |
+| 周报 | 0 10 * * 1 | True | 周一早 10 点 |
+| 异常监控 | */30 * * * * | True | 每 30 分钟检查退款率突变 |
+
+=== 飞书告警格式统一标准 ===
+
+所有 cronjob 脚本的输出应采用统一格式，便于阅读：
+
+```
+【Hermes Agent 电商监控】
+─────────────────────
+📊 类型：价格变动
+🕐 时间：2026-06-04 10:00
+📋 内容：
+  SKU A: ¥299 → ¥259（-13.4%）
+  SKU B: ¥159 → ¥169（+6.3%）
+─────────────────────
+来源：价格监控 · monitor-prices.py
+```
