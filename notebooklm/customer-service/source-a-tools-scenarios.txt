@@ -1,0 +1,76 @@
+=== Hermes Agent 自动客服：工具链与场景 ===
+
+=== 场景定位 ===
+
+用 Hermes Agent 做自动化客服而不是替代人工客服。
+聚焦三个高 ROI 方向：自动回复常见问题、工单分类路由、客服质量抽检。
+不是"全自动聊天机器人"，是"客服运营自动化"。
+
+=== Hermes Agent 核心能力（客服相关） ===
+
+1. LLM 回复生成
+   - 基于 FAQ/知识库生成客户回复
+   - 支持提示词模板控制语气（正式/亲切/紧急）
+   - 输出可直接投递到飞书/Telegram
+
+2. 文本分类（code execution + LLM）
+   - Python 脚本做关键词/正则匹配预分类
+   - LLM 处理模糊分类（需要语义理解）
+   - 分三类：可自动回复 / 需人工介入 / 紧急投诉
+
+3. 定时检测（cronjob）
+   - 客服响应时长监控
+   - 未处理工单超时告警
+   - 客户情绪骤降预警
+
+4. 质量抽检（cronjob + LLM）
+   - 随机抽取 N 条对话记录
+   - LLM 评分（响应速度/态度/解决率）
+   - 输出质检报告投递到管理群
+
+5. 多渠道投递
+   - 飞书（当前默认）
+   - Telegram
+   - 邮件
+
+=== 适用场景清单 ===
+
+1. 常见问题自动回复
+   客户问到 FAQ 内问题时，自动生成回复并发送
+   输入：客户问题 → 检索 FAQ → LLM 适配生成回复
+   触发方式：手动 / Webhook / Feishu Bot
+
+2. 工单分类路由
+   新工单 → 标题+内容分析 → 分类（售后/物流/投诉/咨询）→ 投递到对应负责人
+   工具链：delegate_task + pipeline：classify → route
+
+3. 客服响应超时监控
+   定时检查未回复工单，超过阈值（如 30 分钟）自动告警
+   工具链：cronjob(no_agent) → Python 检查时间戳 → send_message
+
+4. 客户情绪监测
+   NLP 情感分析客户最后一条消息，情绪低于阈值触发升级
+   工具链：cronjob(no_agent) → snownlp → threshold check → alert
+
+5. 话术模板批量生成
+   针对高频场景（退货/换货/催单/投诉）一次性生成 N 套话术
+   工具链：delegate_task(parallel) × 场景数
+
+6. 客服质检日报
+   每日汇总：已处理工单数、平均响应时长、满意度评分、Top 投诉问题
+   工具链：cronjob(no_agent) → Python(pandas) → report
+
+7. 知识库回答一致性检查
+   随机抽检历史客服回复，对比知识库标准答案是否一致
+   工具链：cronjob → LLM 比对 → 偏差分析 → report
+
+=== 成本模型 ===
+
+本地 Hermes Agent（CPU only, DeepSeek API）：
+  - FAQ 自动回复：~4K in / ~500 out tokens ≈ ¥0.005/次
+  - 工单分类：~1K in / ~100 out tokens ≈ ¥0.001/次
+  - 质检抽检（10条对话）：~15K in / ~2K out ≈ ¥0.02/次
+  - 超时监控（no_agent）：零成本
+  - 情绪监测（snownlp 本地）：零成本（纯 Python 库）
+
+核心原则：分类+监控用脚本（零成本），回复生成+质检用 LLM（按需烧 token）。

@@ -1,0 +1,130 @@
+=== Hermes Agent 自动客服：实战链路 ===
+
+=== 链路一：FAQ 自动回复（最常用） ===
+
+输入方式：客户消息到达（手动或 Feishu Bot 转发）
+触发 Hermes：
+  1. 加载客服 skill（含 FAQ 知识库）
+  2. 将客户问题 + FAQ 关键词匹配结果注入 prompt
+  3. LLM 生成回复（语气在 prompt 中指定）
+  4. 输出回复文本 + 置信度分数
+  5. 置信度 > 0.8 → 直接发送
+  6. 置信度 < 0.8 → 转人工，附建议回复草稿
+
+FAQ 知识库存储在本地文件或 MongoDB：
+  - ~/.hermes/cs-faq.yaml（YAML 格式，按分类组织）
+  - 每条 FAQ 含：问题模式 + 标准答案 + 变体问题
+
+=== 链路二：工单自动分类路由 ===
+
+delegate_task(tasks=[
+    {'goal': '分析以下工单内容，输出分类标签和紧急级别', 'context': ticket_text},
+])
+→ 输出结构：
+  {
+    "category": "售后" / "物流" / "投诉" / "咨询",
+    "urgency": "低" / "中" / "高",
+    "recommended_handler": "售后组" / "物流组" / "店长",
+    "reply_suggestion": "…"
+  }
+→ 根据分类投递到飞书不同群/人：
+  - 低优先级 → 客服普通群
+  - 中优先级 → 值班客服 @ 提醒
+  - 高优先级 → 管理群 @all
+
+=== 链路三：客服超时监控 ===
+
+cronjob(action='create', schedule='*/10 * * * *', no_agent=True,
+        script='~/scripts/cs-timeout-monitor.py')
+
+```
+import json, datetime
+unreplied = fetch_tickets(status='open')
+thresholds = {'低': 120, '中': 60, '高': 15}  # 分钟
+alerts = []
+for t in unreplied:
+    elapsed = (now - t['created_at']).total_seconds() / 60
+    if elapsed > thresholds.get(t['urgency'], 60):
+        alerts.append(t)
+
+if alerts:
+    print(f'⚠️ {len(alerts)} 个工单超时未回复')
+    for a in alerts:
+        print(f'  [{a["urgency"]}] {a["title"][:30]}... ({int(elapsed)}分钟)')
+# 空输出=静默，无告警
+```
+
+=== 链路四：客服质检抽检 ===
+
+cronjob 每周一 10:00 触发，no_agent=False（需要 LLM）：
+
+流程：
+  1. 从数据库中随机抽取 10 条已完结对话
+  2. 对每条对话调用 LLM 评分（5 维）
+     - 响应速度（1-5）
+     - 态度友好度（1-5）
+     - 问题解决率（1-5）
+     - 话术规范性（1-5）
+     - 客户情绪修复（1-5）
+  3. 汇总评分 → 输出质检报告
+  4. 有低分项（< 3 分）时标注"需改进"
+
+=== 链路五：情绪监测升级 ===
+
+cronjob 每 30 分钟轮询，no_agent=True：
+
+```
+from snownlp import SnowNLP
+recent = fetch_recent_conversations(minutes=30)
+escalations = []
+for conv in recent:
+    last_msg = conv['messages'][-1]['content']
+    sentiment = SnowNLP(last_msg).sentiments
+    if sentiment < 0.2:  # 非常负面
+        escalations.append(conv)
+
+if escalations:
+    print(f'⚠️ 客户情绪预警：{len(escalations)} 条对话需关注')
+    for e in escalations:
+        print(f'  客户: {e["customer"]}, 情绪分: {sentiment:.2f}, 消息: {last_msg[:40]}...')
+```
+
+=== 话术模板格式 ===
+
+```
+# ~/.hermes/cs-templates.yaml
+
+退货场景_官方:
+  适用: 客户要求退货，商品未使用
+  语气: 亲切专业
+  结构:
+    - 致歉（1句）
+    - 确认退货条件（1句）
+    - 退换流程说明（2-3步）
+    - 补偿方案（可选）
+  示例: |
+    非常理解您的情况，这款商品…
+    
+催单场景_紧急:
+  适用: 客户下单后超48小时未发货
+  语气: 诚恳
+  结构:
+    - 确认订单信息
+    - 解释延迟原因（不编造）
+    - 给出预计发货时间
+    - 提供补偿（优惠券/免邮）
+```
+
+=== 输出格式（飞书投递统一标准） ===
+
+```
+【Hermes Agent 客服监控】
+─────────────────────
+📋 类型：超时告警
+🕐 时间：2026-06-04 14:30
+⚠️ 2 个工单超时：
+  [高] 客户投诉商品损坏（18分钟未回复）
+  [中] 询问退换货流程（65分钟未回复）
+─────────────────────
+建议：高优先级工单立即分配专人跟进
+```
