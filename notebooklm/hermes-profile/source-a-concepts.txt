@@ -1,0 +1,80 @@
+=== Hermes Agent Profile：概念与用途 ===
+
+=== Profile 是什么 ===
+
+Hermes Agent 的 profile（配置文件）是一套完全独立的运行环境。
+每个 profile 有自己的 config.yaml、.env（API 密钥）、技能、会话记录、记忆、甚至日志。
+它们存储于 ~/.hermes/profiles/<名称>/ 目录中，结构与主目录相同。
+
+你可以理解为："同一个 Hermes 二进制，多个平行的自己"。
+
+=== 什么时候需要用 Profile ===
+
+1. 工作 vs 个人
+   工作 profile：用 Claude Sonnet，加载项目技能，记忆存储工作上下文
+   个人 profile：用 DeepSeek 省钱，加载个人技能，记忆存储日常偏好
+   两个 profile 的会话和记忆互不干扰
+
+2. 多服务商隔离
+   客户 A 用 OpenAI + 特定技能组合
+   客户 B 用 Anthropic + 不同技能组合
+   每个客户的 API key、配置、记忆各自独立
+
+3. 测试与生产
+   test profile：用便宜的 API、开启调试日志、允许危险命令
+   prod profile：用稳定模型、关闭 yolo、严格安全策略
+   在 test 中验证新 skill 无误后再切到 prod
+
+4. 多语言/多角色
+   英文创作者 profile vs 中文运营 profile
+   不同 prompt 风格、不同记忆上下文、不同技能集
+
+5. 多人共享一台机器
+   每个使用者一个 profile
+   各自的 API key、会话历史、记忆完全隔离
+
+=== Profile 的隔离层级 ===
+
+| 组件 | 是否隔离 | 说明 |
+|------|---------|------|
+| config.yaml | ✅ 完全隔离 | 每个 profile 独自的配置 |
+| .env / API keys | ✅ 完全隔离 | 不同 profile 可用不同 API key |
+| skills | ✅ 完全隔离 | ~/.hermes/profiles/<name>/skills/ |
+| sessions | ✅ 完全隔离 | ~/.hermes/profiles/<name>/sessions/ |
+| memory | ✅ 完全隔离 | ~/.hermes/profiles/<name>/memories/ |
+| logs | ✅ 完全隔离 | ~/.hermes/profiles/<name>/logs/ |
+| cron jobs | ⚠️ 全局共享 | cron 在调度器层级，不隔离 |
+| gateway 配置 | ⚠️ 取决于配置 | 平台绑定在 gateway 层级 |
+
+=== Profile 与其他 Hermes 功能的配合 ===
+
+1. Profile + Skills
+   每个 profile 可以加载不同的技能集
+   工作 profile 加载代码审查、部署技能
+   个人 profile 加载内容创作、视频制作技能
+
+2. Profile + Memory
+   每个 profile 有独立的 MEMORY.md 和 USER.md
+   不会出现"个人闲聊污染工作记忆"的问题
+
+3. Profile + Sessions
+   会话按 profile 隔离
+   一个 profile 下历史记录不会出现在另一个 profile 的 sessions list 里
+
+4. Profile + Gateway
+   gateway 启动时可用 --profile 指定
+   不同 profile 可以绑定不同平台（一个管 Telegram，一个管飞书）
+
+5. Profile + Cron
+   cron 任务的 prompt 中可以指定 profile 逻辑
+   但 cron 调度本身是全局的，不归某个 profile 专属
+
+=== 成本考量 ===
+
+Profile 本身零成本——只是目录隔离，不消耗任何 API 调用。
+多 profile 的额外开销仅来自：
+- 磁盘空间：每个 profile 的会话记录、技能、记忆会占用额外空间
+- 管理成本：需要额外维护多个 .env 文件里的 API keys
+
+一条经验：如果只能用一种模型/一套配置，无需 profile。
+如果有两套以上不共享的上下文，profile 是首选方案。

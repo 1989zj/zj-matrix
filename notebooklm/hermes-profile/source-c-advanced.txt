@@ -1,0 +1,121 @@
+=== Hermes Agent Profile：进阶用法与实战场景 ===
+
+=== 场景一：多客户隔离 ===
+
+背景：你同时给几个客户搞 Hermes Agent 自动化。
+每个客户的 API key 不同、技能组合不同、记忆完全不能混。
+
+方案：
+  hermes profile create client-a --clone
+  hermes profile create client-b --clone
+  # 每个 profile 单独配置 .env、skills、memory
+  # 启动时：hermes --profile client-a
+  # 或者生成 alias 脚本
+  hermes profile alias client-a
+  hermes profile alias client-b
+  # 之后直接用 hermes-client-a 和 hermes-client-b 命令
+
+隔离效果：
+- client-a 的会话不会出现在 client-b 的 sessions list 里
+- 客户 A 的 API key 不会泄漏到客户 B 的环境中
+- 每个客户可以有自己的技能插件，互不干扰
+
+=== 场景二：测试 → 生产流程 ===
+
+背景：你写了一个新 skill，不确定会不会搞坏现状。
+
+方案：
+  # 测试 profile：用便宜模型，开 yolo
+  hermes profile create test --clone
+  # 修改 test profile：
+  #   - model: deepseek-chat（便宜）
+  #   - agent.yolo: true（不用确认）
+  #   - 新增 skills：待测试的新技能
+
+  # 生产 profile：稳定配置，关闭危险操作
+  hermes profile create prod --clone
+  # 修改 prod profile：
+  #   - model: claude-sonnet（稳定）
+  #   - agent.yolo: false（必须确认危险命令）
+  #   - 只加载已验证的技能
+
+  # 测试流程：
+  hermes -p test -s new-skill chat -q "测试新技能"
+  # 确认没问题后，将新技能复制到 prod profile
+  cp -r ~/.hermes/profiles/test/skills/new-skill ~/.hermes/profiles/prod/skills/
+
+=== 场景三：跨机器迁移 ===
+
+背景：你在服务器 A 上配置好了所有东西，想在服务器 B 上复用。
+
+方案：
+  # 服务器 A：导出
+  hermes profile export work
+  # 生成 work-20260605.tar.gz
+
+  # 传到服务器 B
+  scp work-20260605.tar.gz server-b:~/
+
+  # 服务器 B：导入
+  hermes profile import work-20260605.tar.gz
+  hermes profile use work
+
+注意事项：
+- .env 中的 API key 会一起导出——安全传输
+- 导入后检查 config.yaml 中的路径（如 cwd 路径在目标机器上是否存在）
+- 技能依赖的二进制工具（如 ffmpeg）需要在目标机器预先安装
+
+=== 场景四：团队共享 profile ===
+
+背景：你给团队配置了一个基础 profile，大家在此基础上微调。
+
+方案：
+  1. 在某个机器上配置好基础 profile（含常用技能、推荐模型配置）
+  2. export 成 tar.gz 上传到共享存储
+  3. 每个团队成员 import 后个性化修改
+
+  或者用 git 管理：
+  cd ~/.hermes/profiles/
+  git init
+  git add base-profile/
+  git commit -m "初始基础 profile"
+  # 团队成员 clone 后自行修改
+
+=== 场景五：与 gateway 配合 ===
+
+背景：一台服务器跑多个 Hermes 实例，不同 profile 绑定不同平台。
+
+方案：
+  hero@server:~$ hermes profile create telegram-ops --clone
+  hero@server:~$ hermes profile create feishu-ops --clone
+
+  # 修改两个 profile 的 gateway 配置
+  # telegram-ops 只配置 Telegram 平台
+  # feishu-ops 只配置飞书平台
+
+  # 分开启动
+  tmux new-session -d -s tg 'hermes -p telegram-ops gateway run'
+  tmux new-session -d -s fs 'hermes -p feishu-ops gateway run'
+
+  # 两个 gateway 实例独立运行，各自处理各自平台的消息
+
+=== 进阶技巧 ===
+
+1. Cron 任务指定 profile
+   cronjob 的 model 参数只控制模型，profile 需要手动在 prompt 中指定
+   但可以用 --profile 在启动时指定
+
+2. Profile 嵌套不适用
+   profile 不能嵌套——hermes profile create inside-work --clone-from work
+   这种方式并不是嵌套，只是创建了一个独立的 copy
+
+3. 批量操作
+   需要批量管理多个 profile 时，直接用 shell 脚本操作目录：
+   for p in ~/.hermes/profiles/*/; do echo $(basename $p); done
+
+4. 对比两个 profile 的差异
+   diff ~/.hermes/profiles/work/config.yaml ~/.hermes/profiles/personal/config.yaml
+
+=== 一句话总结 ===
+
+Profile 是 Hermes Agent 的多租户能力——同一个二进制，N 个平行宇宙。

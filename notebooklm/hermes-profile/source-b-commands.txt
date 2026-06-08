@@ -1,0 +1,109 @@
+=== Hermes Agent Profile：完整命令参考 ===
+
+=== 一、创建 Profile ===
+
+hermes profile create <名称>
+  # 创建一个空白 profile，从头配置
+
+hermes profile create <名称> --clone
+  # 从当前活跃 profile 克隆配置（不含记忆和会话）
+
+hermes profile create <名称> --clone-all
+  # 克隆全部：配置 + 技能 + 记忆 + 会话
+
+hermes profile create <名称> --clone-from <源profile>
+  # 从指定 profile 克隆
+
+创建后，profile 目录结构自动生成：
+~/.hermes/profiles/<名称>/
+  ├── config.yaml     # 独立配置（模型、终端、工具集等）
+  ├── .env            # 独立 API key 文件
+  ├── skills/         # 独立技能目录
+  ├── sessions/       # 独立会话存储
+  ├── memories/       # 独立记忆文件
+  └── logs/           # 独立日志
+
+=== 二、查看与切换 ===
+
+hermes profile list
+  # 列出所有 profile，当前活跃的带 * 标记
+
+hermes profile show <名称>
+  # 查看 profile 详情：目录路径、config 关键字段、技能数、会话数
+
+hermes profile use <名称>
+  # 设置 sticky 默认——之后所有 hermes 命令默认使用此 profile
+  # 相当于写入 ~/.hermes/.default_profile 文件
+
+=== 三、运行中指定 Profile（不改变默认） ===
+
+hermes --profile <名称>
+  # 单次运行使用指定 profile，不影响默认
+  # 可简写为 -p <名称>
+
+hermes --profile work chat -q "检查今天待办"
+  # 在 work profile 下执行单次查询
+
+hermes --profile personal -s my-tools
+  # 在 personal profile 下加载特定 skill 启动会话
+
+=== 四、管理与维护 ===
+
+hermes profile rename <旧名> <新名>
+  # 重命名 profile，自动迁移目录和关联文件
+
+hermes profile delete <名称>
+  # 删除 profile（会删除目录下所有数据）
+  # 建议先 export 备份
+
+hermes profile alias <名称>
+  # 生成包装脚本——创建 shell 命令快捷方式
+  # 例如：hermes profile alias work
+  # 生成 /usr/local/bin/hermes-work 脚本，自动加载 work profile
+
+=== 五、迁移与备份 ===
+
+hermes profile export <名称>
+  # 将 profile 导出为 tar.gz 压缩包
+  # 输出到当前目录：<名称>-<时间戳>.tar.gz
+  # 包含 config.yaml、.env、skills、memories 等
+
+hermes profile import <文件路径>
+  # 从 tar.gz 导入 profile
+  # 可用于：跨机器迁移、备份恢复、分享给团队成员
+
+=== 六、实战示例：搭建工作/个人双 profile ===
+
+# 1. 从当前配置克隆工作 profile
+hermes profile create work --clone
+# 2. 克隆个人 profile（不克隆记忆，保持干净）
+hermes profile create personal --clone
+# 3. 设置 work 为默认
+hermes profile use work
+# 4. 配置 personal 的模型为 DeepSeek（省钱）
+#    修改 ~/.hermes/profiles/personal/config.yaml
+#    更改 model.default 和 model.provider
+# 5. 配置 personal 的 .env 只放 DeepSeek API key
+# 6. 测试切换
+hermes --profile personal chat -q "当前使用的模型是什么？"
+
+=== 七、常见错误 ===
+
+1. "Profile already exists"
+   解决：先删除再创建，或用 rename 换个名字
+
+2. 切换 profile 后技能没变
+   原因：/reset 了吗？profile 切换后需要新会话才生效
+   解决：退出当前会话重新进入
+
+3. 克隆 profile 后 .env 里的 API key 没带过来
+   原因：--clone 默认不含 .env（安全考虑）
+   解决：用 --clone-all 或手动复制 .env
+
+4. 导入 profile 后 config 里的路径不对
+   原因：旧机器上的绝对路径在新机器上不存在
+   解决：手动编辑 config.yaml 中的 path 相关字段
+
+5. 在 gateway 中使用 profile 没效果
+   原因：gateway 启动时没带 --profile
+   解决：hermes gateway restart --profile <名称>
