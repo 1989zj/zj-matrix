@@ -1,0 +1,108 @@
+═══════════════════════════════════════════════════════════════
+Source A: 两个框架的基础档案 — OpenClaw vs Hermes Agent
+═══════════════════════════════════════════════════════════════
+
+一、OpenClaw 档案
+
+创始人：Peter Steinberger（奥地利独立开发者，"vibe coder"）
+组织：OpenClaw Foundation（2026年2月 Steinberger 加入 OpenAI 后成立的非营利基金会）
+首发：2025年11月24日（原名 Warelay → CLAWDIS → Clawdbot → Moltbot → OpenClaw）
+技术栈：TypeScript + Swift
+许可证：MIT
+GitHub：247,000+ stars，47,700+ forks（截至2026年3月）
+官网：openclaw.ai
+维基百科：有独立词条
+
+核心定位：
+  "Your own personal AI assistant. Any OS. Any Platform."
+  以消息平台为主要交互界面的自主 AI Agent。
+  运行在用户本地，通过 Signal/Telegram/Discord/WhatsApp 等消息应用交互。
+
+关键事件：
+  - 2026年1月爆火（Moltbook 社交网络病毒式传播）
+  - 2026年2月 Steinberger 宣布加入 OpenAI
+  - 2026年3月中国政府对国企/银行/政府机构禁用 OpenClaw
+  - 微软内部测试 "ClawPilot"（基于 OpenClaw 的桌面环境）
+  - Google 开发 "Remy" 作为竞品
+
+Skills 系统：
+  OpenClaw 也有 Skills 系统——Skills 以目录形式存储，包含 SKILL.md 文件。
+  分为 bundled（内置）、global（全局安装）、workspace（工作区）三级，
+  workspace skills 优先级最高。
+
+安全争议：
+  - Cisco 安全团队测试发现第三方 Skill 存在数据窃取和提示注入风险
+  - OpenClaw 维护者 Shadow 在 Discord 警告："如果你不懂命令行，这个项目对你来说太危险了"
+  - 中国政府对国企/银行发布使用禁令
+
+二、Hermes Agent 档案
+
+开发者：Nous Research
+首发：2025年（具体日期未公开）
+技术栈：Python
+许可证：MIT
+GitHub：nousresearch/hermes-agent
+官网：hermes-agent.nousresearch.com
+
+核心定位：
+  "The self-improving AI agent"
+  强调自学习能力——Skills 从经验中创建、使用中自我改进。
+  同样的多平台消息网关 + 终端界面。
+
+独有特性（OpenClaw 没有的）：
+  - Skills 自学习闭环：Agent 完成任务后自动提议保存为 Skill
+  - 持久化 Memory：跨会话记忆 + 多后端支持（内置/Honcho/Mem0）
+  - Profile 系统：一套安装运行多个完全隔离的 Agent 实例
+  - 内置 Cron 调度器：自然语言创建定时任务
+  - Web Dashboard + Desktop App
+  - Nous Portal：一个 OAuth 覆盖 300+ 模型 + 工具网关
+  - Codex 运行时集成
+  - Credential Pools：多 Key 轮换
+
+三、关键事实对比
+
+                     OpenClaw                    Hermes Agent
+─────────────────────────────────────────────────────────────
+开发者               Peter Steinberger            Nous Research
+                      → 已加入 OpenAI
+组织                 OpenClaw Foundation          Nous Research
+首发时间             2025年11月                   2025年
+技术栈               TypeScript + Swift           Python
+GitHub Stars         247,000+                     未公开（较小）
+维基百科             有独立词条                    无
+Skills 系统          有（目录 + SKILL.md）         有（自学习 + agentskills.io 标准）
+Memory               基础（文件存储）              结构化 + 多后端
+多 Agent             有限（workspace 分离）        完整 Profile 系统
+Cron 调度            无内置                       内置 + 任意平台投递
+Dashboard            无                           Web + Desktop
+商业模式             开源 + 基金会                 开源 + Nous Portal 订阅
+中国政策             政府禁用国企/银行使用          无已知限制
+安全记录             Cisco 发现第三方 Skill 漏洞   无公开重大安全事件
+
+四、两者的 Skills 系统对比
+
+相同点：
+  - 都使用 SKILL.md 文件格式
+  - 都支持分级加载（bundled/global/workspace）
+  - 都符合 agentskills.io 开放标准（可跨框架共享）
+
+不同点：
+  OpenClaw：Skills 是静态文件，用户手动创建和管理
+  Hermes：Skills 是动态资产，Agent 自动创建、使用中自我改进（patch）
+
+五、Hermes 的「claw migrate」是什么
+
+hermes claw migrate 是一个竞品迁移工具——帮助 OpenClaw 用户把配置和数据导入 Hermes。
+这不是「继承关系」的证明，而是「抢用户」的策略。
+
+迁移覆盖：
+  SOUL.md → Hermes 人格文件
+  MEMORY.md / USER.md → Hermes 记忆系统
+  Skills（4个来源目录）→ ~/.hermes/skills/openclaw-imports/
+  API Keys → ~/.hermes/.env
+  消息平台 Token（Telegram/Discord/Slack/WhatsApp/Signal/Matrix）
+  MCP 服务器配置
+  TTS 语音设置
+
+无法自动迁移（需手动处理）：
+  Cron 任务、Hooks/Webhooks、WhatsApp 配对、插件配置

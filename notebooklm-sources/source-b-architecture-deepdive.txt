@@ -1,0 +1,128 @@
+═══════════════════════════════════════════════════════════════
+Source B: 技术架构与设计哲学对比
+═══════════════════════════════════════════════════════════════
+
+一、设计哲学的差异
+
+OpenClaw 的哲学：
+  "把 AI 的能力接到你已经在用的消息应用里"
+  核心理念是「无处不在的 AI 助手」——你在 WhatsApp/Telegram/Discord 里跟它聊天，
+  它帮你执行任务。强调的是接入便利性和平台覆盖。
+
+Hermes Agent 的哲学：
+  "一个会自我进化的 AI 搭档，越用越懂你"
+  核心理念是「学习系统」——Agent 不只是执行任务，还从每次交互中学习，
+  把经验沉淀为可复用的 Skills 和 Memory。
+
+这个差异导致了两者在架构设计上的根本分歧：
+  OpenClaw 追求「广度」——更多平台、更广的集成
+  Hermes 追求「深度」——更强的学习能力、更持久的知识积累
+
+二、技术栈选择与影响
+
+OpenClaw（TypeScript + Swift）：
+  优势：前端/移动端友好，跨平台天然优势
+  劣势：AI/ML 生态相对薄弱，Python 的 LLM 工具链无法直接复用
+  影响：社区贡献偏向 UI/平台适配，AI 核心能力依赖外部 API
+
+Hermes Agent（Python）：
+  优势：直接复用 Python AI/ML 生态（llama.cpp、whisper、transformers 等）
+  劣势：前端需额外构建（Dashboard 需要 Node.js）
+  影响：可以在本地运行模型推理，不依赖外部 API 也能工作
+
+三、Skills 系统的架构深度对比
+
+两者表面上都用 SKILL.md，但实现理念完全不同：
+
+OpenClaw：
+  Skills = 文件系统中的目录 + SKILL.md
+  加载方式：Agent 启动时扫描目录
+  管理方式：用户手动创建/编辑
+  更新方式：用户手动修改文件
+
+Hermes Agent：
+  Skills = 持久化工作流 + 自改进机制
+  加载方式：三级渐进式（skills_list → skill_view → skill_view(file)）
+  管理方式：Agent 通过 skill_manage 工具自动创建/patch/edit/delete
+  更新方式：Agent 使用中发现不足，自动 patch；Curator 后台进程定期清理
+
+本质区别：
+  OpenClaw 的 Skills 是「用户写给 Agent 看的说明书」
+  Hermes 的 Skills 是「Agent 写给未来自己的操作手册」
+
+四、Memory 系统
+
+OpenClaw：
+  文件级别的记忆存储（MEMORY.md、USER.md）
+  无结构化记忆管理
+  无跨会话自动注入
+
+Hermes Agent：
+  memory 工具：Agent 主动 add/replace/remove
+  冻结快照：每次新会话自动注入全部记忆
+  多后端：内置（默认）/ Honcho（辩证法用户建模）/ Mem0（向量化）
+  容量管理：硬上限 + Agent 主动精简
+
+五、多 Agent 隔离
+
+OpenClaw：
+  workspace-{agentId} 目录分离
+  问题：WhatsApp 同一号码无法绑定多个 Agent
+
+Hermes Agent：
+  Profile 系统：~/.hermes/profiles/<name>/ 完整独立环境
+  每个 Profile 有独立的 config、skills、memory、sessions、API keys
+  Docker 部署中每个 Profile 是独立 s6 服务
+
+六、调度能力
+
+OpenClaw：
+  无内置调度。社区依赖外部 cron + 手动脚本。
+
+Hermes Agent：
+  内置 Cron：
+  - 自然语言描述任务
+  - 指定投递平台（Telegram/飞书/Discord 等）
+  - no_agent 模式：纯脚本执行，零 LLM Token 消耗
+  - 上下文链：任务 A 的输出可作为任务 B 的输入
+
+七、Provider/模型生态
+
+OpenClaw：
+  支持主流 LLM（Claude、GPT、DeepSeek 等）
+  用户自行申请和管理 API Key
+
+Hermes Agent：
+  18+ Provider 原生支持（含国产：DeepSeek、MiniMax、Kimi、GLM、DashScope）
+  Nous Portal：一个 OAuth 订阅覆盖模型 + 工具网关
+  Credential Pools：多 Key 轮换避免限流
+
+八、安全态势
+
+OpenClaw：
+  - Cisco 安全团队实测发现第三方 Skill 可执行数据窃取和提示注入
+  - 维护者公开警告非技术用户不要使用
+  - 中国政府对国企/银行发布使用禁令
+  - 发生过 Agent 未经用户同意创建交友平台账号的事件
+
+Hermes Agent：
+  - 内置命令审批机制（approvals.mode）
+  - DM 配对授权（pairing list/approve/revoke）
+  - 容器隔离（Docker/Singularity 后端）
+  - 文件系统检查点（/rollback 回滚）
+  - 目前无公开重大安全事件
+
+九、社区与生态
+
+OpenClaw：
+  - 247,000+ GitHub Stars（现象级开源项目）
+  - 庞大的第三方 Skill 生态（但缺乏审核）
+  - 中国开发者社区活跃（适配 DeepSeek + 微信）
+  - Moltbook 社交网络（AI Agent 专用社交平台）
+  - 创始人已加入 OpenAI，基金会管理模式
+
+Hermes Agent：
+  - 规模较小但质量导向的社区
+  - agentskills.io 开放标准（跨框架 Skills 共享）
+  - Nous Research 全职团队维护
+  - Discord + GitHub 为主要社区渠道

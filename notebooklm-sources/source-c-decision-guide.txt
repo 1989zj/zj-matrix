@@ -1,0 +1,115 @@
+═══════════════════════════════════════════════════════════════
+Source C: 选型决策指南 — 什么时候选 OpenClaw，什么时候选 Hermes
+═══════════════════════════════════════════════════════════════
+
+一、先纠正一个常见误解
+
+很多人以为 Hermes Agent 是 OpenClaw 的「继任者」或「升级版」。
+这是错的。两者是不同团队、不同技术栈、不同设计哲学的独立竞品。
+
+Hermes 提供 hermes claw migrate 工具，不是因为它继承了 OpenClaw，
+而是因为它想让 OpenClaw 用户更容易切换过来——这是竞品策略，不是继承关系。
+
+类比：
+  OpenClaw : Hermes Agent ≈ Firefox : Chrome
+  不是「Chrome 是 Firefox 的新版本」，而是「Chrome 提供了从 Firefox 导入书签的功能」
+
+二、选 OpenClaw 的场景
+
+1. 你需要最大的社区和生态
+   247,000+ Stars、47,700+ Forks——这是目前最大的开源 AI Agent 项目。
+   遇到问题几乎一定有人遇到过并解决了。
+   第三方 Skills、部署教程、中文社区资源极其丰富。
+
+2. 你的核心需求是「消息平台里的 AI 助手」
+   OpenClaw 的定位就是「在 WhatsApp/Telegram/Discord 里聊天的 AI」。
+   如果你主要用消息应用跟 Agent 交互，OpenClaw 的原生体验可能更好。
+
+3. 你偏好 TypeScript 生态
+   如果你想自己改代码、贡献 PR，TypeScript 技术栈可能更适合你。
+
+4. 你需要「已经验证过的」方案
+   OpenClaw 经历了 2026 年初的病毒式爆发，被 TechCrunch、CNBC、Wired、
+   The Verge 等主流媒体大量报道。它的能力和局限都已经被充分讨论。
+
+三、选 Hermes Agent 的场景
+
+1. 你希望 Agent 越用越好（自学习）
+   这是 Hermes 最核心的差异化优势。Skills 自学习 + Memory 持久化意味着
+   使用时间越长，Agent 对你的了解越深，重复性工作越少。
+
+2. 你需要多个独立 Agent 实例
+   Profile 系统让「工作 Agent」和「个人 Agent」完全隔离，
+   各自有独立的配置、记忆、Skills、API Key。
+
+3. 你需要定时自动化
+   内置 Cron 调度器可以直接用自然语言创建定时任务：
+   「每天早上 9 点抓取 A 股新闻，总结 3 条最重要的，发到飞书」
+
+4. 你关心安全
+   OpenClaw 有公开的安全事件记录（Cisco 发现第三方 Skill 漏洞、
+   中国政府部门禁用）。Hermes 目前没有已知重大安全事件，
+   且有内置的命令审批、DM 配对、容器隔离等安全机制。
+
+5. 你在中国大陆使用
+   OpenClaw 被中国政府对国企/银行/政府机构禁用。
+   Hermes 原生支持飞书、钉钉、企业微信等国内平台，
+   且支持 DeepSeek、MiniMax、Kimi、GLM 等国产模型。
+
+6. 你想降低 API Key 管理成本
+   Nous Portal 一个 OAuth 登录覆盖模型 + 搜索 + 图片生成 + TTS + 浏览器。
+   不需要分别申请和管理多个 API Key。
+
+四、决策矩阵
+
+                         选 OpenClaw              选 Hermes Agent
+─────────────────────────────────────────────────────────────
+社区规模                  ★★★★★ (247K stars)       ★★★ (较小但活跃)
+自学习能力                ★★ (静态 Skills)          ★★★★★ (核心特性)
+多 Agent 隔离             ★★★ (workspace)           ★★★★★ (Profile)
+定时任务                  ★★ (需外部 cron)          ★★★★★ (内置)
+安全记录                  ★★ (有公开事件)           ★★★★ (无已知事件)
+中国可用性                ★★ (政府禁用国企)         ★★★★ (支持国产平台)
+国产模型                  ★★★ (社区适配)            ★★★★★ (原生支持)
+Dashboard                 ★ (无)                    ★★★★ (Web + Desktop)
+技术栈                    TypeScript                Python
+维护方                    基金会（创始人已离职）      Nous Research 全职团队
+
+五、迁移成本（OpenClaw → Hermes）
+
+如果你已经在用 OpenClaw，迁移到 Hermes 的成本：
+
+一条命令：
+  hermes claw migrate --dry-run    # 预览
+  hermes claw migrate --preset full --migrate-secrets  # 执行
+
+自动迁移：
+  ✅ SOUL.md、MEMORY.md、USER.md
+  ✅ Skills（导入到 openclaw-imports/）
+  ✅ API Keys
+  ✅ 消息平台 Token（Telegram/Discord/Slack 等）
+  ✅ MCP 服务器配置
+  ✅ TTS 设置
+
+需要手动处理：
+  ❌ Cron 任务 → 用 hermes cron create 重建
+  ❌ Hooks/Webhooks → 用 hermes webhook 重建
+  ❌ WhatsApp 配对 → 重新扫码
+  ❌ 插件配置 → 手动迁移
+
+预计耗时：15-30 分钟
+
+六、也可以两个都用
+
+两者不是互斥的。你可以：
+  - 继续用 OpenClaw 做日常消息平台交互
+  - 用 Hermes Agent 做定时自动化 + 需要自学习的复杂工作流
+  - 通过 MCP 协议让两者互通
+
+七、一句话总结
+
+OpenClaw 是「当下最强的 AI 助手」——社区大、生态丰富、验证充分。
+Hermes Agent 是「会成长的 AI 搭档」——自学习、持久记忆、越用越懂你。
+
+如果你追求「开箱即用 + 社区支持」，选 OpenClaw。
+如果你追求「长期价值 + 深度定制」，选 Hermes Agent。
